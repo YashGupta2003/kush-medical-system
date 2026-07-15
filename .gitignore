@@ -1,0 +1,9 @@
+backend/venv/
+backend/.env
+backend/gcp-vision-key.json
+backend/uploads/
+__pycache__/
+*.pyc
+frontend/node_modules/
+frontend/dist/
+.DS_Store
