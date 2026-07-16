@@ -14,6 +14,11 @@ class Settings(BaseSettings):
 
     google_application_credentials: str = "./gcp-vision-key.json"
 
+    # "auto" = try Google first, fall back to Tesseract automatically
+    # "google" = Google only (no fallback)
+    # "tesseract" = Tesseract only (fully free/offline, skips Google entirely)
+    ocr_engine: str = "auto"
+
     upload_dir: str = "./uploads"
     fuzzy_match_threshold: int = Field(default=85, description="0-100, RapidFuzz score")
 
