@@ -1,19 +1,14 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
-
-const FIELDS = [
-  "raw_name", "qty", "free_qty", "mrp", "rate",
-  "discount_pct", "special_discount_pct", "gst_pct",
-];
 
 export default function ReviewBill() {
   const { billId } = useParams();
   const [bill, setBill] = useState(null);
-  const [rows, setRows] = useState({});          // id -> edited field values
-  const [applyFlags, setApplyFlags] = useState({}); // id -> apply_to_master_list bool
+  const [rows, setRows] = useState({});
+  const [applyFlags, setApplyFlags] = useState({});
+  const [stage, setStage] = useState("reviewing"); // reviewing -> confirming -> applying -> done
   const [changeSummary, setChangeSummary] = useState(null);
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
@@ -31,14 +26,13 @@ export default function ReviewBill() {
   }, [billId]);
 
   function updateField(itemId, field, value) {
-    setRows((prev) => ({
-      ...prev,
-      [itemId]: { ...prev[itemId], [field]: value },
-    }));
+    setRows((prev) => ({ ...prev, [itemId]: { ...prev[itemId], [field]: value } }));
   }
 
-  async function handleConfirm() {
-    setSaving(true);
+  const itemsToApplyCount = Object.values(applyFlags).filter(Boolean).length;
+
+  async function handleFinalConfirm() {
+    setStage("applying");
     setError(null);
     try {
       const items = Object.values(rows).map((r) => ({
@@ -56,23 +50,28 @@ export default function ReviewBill() {
       }));
       const summary = await api.confirmBill({ bill_id: Number(billId), items });
       setChangeSummary(summary);
+      setStage("done");
     } catch (err) {
       setError(err.message);
-    } finally {
-      setSaving(false);
+      setStage("reviewing");
     }
   }
 
   if (!bill) return <p>Loading...</p>;
 
-  if (changeSummary) {
+  // ---- Stage 3: done - show each item being found & updated, then link to full list ----
+  if (stage === "done" && changeSummary) {
     return (
       <div className="card">
-        <h2>Confirmed — here's exactly what changed</h2>
+        <h2>✅ Master list updated</h2>
+        <p style={{ color: "#666", fontSize: 13 }}>
+          Every item below was searched for in your master rate list and updated. Nothing was
+          changed until you confirmed — this is the full record of what happened.
+        </p>
         {changeSummary.length === 0 && <p>No master rate list changes were made.</p>}
         <table>
           <thead>
-            <tr><th>Medicine</th><th>Column</th><th>Old value</th><th>New value</th></tr>
+            <tr><th>Medicine</th><th>Column</th><th>Old value</th><th>New value</th><th>Status</th></tr>
           </thead>
           <tbody>
             {changeSummary.map((c, i) => (
@@ -81,14 +80,43 @@ export default function ReviewBill() {
                 <td>{c.field === "net_rate" ? "Cost price (NET RATE)" : "MRP"}</td>
                 <td>{c.old_value ?? "—"}</td>
                 <td><strong>{c.new_value ?? "—"}</strong></td>
+                <td><span className="badge auto">found &amp; updated</span></td>
               </tr>
             ))}
           </tbody>
         </table>
+        <Link to="/">
+          <button style={{ marginTop: 16 }}>View full updated medicine list</button>
+        </Link>
       </div>
     );
   }
 
+  // ---- Stage 2: confirming - explicit "are you sure?" before anything is written ----
+  if (stage === "confirming") {
+    return (
+      <div className="card">
+        <h2>Update the master rate list now?</h2>
+        <p>
+          You're about to update <strong>{itemsToApplyCount}</strong> medicine
+          {itemsToApplyCount === 1 ? "" : "s"} in your master rate list based on this bill.
+          This cannot be silently undone (though every change stays in the audit trail).
+        </p>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={handleFinalConfirm}>Yes, update the list</button>
+          <button className="secondary" onClick={() => setStage("reviewing")}>
+            No, let me review again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (stage === "applying") {
+    return <div className="card"><p>Updating master list...</p></div>;
+  }
+
+  // ---- Stage 1: reviewing/editing extracted rows ----
   return (
     <div>
       <div className="card">
@@ -100,8 +128,8 @@ export default function ReviewBill() {
               {" "}{bill.year}-{String(bill.month).padStart(2, "0")}
             </p>
           </div>
-          <button onClick={handleConfirm} disabled={saving}>
-            {saving ? "Saving..." : "Confirm all & update rate list"}
+          <button onClick={() => setStage("confirming")}>
+            Looks good — proceed ({itemsToApplyCount} to update)
           </button>
         </div>
         {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
@@ -158,9 +186,7 @@ export default function ReviewBill() {
                   <input
                     type="checkbox"
                     checked={!!applyFlags[r.id]}
-                    onChange={(e) =>
-                      setApplyFlags((prev) => ({ ...prev, [r.id]: e.target.checked }))
-                    }
+                    onChange={(e) => setApplyFlags((prev) => ({ ...prev, [r.id]: e.target.checked }))}
                   />
                 </td>
               </tr>

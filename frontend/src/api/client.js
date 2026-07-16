@@ -1,5 +1,3 @@
-// All requests go through /api, proxied to the FastAPI backend (see vite.config.js).
-// Change this if you deploy the backend somewhere other than localhost:8000.
 const BASE = "/api";
 
 async function handle(res) {
@@ -28,8 +26,13 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handle),
 
-  searchMedicines: (q) =>
-    fetch(`${BASE}/medicines/search?q=${encodeURIComponent(q)}`).then(handle),
+  // Now handles BOTH "browse everything" (no q) and "search" (with q),
+  // and returns { items, total, page, page_size } for pagination.
+  browseMedicines: ({ q = "", page = 1, page_size = 50 } = {}) => {
+    const params = new URLSearchParams({ page, page_size });
+    if (q) params.set("q", q);
+    return fetch(`${BASE}/medicines?${params.toString()}`).then(handle);
+  },
 
   getMedicineHistory: (id) => fetch(`${BASE}/medicines/${id}/history`).then(handle),
 

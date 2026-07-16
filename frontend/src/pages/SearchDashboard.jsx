@@ -1,22 +1,38 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../api/client.js";
+
+const PAGE_SIZE = 50;
 
 export default function SearchDashboard() {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
 
-  async function handleSearch(e) {
-    const q = e.target.value;
-    setQuery(q);
-    if (q.length < 2) {
-      setResults([]);
-      return;
-    }
-    const data = await api.searchMedicines(q);
-    setResults(data);
+  // Load the full list (or a filtered page of it) whenever the query or page changes.
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    api
+      .browseMedicines({ q: query, page, page_size: PAGE_SIZE })
+      .then((data) => {
+        if (cancelled) return;
+        setResults((prev) => (page === 1 ? data.items : [...prev, ...data.items]));
+        setTotal(data.total);
+      })
+      .finally(() => !cancelled && setLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [query, page]);
+
+  function handleSearchChange(e) {
+    setQuery(e.target.value);
+    setPage(1); // reset to the first page whenever the search text changes
   }
 
   async function selectMedicine(med) {
@@ -36,30 +52,46 @@ export default function SearchDashboard() {
   return (
     <div>
       <div className="card">
-        <h2>Search medicine (Ctrl+F replacement)</h2>
+        <h2>Medicine list</h2>
+        <p style={{ color: "#666", fontSize: 13 }}>
+          Your full rate list is shown below. Start typing to narrow it down (Ctrl+F replacement).
+        </p>
         <input
           style={{ width: "100%" }}
-          placeholder="Start typing a medicine name..."
+          placeholder="Start typing a medicine name to filter, or just scroll to browse everything..."
           value={query}
-          onChange={handleSearch}
+          onChange={handleSearchChange}
         />
-        {results.length > 0 && (
-          <table style={{ marginTop: 12 }}>
-            <thead>
-              <tr><th>Name</th><th>Unit</th><th>MRP</th><th>Cost price</th><th>Company</th></tr>
-            </thead>
-            <tbody>
-              {results.map((m) => (
-                <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer" }}>
-                  <td>{m.particulars}</td>
-                  <td>{m.unit}</td>
-                  <td>{m.mrp}</td>
-                  <td>{m.net_rate}</td>
-                  <td>{m.company || "—"}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <p style={{ color: "#999", fontSize: 12, marginTop: 6 }}>
+          Showing {results.length} of {total} medicines{query ? ` matching "${query}"` : ""}
+        </p>
+
+        <table style={{ marginTop: 8 }}>
+          <thead>
+            <tr><th>Name</th><th>Unit</th><th>MRP</th><th>Cost price</th><th>Company</th></tr>
+          </thead>
+          <tbody>
+            {results.map((m) => (
+              <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer" }}>
+                <td>{m.particulars}</td>
+                <td>{m.unit}</td>
+                <td>{m.mrp}</td>
+                <td>{m.net_rate}</td>
+                <td>{m.company || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {results.length < total && (
+          <button
+            className="secondary"
+            style={{ marginTop: 10 }}
+            disabled={loading}
+            onClick={() => setPage((p) => p + 1)}
+          >
+            {loading ? "Loading..." : `Load more (${total - results.length} remaining)`}
+          </button>
         )}
       </div>
 

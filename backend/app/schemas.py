@@ -93,3 +93,9 @@ class ChangeSummaryItem(BaseModel):
     field: str            # "net_rate" or "mrp"
     old_value: Optional[float]
     new_value: Optional[float]
+
+class PaginatedMedicines(BaseModel):
+    items: List[MedicineOut]
+    total: int
+    page: int
+    page_size: int
