@@ -9,55 +9,33 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.config import settings
 from app import models, schemas
-from app.services.ocr_service import run_ocr
-from app.services.bill_parser import parse_bill_words
-from app.services.cost_calculator import compute_cost_per_unit, cross_check_amount
-from app.services.matcher import find_best_match, normalize
+from app.services.tasks import process_bill_task, reprocess_region_task
 
 router = APIRouter(prefix="/bills", tags=["bills"])
 
 
-@router.post("/upload", response_model=schemas.BillOut)
-async def upload_bill(
-    file: UploadFile = File(...),
-    distributor_name: Optional[str] = Form(None),
-    invoice_no: Optional[str] = Form(None),
-    invoice_date: Optional[str] = Form(None),   # "YYYY-MM-DD"
-    db: Session = Depends(get_db),
-):
-    """
-    Step 1 of the workflow: user photographs/uploads a bill.
-    This runs OCR + parsing + cost calc + fuzzy matching and stores everything
-    as a 'pending_review' bill. Nothing touches the master rate list yet -
-    that only happens after the user explicitly confirms (see /confirm below).
-    """
+def _resolve_distributor(db: Session, name: Optional[str]) -> Optional[models.Distributor]:
+    if not name:
+        return None
+    distributor = db.query(models.Distributor).filter_by(name=name.upper()).first()
+    if not distributor:
+        distributor = models.Distributor(name=name.upper())
+        db.add(distributor)
+        db.flush()
+    return distributor
+
+
+def _create_queued_bill(db: Session, file_bytes: bytes, filename: str,
+                         distributor_name: Optional[str], invoice_no: Optional[str],
+                         invoice_date: Optional[str]) -> models.Bill:
     os.makedirs(settings.upload_dir, exist_ok=True)
-    ext = os.path.splitext(file.filename or "")[1] or ".jpg"
+    ext = os.path.splitext(filename or "")[1] or ".jpg"
     saved_name = f"{uuid.uuid4().hex}{ext}"
     saved_path = os.path.join(settings.upload_dir, saved_name)
-
-    image_bytes = await file.read()
     with open(saved_path, "wb") as f:
-        f.write(image_bytes)
+        f.write(file_bytes)
 
-    raw_text, words = run_ocr(image_bytes)
-    parsed_rows = parse_bill_words(words)
-
-    if not parsed_rows:
-        raise HTTPException(
-            status_code=422,
-            detail="Could not detect a table structure on this bill. "
-                   "Try a clearer / flatter photo, or enter this bill's items manually.",
-        )
-
-    # resolve / create distributor
-    distributor = None
-    if distributor_name:
-        distributor = db.query(models.Distributor).filter_by(name=distributor_name.upper()).first()
-        if not distributor:
-            distributor = models.Distributor(name=distributor_name.upper())
-            db.add(distributor)
-            db.flush()
+    distributor = _resolve_distributor(db, distributor_name)
 
     inv_date = None
     if invoice_date:
@@ -65,8 +43,8 @@ async def upload_bill(
             inv_date = datetime.strptime(invoice_date, "%Y-%m-%d")
         except ValueError:
             inv_date = None
-
     now = inv_date or datetime.utcnow()
+
     bill = models.Bill(
         distributor_id=distributor.id if distributor else None,
         invoice_no=invoice_no,
@@ -74,61 +52,65 @@ async def upload_bill(
         year=now.year,
         month=now.month,
         image_path=saved_path,
-        status="pending_review",
-        raw_ocr_text=raw_text,
+        status="queued",
     )
     db.add(bill)
     db.flush()
+    return bill
 
-    total = 0.0
-    for row in parsed_rows:
-        f = row.fields
-        qty = f.get("qty", 0) or 0
-        free_qty = f.get("free_qty", 0) or 0
-        rate = f.get("rate", 0) or 0
-        discount_pct = f.get("discount_pct", 0) or 0
-        special_discount_pct = f.get("special_discount_pct", 0) or 0
-        gst_pct = f.get("gst_pct", 0) or 0
 
-        cost_per_unit = compute_cost_per_unit(
-            rate=rate, qty=qty, discount_pct=discount_pct,
-            special_discount_pct=special_discount_pct, gst_pct=gst_pct, free_qty=free_qty,
-        )
-        expected_amount = cross_check_amount(
-            rate=rate, qty=qty, discount_pct=discount_pct,
-            special_discount_pct=special_discount_pct, gst_pct=gst_pct,
-        )
-
-        medicine, confidence = find_best_match(db, f.get("name", ""))
-        match_status = "auto" if medicine else "unmatched"
-
-        item = models.BillItem(
-            bill_id=bill.id,
-            medicine_id=medicine.id if medicine else None,
-            raw_name=f.get("name", "").strip(),
-            pack=f.get("pack"),
-            batch=f.get("batch"),
-            exp_date=f.get("exp_date"),
-            qty=qty,
-            free_qty=free_qty,
-            mrp=f.get("mrp"),
-            rate=rate,
-            discount_pct=discount_pct,
-            special_discount_pct=special_discount_pct,
-            gst_pct=gst_pct,
-            amount=f.get("amount", expected_amount),
-            computed_cost_per_unit=cost_per_unit,
-            match_confidence=confidence,
-            match_status=match_status,
-        )
-        db.add(item)
-        total += float(f.get("amount", expected_amount) or 0)
-
-    bill.total_amount = total
+@router.post("/upload", response_model=schemas.UploadAcceptedResponse)
+async def upload_bill(
+    file: UploadFile = File(...),
+    distributor_name: Optional[str] = Form(None),
+    invoice_no: Optional[str] = Form(None),
+    invoice_date: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    file_bytes = await file.read()
+    bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, invoice_no, invoice_date)
     db.commit()
-    db.refresh(bill)
 
-    return _bill_to_out(db, bill)
+    task = process_bill_task.delay(bill.id)
+    bill.celery_task_id = task.id
+    db.commit()
+
+    return schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status)
+
+
+@router.post("/upload-batch", response_model=List[schemas.UploadAcceptedResponse])
+async def upload_bills_batch(
+    files: List[UploadFile] = File(...),
+    distributor_name: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    if not files:
+        raise HTTPException(400, "No files provided")
+
+    responses = []
+    for file in files:
+        file_bytes = await file.read()
+        bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, None, None)
+        db.commit()
+        task = process_bill_task.delay(bill.id)
+        bill.celery_task_id = task.id
+        db.commit()
+        responses.append(schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status))
+
+    return responses
+
+
+@router.get("/{bill_id}/status", response_model=schemas.BillStatusOut)
+def get_bill_status(bill_id: int, db: Session = Depends(get_db)):
+    bill = db.query(models.Bill).get(bill_id)
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+    return schemas.BillStatusOut(
+        id=bill.id, status=bill.status,
+        ocr_confidence=float(bill.ocr_confidence) if bill.ocr_confidence is not None else None,
+        needs_attention_reason=bill.needs_attention_reason,
+        processing_error=bill.processing_error,
+    )
 
 
 @router.get("/{bill_id}", response_model=schemas.BillOut)
@@ -139,10 +121,20 @@ def get_bill(bill_id: int, db: Session = Depends(get_db)):
     return _bill_to_out(db, bill)
 
 
+@router.get("/{bill_id}/image")
+def get_bill_image(bill_id: int, db: Session = Depends(get_db)):
+    from fastapi.responses import FileResponse
+    bill = db.query(models.Bill).get(bill_id)
+    if not bill or not bill.image_path or not os.path.exists(bill.image_path):
+        raise HTTPException(404, "Bill image not found")
+    return FileResponse(bill.image_path)
+
+
 @router.get("", response_model=List[schemas.BillOut])
 def list_bills(
     year: Optional[int] = None,
     month: Optional[int] = None,
+    status: Optional[str] = None,
     distributor_name: Optional[str] = None,
     db: Session = Depends(get_db),
 ):
@@ -151,27 +143,37 @@ def list_bills(
         q = q.filter(models.Bill.year == year)
     if month:
         q = q.filter(models.Bill.month == month)
+    if status:
+        q = q.filter(models.Bill.status == status)
     if distributor_name:
         q = q.join(models.Distributor).filter(models.Distributor.name == distributor_name.upper())
     bills = q.order_by(models.Bill.uploaded_at.desc()).all()
     return [_bill_to_out(db, b) for b in bills]
 
 
+@router.post("/{bill_id}/reprocess-region", response_model=schemas.RegionOcrResponse)
+def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Session = Depends(get_db)):
+    bill = db.query(models.Bill).get(bill_id)
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+
+    result = reprocess_region_task.apply(
+        args=[bill_id, payload.x0, payload.y0, payload.x1, payload.y1]
+    ).get()
+
+    if result.get("status") != "ok":
+        raise HTTPException(422, result.get("detail", "Could not read that region"))
+
+    return schemas.RegionOcrResponse(text=result["text"], confidence=result["confidence"])
+
+
 @router.post("/confirm", response_model=List[schemas.ChangeSummaryItem])
 def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_db)):
-    """
-    Step 2 of the workflow: user has reviewed the staged items (and possibly
-    corrected some fields or picked the right medicine manually), and confirms.
-    This is the ONLY place the master rate list actually gets updated, and
-    every change is logged to rate_history so nothing is silently overwritten.
-    Returns a change summary: exactly which column changed for which medicine.
-    """
     bill = db.query(models.Bill).get(payload.bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
 
     changes: List[schemas.ChangeSummaryItem] = []
-
     items_by_id = {item.id: item for item in bill.items}
 
     for edit in payload.items:
@@ -179,13 +181,13 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
         if item is None:
             continue
 
-        # apply any user corrections to the staged row first
         for attr in ("raw_name", "qty", "free_qty", "mrp", "rate",
                      "discount_pct", "special_discount_pct", "gst_pct"):
             value = getattr(edit, attr)
             if value is not None:
                 setattr(item, attr, value)
 
+        from app.services.cost_calculator import compute_cost_per_unit
         item.computed_cost_per_unit = compute_cost_per_unit(
             rate=float(item.rate or 0), qty=float(item.qty or 0),
             discount_pct=float(item.discount_pct or 0),
@@ -226,7 +228,6 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
                         old_value=float(old_mrp) if old_mrp is not None else None,
                         new_value=float(new_mrp) if new_mrp is not None else None,
                     ))
-
                 medicine.net_rate = new_rate
                 medicine.mrp = new_mrp
 
@@ -256,5 +257,8 @@ def _bill_to_out(db: Session, bill: models.Bill) -> schemas.BillOut:
         total_amount=float(bill.total_amount) if bill.total_amount is not None else None,
         status=bill.status,
         uploaded_at=bill.uploaded_at,
+        ocr_confidence=float(bill.ocr_confidence) if bill.ocr_confidence is not None else None,
+        needs_attention_reason=bill.needs_attention_reason,
+        processing_error=bill.processing_error,
         items=items_out,
     )

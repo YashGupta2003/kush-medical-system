@@ -10,7 +10,7 @@ export default function App() {
       <nav>
         <NavLink to="/" end>Search</NavLink>
         <NavLink to="/upload">Upload bill</NavLink>
-        <NavLink to="/bills">Bill history</NavLink>
+        <NavLink to="/bills">Review queue</NavLink>
       </nav>
       <div className="container">
         <Routes>

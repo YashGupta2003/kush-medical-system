@@ -11,22 +11,30 @@ router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 @router.get("/summary")
 def summary(db: Session = Depends(get_db)):
     total_medicines = db.query(func.count(models.Medicine.id)).scalar()
-    pending_bills = db.query(func.count(models.Bill.id)).filter(
-        models.Bill.status == "pending_review"
-    ).scalar()
-    unmatched_items = db.query(func.count(models.BillItem.id)).filter(
-        models.BillItem.match_status == "unmatched"
-    ).scalar()
+
+    status_counts = dict(
+        db.query(models.Bill.status, func.count(models.Bill.id))
+        .group_by(models.Bill.status)
+        .all()
+    )
+
     recent_changes = (
         db.query(models.RateHistory)
         .order_by(models.RateHistory.changed_at.desc())
         .limit(10)
         .all()
     )
+
     return {
         "total_medicines": total_medicines,
-        "pending_bills_awaiting_review": pending_bills,
-        "unmatched_items_needing_manual_link": unmatched_items,
+        "bill_status_counts": {
+            "queued": status_counts.get("queued", 0),
+            "processing": status_counts.get("processing", 0),
+            "pending_review": status_counts.get("pending_review", 0),
+            "needs_attention": status_counts.get("needs_attention", 0),
+            "confirmed": status_counts.get("confirmed", 0),
+            "failed": status_counts.get("failed", 0),
+        },
         "recent_rate_changes": [
             {
                 "medicine_id": r.medicine_id,

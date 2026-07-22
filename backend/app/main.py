@@ -1,12 +1,18 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.database import Base, engine
 from app.routers import bills, medicines, dashboard
 
-# Creates tables if they don't exist yet. For real schema changes later,
-# switch to Alembic migrations instead of relying on this.
-Base.metadata.create_all(bind=engine)
+# Schema is now managed by Alembic migrations (see backend/alembic/).
+
+
+
+# from app.database import Base, engine
+# from app.routers import bills, medicines, dashboard
+
+# # Creates tables if they don't exist yet. For real schema changes later,
+# # switch to Alembic migrations instead of relying on this.
+# Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Kush Medical Hall - Bill Digitization & Rate List System",

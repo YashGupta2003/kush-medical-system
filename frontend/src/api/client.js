@@ -12,7 +12,14 @@ export const api = {
   uploadBill: (formData) =>
     fetch(`${BASE}/bills/upload`, { method: "POST", body: formData }).then(handle),
 
+  uploadBillsBatch: (formData) =>
+    fetch(`${BASE}/bills/upload-batch`, { method: "POST", body: formData }).then(handle),
+
+  getBillStatus: (id) => fetch(`${BASE}/bills/${id}/status`).then(handle),
+
   getBill: (id) => fetch(`${BASE}/bills/${id}`).then(handle),
+
+  getBillImageUrl: (id) => `${BASE}/bills/${id}/image`,
 
   listBills: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
@@ -26,8 +33,13 @@ export const api = {
       body: JSON.stringify(payload),
     }).then(handle),
 
-  // Now handles BOTH "browse everything" (no q) and "search" (with q),
-  // and returns { items, total, page, page_size } for pagination.
+  reprocessRegion: (billId, box) =>
+    fetch(`${BASE}/bills/${billId}/reprocess-region`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(box),
+    }).then(handle),
+
   browseMedicines: ({ q = "", page = 1, page_size = 50 } = {}) => {
     const params = new URLSearchParams({ page, page_size });
     if (q) params.set("q", q);

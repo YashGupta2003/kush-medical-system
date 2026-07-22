@@ -1,17 +1,3 @@
-"""
-OCR with automatic fallback and automatic rotation correction:
-
-  1. Try Google Cloud Vision first (most accurate, needs billing enabled).
-  2. If that fails for ANY reason, fall back to Tesseract (free, offline).
-  3. Tesseract additionally auto-detects the correct rotation (0/90/180/270)
-     since phone photos are very often sideways - this fixes parsing
-     failures caused by rotated bill photos.
-
-Config (backend/.env):
-  OCR_ENGINE=auto       -> try Google first, fall back to Tesseract (default)
-  OCR_ENGINE=google      -> Google only, no fallback
-  OCR_ENGINE=tesseract   -> Tesseract only, fully free/offline
-"""
 import os
 from dataclasses import dataclass
 from io import BytesIO
@@ -27,6 +13,7 @@ class Word:
     x_max: float
     y_min: float
     y_max: float
+    confidence: float = 100.0
 
     @property
     def y_center(self) -> float:
@@ -37,7 +24,15 @@ class Word:
         return (self.x_min + self.x_max) / 2
 
 
-def _run_google_vision(image_bytes: bytes) -> tuple[str, List[Word]]:
+@dataclass
+class OcrResult:
+    full_text: str
+    words: List[Word]
+    avg_confidence: float
+    engine_used: str
+
+
+def _run_google_vision(image_bytes: bytes) -> OcrResult:
     from google.cloud import vision
 
     os.environ.setdefault(
@@ -53,6 +48,7 @@ def _run_google_vision(image_bytes: bytes) -> tuple[str, List[Word]]:
     full_text = response.full_text_annotation.text if response.full_text_annotation else ""
 
     words: List[Word] = []
+    confidences = []
     for page in response.full_text_annotation.pages:
         for block in page.blocks:
             for paragraph in block.paragraphs:
@@ -60,10 +56,14 @@ def _run_google_vision(image_bytes: bytes) -> tuple[str, List[Word]]:
                     text = "".join(symbol.text for symbol in word.symbols)
                     xs = [v.x for v in word.bounding_box.vertices]
                     ys = [v.y for v in word.bounding_box.vertices]
+                    conf = float(getattr(word, "confidence", 0.95)) * 100
+                    confidences.append(conf)
                     words.append(
-                        Word(text=text, x_min=min(xs), x_max=max(xs), y_min=min(ys), y_max=max(ys))
+                        Word(text=text, x_min=min(xs), x_max=max(xs),
+                             y_min=min(ys), y_max=max(ys), confidence=conf)
                     )
-    return full_text, words
+    avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+    return OcrResult(full_text=full_text, words=words, avg_confidence=avg_conf, engine_used="google")
 
 
 def _preprocess_for_tesseract(image):
@@ -74,12 +74,6 @@ def _preprocess_for_tesseract(image):
 
 
 def _score_orientation(image) -> tuple[float, dict]:
-    """
-    Runs Tesseract on one candidate orientation and scores it by total
-    confident-word count and average confidence - used to auto-pick the
-    correct rotation without relying on Tesseract's own (often unreliable
-    on invoice photos) orientation-detection feature.
-    """
     import pytesseract
     data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
     confidences = []
@@ -94,13 +88,6 @@ def _score_orientation(image) -> tuple[float, dict]:
 
 
 def _auto_rotate_and_ocr(processed_image):
-    """
-    Tries 0/90/180/270 degree rotations and keeps whichever orientation
-    Tesseract reads most confidently. Phone photos are very often rotated
-    (landscape bill photographed sideways), and parsing silently fails if
-    the text geometry is sideways - this fixes that at the source instead
-    of trying to patch the row/column math around it.
-    """
     best_score, best_data, best_angle = -1, None, 0
     for angle in (0, 90, 180, 270):
         candidate = processed_image.rotate(angle, expand=True) if angle else processed_image
@@ -111,7 +98,7 @@ def _auto_rotate_and_ocr(processed_image):
     return best_data
 
 
-def _run_tesseract(image_bytes: bytes) -> tuple[str, List[Word]]:
+def _run_tesseract(image_bytes: bytes) -> OcrResult:
     import pytesseract
     from PIL import Image
 
@@ -122,19 +109,22 @@ def _run_tesseract(image_bytes: bytes) -> tuple[str, List[Word]]:
     full_text = " ".join(t for t in data["text"] if t.strip())
 
     words: List[Word] = []
+    confidences = []
     for i in range(len(data["text"])):
         text = data["text"][i].strip()
         conf_raw = str(data["conf"][i])
         conf = int(conf_raw) if conf_raw.lstrip("-").isdigit() else -1
         if not text or conf < 30:
             continue
+        confidences.append(conf)
         x, y, w, h = data["left"][i], data["top"][i], data["width"][i], data["height"][i]
-        words.append(Word(text=text, x_min=x, x_max=x + w, y_min=y, y_max=y + h))
+        words.append(Word(text=text, x_min=x, x_max=x + w, y_min=y, y_max=y + h, confidence=float(conf)))
 
-    return full_text, words
+    avg_conf = sum(confidences) / len(confidences) if confidences else 0.0
+    return OcrResult(full_text=full_text, words=words, avg_confidence=avg_conf, engine_used="tesseract")
 
 
-def run_ocr(image_bytes: bytes) -> tuple[str, List[Word]]:
+def run_ocr(image_bytes: bytes) -> OcrResult:
     engine = (settings.ocr_engine or "auto").lower()
 
     if engine == "tesseract":

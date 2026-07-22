@@ -1,61 +1,44 @@
 from datetime import datetime
 from typing import Optional, List
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 
 class MedicineOut(BaseModel):
     id: int
     particulars: str
-    unit: Optional[str]
-    mrp: Optional[float]
-    net_rate: Optional[float]
-    company: Optional[str]
-    stockist: Optional[str]
+    unit: Optional[str] = None
+    mrp: Optional[float] = None
+    net_rate: Optional[float] = None
+    company: Optional[str] = None
+    stockist: Optional[str] = None
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class PaginatedMedicines(BaseModel):
+    items: List[MedicineOut]
+    total: int
+    page: int
+    page_size: int
 
 
 class RateHistoryOut(BaseModel):
     id: int
-    old_net_rate: Optional[float]
-    new_net_rate: Optional[float]
-    old_mrp: Optional[float]
-    new_mrp: Optional[float]
+    old_net_rate: Optional[float] = None
+    new_net_rate: Optional[float] = None
+    old_mrp: Optional[float] = None
+    new_mrp: Optional[float] = None
     changed_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class BillItemOut(BaseModel):
     id: int
     raw_name: str
-    pack: Optional[str]
-    batch: Optional[str]
-    exp_date: Optional[str]
-    qty: Optional[float]
-    free_qty: Optional[float]
-    mrp: Optional[float]
-    rate: Optional[float]
-    discount_pct: Optional[float]
-    special_discount_pct: Optional[float]
-    gst_pct: Optional[float]
-    amount: Optional[float]
-    computed_cost_per_unit: Optional[float]
-    match_confidence: Optional[float]
-    match_status: str
-    medicine_id: Optional[int]
-    suggested_medicine_name: Optional[str] = None  # filled in by the matcher for display
-
-    class Config:
-        from_attributes = True
-
-
-class BillItemEdit(BaseModel):
-    """Sent back by the frontend after the user reviews/edits a staged item."""
-    id: int
-    raw_name: Optional[str] = None
+    pack: Optional[str] = None
+    batch: Optional[str] = None
+    exp_date: Optional[str] = None
     qty: Optional[float] = None
     free_qty: Optional[float] = None
     mrp: Optional[float] = None
@@ -63,24 +46,68 @@ class BillItemEdit(BaseModel):
     discount_pct: Optional[float] = None
     special_discount_pct: Optional[float] = None
     gst_pct: Optional[float] = None
-    medicine_id: Optional[int] = None       # user can manually pick the correct medicine
-    apply_to_master_list: bool = True       # user can uncheck to skip updating master rate for this item
+    amount: Optional[float] = None
+    computed_cost_per_unit: Optional[float] = None
+    match_confidence: Optional[float] = None
+    match_status: str
+    medicine_id: Optional[int] = None
+    suggested_medicine_name: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BillItemEdit(BaseModel):
+    id: int
+    raw_name: Optional[str] = None
+    qty: Optional[float] = Field(default=None, ge=0)
+    free_qty: Optional[float] = Field(default=None, ge=0)
+    mrp: Optional[float] = Field(default=None, ge=0)
+    rate: Optional[float] = Field(default=None, ge=0)
+    discount_pct: Optional[float] = Field(default=None, ge=0, le=100)
+    special_discount_pct: Optional[float] = Field(default=None, ge=0, le=100)
+    gst_pct: Optional[float] = Field(default=None, ge=0, le=100)
+    medicine_id: Optional[int] = None
+    apply_to_master_list: bool = True
+
+    @field_validator("qty", "free_qty", "mrp", "rate", "discount_pct",
+                      "special_discount_pct", "gst_pct", mode="before")
+    @classmethod
+    def _reject_blank_strings(cls, v):
+        if v == "" or v is None:
+            return None
+        return v
 
 
 class BillOut(BaseModel):
     id: int
     distributor_name: Optional[str] = None
-    invoice_no: Optional[str]
-    invoice_date: Optional[datetime]
-    year: Optional[int]
-    month: Optional[int]
-    total_amount: Optional[float]
+    invoice_no: Optional[str] = None
+    invoice_date: Optional[datetime] = None
+    year: Optional[int] = None
+    month: Optional[int] = None
+    total_amount: Optional[float] = None
     status: str
     uploaded_at: datetime
+    ocr_confidence: Optional[float] = None
+    needs_attention_reason: Optional[str] = None
+    processing_error: Optional[str] = None
     items: List[BillItemOut] = []
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
+
+
+class BillStatusOut(BaseModel):
+    id: int
+    status: str
+    ocr_confidence: Optional[float] = None
+    needs_attention_reason: Optional[str] = None
+    processing_error: Optional[str] = None
+
+
+class UploadAcceptedResponse(BaseModel):
+    bill_id: int
+    task_id: str
+    status: str
 
 
 class ConfirmBillRequest(BaseModel):
@@ -90,12 +117,32 @@ class ConfirmBillRequest(BaseModel):
 
 class ChangeSummaryItem(BaseModel):
     medicine_name: str
-    field: str            # "net_rate" or "mrp"
-    old_value: Optional[float]
-    new_value: Optional[float]
+    field: str
+    old_value: Optional[float] = None
+    new_value: Optional[float] = None
 
-class PaginatedMedicines(BaseModel):
-    items: List[MedicineOut]
-    total: int
-    page: int
-    page_size: int
+
+class RegionOcrRequest(BaseModel):
+    x0: int = Field(ge=0)
+    y0: int = Field(ge=0)
+    x1: int = Field(ge=0)
+    y1: int = Field(ge=0)
+
+    @field_validator("x1")
+    @classmethod
+    def _x1_after_x0(cls, v, info):
+        if "x0" in info.data and v <= info.data["x0"]:
+            raise ValueError("x1 must be greater than x0")
+        return v
+
+    @field_validator("y1")
+    @classmethod
+    def _y1_after_y0(cls, v, info):
+        if "y0" in info.data and v <= info.data["y0"]:
+            raise ValueError("y1 must be greater than y0")
+        return v
+
+
+class RegionOcrResponse(BaseModel):
+    text: str
+    confidence: float

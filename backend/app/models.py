@@ -58,11 +58,25 @@ class Bill(Base):
     image_path = Column(String(500))
     total_amount = Column(Numeric(10, 2))
     status = Column(
-        Enum("pending_review", "confirmed", "rejected", name="bill_status"),
-        default="pending_review",
+        Enum("queued", "processing", "pending_review", "needs_attention",
+             "confirmed", "rejected", "failed", name="bill_status"),
+        default="queued",
     )
     uploaded_at = Column(DateTime, default=datetime.utcnow)
-    raw_ocr_text = Column(Text)   # full raw OCR dump, kept for debugging / reprocessing
+    raw_ocr_text = Column(Text)
+
+    celery_task_id = Column(String(100), nullable=True, index=True)
+    processing_error = Column(Text, nullable=True)
+    ocr_confidence = Column(Numeric(5, 2), nullable=True)
+    needs_attention_reason = Column(String(255), nullable=True)
+    preprocessing_notes = Column(Text, nullable=True)
+    
+    # status = Column(
+    #     Enum("pending_review", "confirmed", "rejected", name="bill_status"),
+    #     default="pending_review",
+    # )
+    # uploaded_at = Column(DateTime, default=datetime.utcnow)
+    # raw_ocr_text = Column(Text)   # full raw OCR dump, kept for debugging / reprocessing
 
     distributor = relationship("Distributor", back_populates="bills")
     items = relationship("BillItem", back_populates="bill", cascade="all, delete-orphan")
