@@ -198,6 +198,11 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
         if edit.medicine_id:
             item.medicine_id = edit.medicine_id
             item.match_status = "manual"
+            from app.services.matcher import save_learned_mapping
+            save_learned_mapping(
+                db, raw_name=item.raw_name, medicine_id=edit.medicine_id,
+                distributor_id=bill.distributor_id,
+            )
 
         item.match_status = "confirmed" if item.match_status != "unmatched" else "unmatched"
 

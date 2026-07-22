@@ -70,7 +70,7 @@ class Bill(Base):
     ocr_confidence = Column(Numeric(5, 2), nullable=True)
     needs_attention_reason = Column(String(255), nullable=True)
     preprocessing_notes = Column(Text, nullable=True)
-    
+
     # status = Column(
     #     Enum("pending_review", "confirmed", "rejected", name="bill_status"),
     #     default="pending_review",
@@ -106,10 +106,9 @@ class BillItem(Base):
 
     match_confidence = Column(Numeric(5, 2))            # 0-100 fuzzy match score
     match_status = Column(
-        Enum("auto", "manual", "unmatched", "confirmed", name="match_status"),
+        Enum("auto", "learned", "manual", "unmatched", "confirmed", name="match_status"),
         default="unmatched",
     )
-
     bill = relationship("Bill", back_populates="items")
     medicine = relationship("Medicine", back_populates="bill_items")
 
@@ -128,3 +127,20 @@ class RateHistory(Base):
     changed_at = Column(DateTime, default=datetime.utcnow)
 
     medicine = relationship("Medicine", back_populates="rate_history")
+
+class UserMapping(Base):
+    """
+    The 'learning' table. Every time a user manually picks or corrects which
+    medicine a bill line item actually is, that choice is remembered here.
+    """
+    __tablename__ = "user_mappings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True, index=True)
+    raw_name = Column(String(255), nullable=False, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    distributor = relationship("Distributor")

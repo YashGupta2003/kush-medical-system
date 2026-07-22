@@ -288,10 +288,11 @@ export default function ReviewBill() {
               <div style={{ marginBottom: 6 }}>
                 {r.suggested_medicine_name ? (
                   <span className={`badge ${r.match_status}`}>
+                    {r.match_status === "learned" ? "Learned match: " : r.match_status === "auto" ? "Auto-matched: " : ""}
                     {r.suggested_medicine_name} ({Math.round(r.match_confidence || 0)}%)
                   </span>
                 ) : (
-                  <span className="badge unmatched">no match — pick manually</span>
+                  <span className="badge unmatched">Unmatched — pick manually</span>
                 )}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>

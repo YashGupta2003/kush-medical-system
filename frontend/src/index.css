@@ -17,6 +17,7 @@ button { background: #1c1c1e; color: #fff; border: none; cursor: pointer; }
 button.secondary { background: #eee; color: #1c1c1e; }
 .badge { display: inline-block; padding: 2px 8px; border-radius: 10px; font-size: 11px; }
 .badge.auto { background: #d1f5d3; color: #14532d; }
+.badge.learned { background: #dbeafe; color: #1e3a8a; }
 .badge.manual { background: #fef3c7; color: #78350f; }
 .badge.unmatched { background: #fee2e2; color: #7f1d1d; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }

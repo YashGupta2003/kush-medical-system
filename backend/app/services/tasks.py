@@ -84,8 +84,9 @@ def process_bill_task(self, bill_id: int):
                 special_discount_pct=special_discount_pct, gst_pct=gst_pct,
             )
 
-            medicine, confidence = find_best_match(db, f.get("name", ""))
-            match_status = "auto" if medicine else "unmatched"
+            medicine, confidence, match_status = find_best_match(
+                db, f.get("name", ""), distributor_id=bill.distributor_id
+            )
 
             item = models.BillItem(
                 bill_id=bill.id,

@@ -69,7 +69,7 @@ def _find_header_row(rows: List[List[Word]]) -> Optional[int]:
             best_score, best_idx = score, i
     print(f"[bill_parser] best header row candidate: index={best_idx}, keyword_score={best_score}, "
           f"total_rows_detected={len(rows)}")
-    return best_idx if best_score >= 2 else None
+    return best_idx if best_score >= 4 else None
 
 
 def _build_column_map(header_row: List[Word]) -> List[tuple[float, str]]:
