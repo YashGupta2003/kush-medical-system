@@ -172,6 +172,8 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
     bill = db.query(models.Bill).get(payload.bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
+    if bill.status == "confirmed":
+        raise HTTPException(400, "This bill has already been confirmed.")
 
     changes: List[schemas.ChangeSummaryItem] = []
     items_by_id = {item.id: item for item in bill.items}
@@ -236,10 +238,13 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
                 medicine.net_rate = new_rate
                 medicine.mrp = new_mrp
 
+    from app.services import stock_service
+    if item.medicine_id:
+            stock_service.add_stock_from_confirmed_bill_item(db, item)
+
     bill.status = "confirmed"
     db.commit()
     return changes
-
 
 def _bill_to_out(db: Session, bill: models.Bill) -> schemas.BillOut:
     items_out = []

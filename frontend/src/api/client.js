@@ -49,4 +49,32 @@ export const api = {
   getMedicineHistory: (id) => fetch(`${BASE}/medicines/${id}/history`).then(handle),
 
   dashboardSummary: () => fetch(`${BASE}/dashboard/summary`).then(handle),
+
+  getStockSnapshot: (medicineId) => fetch(`${BASE}/stock/medicine/${medicineId}/snapshot`).then(handle),
+
+  recordSale: (medicineId, qtySold) =>
+    fetch(`${BASE}/stock/sales`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ medicine_id: medicineId, qty_sold: qtySold }),
+    }).then(handle),
+
+  getReorderList: () => fetch(`${BASE}/stock/reorder-list`).then(handle),
+
+  addManualReorderItem: (payload) =>
+    fetch(`${BASE}/stock/reorder-list/manual`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    }).then(handle),
+
+  removeReorderItem: (id) =>
+    fetch(`${BASE}/stock/reorder-list/${id}`, { method: "DELETE" }).then(handle),
+
+  updateLowStockThreshold: (medicineId, threshold) =>
+    fetch(`${BASE}/stock/medicine/${medicineId}/threshold`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ low_stock_threshold: threshold }),
+    }).then(handle),
 };

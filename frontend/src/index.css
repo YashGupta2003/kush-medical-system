@@ -21,3 +21,55 @@ button.secondary { background: #eee; color: #1c1c1e; }
 .badge.manual { background: #fef3c7; color: #78350f; }
 .badge.unmatched { background: #fee2e2; color: #7f1d1d; }
 .flex-between { display: flex; justify-content: space-between; align-items: center; }
+
+.tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 1px solid #e5e5e5; }
+.tab-button {
+  background: none; border: none; color: #666; padding: 10px 18px;
+  font-size: 14px; font-weight: 500; border-bottom: 2px solid transparent; border-radius: 0;
+}
+.tab-button.active { color: #1c1c1e; border-bottom: 2px solid #1c1c1e; }
+.tab-button:hover { background: #f5f5f5; }
+
+.stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+.stat-box {
+  flex: 1; min-width: 140px; background: #fff; border-radius: 10px; padding: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-align: center;
+}
+.stat-box .value { font-size: 26px; font-weight: 700; color: #1c1c1e; }
+.stat-box .label { font-size: 12px; color: #888; margin-top: 4px; }
+.stat-box.warn .value { color: #dc2626; }
+
+.distributor-group {
+  background: #fff; border-radius: 12px; padding: 0; margin-bottom: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08); overflow: hidden;
+}
+.distributor-group-header {
+  background: linear-gradient(135deg, #1c1c1e, #3a3a3c); color: #fff;
+  padding: 14px 18px; display: flex; justify-content: space-between; align-items: center;
+}
+.distributor-group-header.fallback { background: linear-gradient(135deg, #92400e, #b45309); }
+.distributor-group-header .name { font-size: 16px; font-weight: 600; }
+.distributor-group-header .count { font-size: 12px; opacity: 0.85; }
+.reorder-item-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 12px 18px; border-bottom: 1px solid #f0f0f0;
+}
+.reorder-item-row:last-child { border-bottom: none; }
+.reorder-item-name { font-weight: 600; font-size: 14px; }
+.reorder-item-meta { font-size: 12px; color: #888; margin-top: 2px; }
+.reorder-item-actions { display: flex; gap: 8px; align-items: center; }
+
+.last-purchase-card {
+  background: #f0f9ff; border: 1px solid #bae6fd; border-radius: 10px;
+  padding: 14px; margin: 12px 0; font-size: 13px;
+}
+.last-purchase-card .title { font-weight: 600; color: #0369a1; margin-bottom: 6px; }
+
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center; z-index: 100;
+}
+.modal-box {
+  background: #fff; border-radius: 12px; padding: 24px; width: 90%; max-width: 480px;
+  max-height: 85vh; overflow-y: auto;
+}

@@ -66,22 +66,26 @@ export default function SearchDashboard() {
           Showing {results.length} of {total} medicines{query ? ` matching "${query}"` : ""}
         </p>
 
-        <table style={{ marginTop: 8 }}>
-          <thead>
-            <tr><th>Name</th><th>Unit</th><th>MRP</th><th>Cost price</th><th>Company</th></tr>
-          </thead>
-          <tbody>
-            {results.map((m) => (
-              <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer" }}>
-                <td>{m.particulars}</td>
-                <td>{m.unit}</td>
-                <td>{m.mrp}</td>
-                <td>{m.net_rate}</td>
-                <td>{m.company || "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+       <table style={{ marginTop: 12 }}>
+            <thead>
+              <tr><th>Name</th><th>Unit</th><th>MRP</th><th>Cost price</th><th>Stock</th><th>Company</th></tr>
+            </thead>
+            <tbody>
+              {results.map((m) => {
+                const isLow = m.low_stock_threshold != null && m.current_stock != null && m.current_stock < m.low_stock_threshold;
+                return (
+                  <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer" }}>
+                    <td>{m.particulars}</td>
+                    <td>{m.unit}</td>
+                    <td>{m.mrp}</td>
+                    <td>{m.net_rate}</td>
+                    <td>{isLow ? <span className="badge unmatched">{m.current_stock} low!</span> : (m.current_stock ?? "—")}</td>
+                    <td>{m.company || "—"}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
 
         {results.length < total && (
           <button

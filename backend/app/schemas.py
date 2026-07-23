@@ -11,6 +11,8 @@ class MedicineOut(BaseModel):
     net_rate: Optional[float] = None
     company: Optional[str] = None
     stockist: Optional[str] = None
+    current_stock: Optional[float] = None
+    low_stock_threshold: Optional[float] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -146,3 +148,59 @@ class RegionOcrRequest(BaseModel):
 class RegionOcrResponse(BaseModel):
     text: str
     confidence: float
+
+class SaleCreate(BaseModel):
+    medicine_id: int
+    qty_sold: float = Field(gt=0, description="Must be greater than 0")
+
+
+class LastPurchaseInfo(BaseModel):
+    distributor_id: Optional[int] = None
+    distributor_name: Optional[str] = None
+    qty_received: Optional[float] = None
+    free_qty_received: Optional[float] = None
+    rate: Optional[float] = None
+    mrp: Optional[float] = None
+    purchase_date: Optional[datetime] = None
+
+
+class StockSnapshot(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    current_stock: float
+    low_stock_threshold: Optional[float] = None
+    last_purchase: Optional[LastPurchaseInfo] = None
+    sale_id: Optional[int] = None
+
+
+class ReorderMedicineItem(BaseModel):
+    id: Optional[int] = None
+    medicine_id: Optional[int] = None
+    name: str
+    current_stock: Optional[float] = None
+    low_stock_threshold: Optional[float] = None
+    last_qty_received: Optional[float] = None
+    last_rate: Optional[float] = None
+    last_purchase_date: Optional[datetime] = None
+    quantity_needed: Optional[float] = None
+    note: Optional[str] = None
+    source: str
+
+
+class DistributorReorderGroup(BaseModel):
+    distributor_id: Optional[int] = None
+    distributor_name: str
+    items: List[ReorderMedicineItem]
+
+
+class ManualReorderCreate(BaseModel):
+    medicine_id: Optional[int] = None
+    custom_name: Optional[str] = None
+    distributor_id: Optional[int] = None
+    distributor_name_new: Optional[str] = None
+    quantity_needed: Optional[float] = Field(default=None, gt=0)
+    note: Optional[str] = None
+
+
+class ThresholdUpdate(BaseModel):
+    low_stock_threshold: float = Field(ge=0)

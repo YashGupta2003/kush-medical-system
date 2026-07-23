@@ -3,6 +3,7 @@ import UploadBill from "./pages/UploadBill.jsx";
 import ReviewBill from "./pages/ReviewBill.jsx";
 import SearchDashboard from "./pages/SearchDashboard.jsx";
 import BillHistory from "./pages/BillHistory.jsx";
+import Stock from "./pages/Stock.jsx";
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <NavLink to="/" end>Search</NavLink>
         <NavLink to="/upload">Upload bill</NavLink>
         <NavLink to="/bills">Review queue</NavLink>
+        <NavLink to="/stock">Stock &amp; Reorder</NavLink>
       </nav>
       <div className="container">
         <Routes>
@@ -18,6 +20,7 @@ export default function App() {
           <Route path="/upload" element={<UploadBill />} />
           <Route path="/bills" element={<BillHistory />} />
           <Route path="/review/:billId" element={<ReviewBill />} />
+          <Route path="/stock" element={<Stock />} />
         </Routes>
       </div>
     </div>

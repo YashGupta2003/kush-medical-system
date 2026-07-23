@@ -9,7 +9,7 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Enum
+    Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Enum, Boolean
 )
 from sqlalchemy.orm import relationship
 
@@ -29,6 +29,9 @@ class Medicine(Base):
     stockist = Column(String(100))
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    current_stock = Column(Numeric(10, 2), default=0, nullable=False)
+    low_stock_threshold = Column(Numeric(10, 2), nullable=True)
 
     bill_items = relationship("BillItem", back_populates="medicine")
     rate_history = relationship("RateHistory", back_populates="medicine")
@@ -141,6 +144,49 @@ class UserMapping(Base):
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    distributor = relationship("Distributor")
+
+class Sale(Base):
+    __tablename__ = "sales"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
+    qty_sold = Column(Numeric(10, 2), nullable=False)
+    sold_at = Column(DateTime, default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+
+
+class StockLedger(Base):
+    __tablename__ = "stock_ledger"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
+    change_qty = Column(Numeric(10, 2), nullable=False)
+    resulting_balance = Column(Numeric(10, 2), nullable=False)
+    reason = Column(Enum("bill_received", "sale", "manual_adjustment", name="stock_reason"), nullable=False)
+    reference_bill_item_id = Column(Integer, ForeignKey("bill_items.id"), nullable=True)
+    reference_sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
+    note = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+
+
+class ReorderItem(Base):
+    __tablename__ = "reorder_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)
+    custom_name = Column(String(255), nullable=True)
+    distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True)
+    quantity_needed = Column(Numeric(10, 2), nullable=True)
+    note = Column(String(255), nullable=True)
+    source = Column(Enum("auto_low_stock", "manual", name="reorder_source"), default="manual")
+    fulfilled = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
