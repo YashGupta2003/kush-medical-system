@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date
 from typing import Optional, List
 from pydantic import BaseModel, Field, field_validator, ConfigDict
 
@@ -68,6 +68,7 @@ class BillItemEdit(BaseModel):
     discount_pct: Optional[float] = Field(default=None, ge=0, le=100)
     special_discount_pct: Optional[float] = Field(default=None, ge=0, le=100)
     gst_pct: Optional[float] = Field(default=None, ge=0, le=100)
+    exp_date: Optional[str] = None
     medicine_id: Optional[int] = None
     apply_to_master_list: bool = True
 
@@ -204,3 +205,34 @@ class ManualReorderCreate(BaseModel):
 
 class ThresholdUpdate(BaseModel):
     low_stock_threshold: float = Field(ge=0)
+
+class ExpiryBatchOut(BaseModel):
+    batch_id: int
+    medicine_id: int
+    medicine_name: str
+    batch_no: Optional[str] = None
+    expiry_date: Optional[date] = None
+    days_remaining: int
+    urgency: str
+    qty_received: float
+    distributor_name: Optional[str] = None
+
+
+class MissingExpiryBatch(BaseModel):
+    batch_id: int
+    medicine_id: int
+    medicine_name: str
+    batch_no: Optional[str] = None
+    qty_received: float
+    distributor_name: Optional[str] = None
+
+
+class ExpirySummary(BaseModel):
+    expired: int
+    critical: int
+    warning: int
+    missing_expiry: int
+
+
+class FillExpiryRequest(BaseModel):
+    expiry_date: date

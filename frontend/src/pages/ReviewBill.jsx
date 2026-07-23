@@ -2,8 +2,15 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
 
-const EDITABLE_FIELDS = ["qty", "free_qty", "mrp", "rate", "discount_pct", "special_discount_pct", "gst_pct"];
+const FIELD_LABELS = {
+  qty: "Qty", free_qty: "Free", mrp: "MRP", rate: "Rate",
+  discount_pct: "Disc %", special_discount_pct: "Sp. Disc %", gst_pct: "GST %",
+};
+const EDITABLE_FIELDS = Object.keys(FIELD_LABELS);
 
+// ---------------------------------------------------------------------------
+// Left pane: zoomable/pannable bill image with click-to-fill rectangle select
+// ---------------------------------------------------------------------------
 function BillImageViewer({ billId, pickingField, onRegionSelected }) {
   const containerRef = useRef(null);
   const imgRef = useRef(null);
@@ -59,31 +66,26 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
     setPanning(null);
   }
 
-  const displayWidth = naturalSize ? naturalSize.w * zoom * 0.4 : undefined;
-
   return (
-    <div className="card" style={{ padding: 8 }}>
-      <div className="flex-between" style={{ marginBottom: 8 }}>
-        <strong style={{ fontSize: 13 }}>Original bill</strong>
+    <div className="card image-viewer-card" style={{ padding: 12 }}>
+      <div className="flex-between" style={{ marginBottom: 10 }}>
+        <strong style={{ fontSize: 14 }}>📄 Original bill</strong>
         <div style={{ display: "flex", gap: 6 }}>
-          <button className="secondary" onClick={() => setZoom((z) => Math.max(0.3, z - 0.25))}>−</button>
-          <span style={{ fontSize: 13, alignSelf: "center" }}>{Math.round(zoom * 100)}%</span>
-          <button className="secondary" onClick={() => setZoom((z) => Math.min(4, z + 0.25))}>+</button>
+          <button className="secondary" onClick={() => setZoom((z) => Math.max(0.3, +(z - 0.25).toFixed(2)))}>−</button>
+          <span style={{ fontSize: 13, alignSelf: "center", minWidth: 40, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
+          <button className="secondary" onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}>+</button>
           <button className="secondary" onClick={() => setZoom(1)}>Reset</button>
         </div>
       </div>
       {pickingField && (
-        <p style={{ background: "#fef3c7", padding: 8, borderRadius: 6, fontSize: 13 }}>
-          Drag a box around the correct value on the image for <strong>{pickingField.field}</strong>.
+        <p style={{ background: "#fef3c7", padding: 10, borderRadius: 8, fontSize: 13, marginBottom: 10 }}>
+          🎯 Drag a box around the correct value for <strong>{FIELD_LABELS[pickingField.field] || pickingField.field}</strong>.
         </p>
       )}
       <div
         ref={containerRef}
-        style={{
-          overflow: "auto", height: 520, border: "1px solid #eee", borderRadius: 8,
-          cursor: pickingField ? "crosshair" : panning ? "grabbing" : "grab",
-          position: "relative", background: "#fafafa",
-        }}
+        className="image-scroll-area"
+        style={{ cursor: pickingField ? "crosshair" : panning ? "grabbing" : "grab" }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -95,7 +97,10 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
           alt="Bill"
           draggable={false}
           onLoad={(e) => setNaturalSize({ w: e.target.naturalWidth, h: e.target.naturalHeight })}
-          style={{ width: displayWidth, userSelect: "none", display: "block" }}
+          style={{
+            width: "100%", display: "block", userSelect: "none",
+            transform: `scale(${zoom})`, transformOrigin: "top left",
+          }}
         />
         {drag && (
           <div
@@ -112,6 +117,71 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// One editable line-item card
+// ---------------------------------------------------------------------------
+function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pickingField }) {
+  const isPicking = (field) => pickingField && pickingField.itemId === row.id && pickingField.field === field;
+
+  return (
+    <div className="item-card">
+      <div className="item-card-header">
+        <input
+          value={row.raw_name || ""}
+          onChange={(e) => onFieldChange(row.id, "raw_name", e.target.value)}
+        />
+        <button
+          className={`icon-btn ${isPicking("raw_name") ? "" : "secondary"}`}
+          title="Pick name from image"
+          onClick={() => onPickField(row.id, "raw_name")}
+        >🎯</button>
+      </div>
+
+      <div className="item-match-row">
+        {row.suggested_medicine_name ? (
+          <span className={`badge ${row.match_status}`}>
+            {row.match_status === "learned" ? "Learned match: " : row.match_status === "auto" ? "Auto-matched: " : ""}
+            {row.suggested_medicine_name} ({Math.round(row.match_confidence || 0)}%)
+          </span>
+        ) : (
+          <span className="badge unmatched">Unmatched — pick manually</span>
+        )}
+      </div>
+
+      <div className="item-fields-grid">
+        {EDITABLE_FIELDS.map((f) => (
+          <div className="field-group" key={f}>
+            <label>{FIELD_LABELS[f]}</label>
+            <div className="field-group-inner">
+              <input
+                type="number"
+                value={row[f] ?? ""}
+                onChange={(e) => onFieldChange(row.id, f, e.target.value)}
+              />
+              <button
+                className={`icon-btn ${isPicking(f) ? "" : "secondary"}`}
+                title={`Pick ${FIELD_LABELS[f]} from image`}
+                onClick={() => onPickField(row.id, f)}
+              >🎯</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="item-card-footer">
+        <span className="cost-pill">Cost/unit: ₹{row.computed_cost_per_unit ?? "—"}</span>
+        <label className="update-list-toggle">
+          <input type="checkbox" checked={!!applied} onChange={(e) => onToggleApply(row.id, e.target.checked)} />
+          Update master list
+        </label>
+      </div>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main review page
+// ---------------------------------------------------------------------------
 export default function ReviewBill() {
   const { billId } = useParams();
   const [bill, setBill] = useState(null);
@@ -167,6 +237,18 @@ export default function ReviewBill() {
 
   const itemsToApplyCount = Object.values(applyFlags).filter(Boolean).length;
 
+  const itemsMissingExpiry = Object.values(rows).filter(
+    (r) => r.medicine_id && (!r.exp_date || !String(r.exp_date).trim())
+  );
+
+  function handleProceedClick() {
+    if (itemsMissingExpiry.length > 0) {
+      setStage("expiry_check");
+    } else {
+      setStage("confirming");
+    }
+  }
+
   async function handleFinalConfirm() {
     setStage("applying");
     setError(null);
@@ -181,6 +263,7 @@ export default function ReviewBill() {
         discount_pct: Number(r.discount_pct) || 0,
         special_discount_pct: Number(r.special_discount_pct) || 0,
         gst_pct: Number(r.gst_pct) || 0,
+        exp_date: r.exp_date || null,
         medicine_id: r.medicine_id || null,
         apply_to_master_list: !!applyFlags[r.id],
       }));
@@ -219,6 +302,29 @@ export default function ReviewBill() {
     );
   }
 
+  if (stage === "expiry_check") {
+    return (
+      <div className="card" style={{ borderLeft: "4px solid #ea580c" }}>
+        <h2>📝 A few items are missing an expiry date</h2>
+        <p style={{ color: "#666", fontSize: 13 }}>
+          The bill photo didn't show a readable expiry date for these items. Check the actual
+          packet/strip and enter it here — this powers your Expiry Tracker alerts later. You can
+          also skip and fill these in afterwards from the Expiry page.
+        </p>
+        {itemsMissingExpiry.map((r) => (
+          <div key={r.id} className="reorder-item-row">
+            <div className="reorder-item-name">{r.raw_name}</div>
+            <input type="date" onChange={(e) => updateField(r.id, "exp_date", e.target.value)} />
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+          <button onClick={() => setStage("confirming")}>Continue</button>
+          <button className="secondary" onClick={() => setStage("reviewing")}>Back to review</button>
+        </div>
+      </div>
+    );
+  }
+
   if (stage === "confirming") {
     return (
       <div className="card">
@@ -244,88 +350,42 @@ export default function ReviewBill() {
       <div className="card">
         <div className="flex-between">
           <div>
-            <h2>Review bill #{bill.id}</h2>
-            <p style={{ color: "#666", fontSize: 13 }}>
+            <h2 style={{ marginBottom: 4 }}>Review bill #{bill.id}</h2>
+            <p style={{ color: "#666", fontSize: 13, margin: 0 }}>
               {bill.distributor_name || "Unknown distributor"} · {bill.invoice_no || "no invoice no."} ·
               {" "}{bill.year}-{String(bill.month).padStart(2, "0")}
             </p>
           </div>
-          <button onClick={() => setStage("confirming")}>
+          <button onClick={handleProceedClick}>
             Looks good — proceed ({itemsToApplyCount} to update)
           </button>
         </div>
         {bill.status === "needs_attention" && (
-          <p style={{ background: "#fee2e2", padding: 10, borderRadius: 6, fontSize: 13, marginTop: 8 }}>
+          <p style={{ background: "#fee2e2", padding: 10, borderRadius: 8, fontSize: 13, marginTop: 10 }}>
             ⚠️ This bill needs extra attention: {bill.needs_attention_reason}
           </p>
         )}
-        {error && <p style={{ color: "#b91c1c" }}>{error}</p>}
-        {regionLoading && <p style={{ color: "#666" }}>Reading selected region...</p>}
+        {error && <p style={{ color: "#b91c1c", marginTop: 8 }}>{error}</p>}
+        {regionLoading && <p style={{ color: "#666", marginTop: 8 }}>Reading selected region...</p>}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12, alignItems: "start" }}>
+      <div className="review-grid">
         <BillImageViewer billId={bill.id} pickingField={pickingField} onRegionSelected={handleRegionSelected} />
 
-        <div className="card" style={{ overflowX: "auto" }}>
-          <p style={{ fontSize: 12, color: "#666" }}>
-            Click the 🎯 next to any field, then drag a box around the correct value on the image
-            to the left to re-read just that spot.
+        <div>
+          <p style={{ fontSize: 13, color: "#666", marginBottom: 10 }}>
+            Click 🎯 next to any field, then drag a box around the correct value on the image to re-read just that spot.
           </p>
           {Object.values(rows).map((r) => (
-            <div key={r.id} style={{ border: "1px solid #eee", borderRadius: 8, padding: 10, marginBottom: 10 }}>
-              <div style={{ display: "flex", gap: 6, alignItems: "center", marginBottom: 6 }}>
-                <input
-                  style={{ flex: 1 }}
-                  value={r.raw_name || ""}
-                  onChange={(e) => updateField(r.id, "raw_name", e.target.value)}
-                />
-                <button
-                  className="secondary"
-                  title="Pick from image"
-                  onClick={() => setPickingField({ itemId: r.id, field: "raw_name" })}
-                >🎯</button>
-              </div>
-              <div style={{ marginBottom: 6 }}>
-                {r.suggested_medicine_name ? (
-                  <span className={`badge ${r.match_status}`}>
-                    {r.match_status === "learned" ? "Learned match: " : r.match_status === "auto" ? "Auto-matched: " : ""}
-                    {r.suggested_medicine_name} ({Math.round(r.match_confidence || 0)}%)
-                  </span>
-                ) : (
-                  <span className="badge unmatched">Unmatched — pick manually</span>
-                )}
-              </div>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6 }}>
-                {EDITABLE_FIELDS.map((f) => (
-                  <div key={f}>
-                    <label style={{ fontSize: 11, color: "#666" }}>{f}</label>
-                    <div style={{ display: "flex", gap: 4 }}>
-                      <input
-                        type="number"
-                        style={{ width: "100%" }}
-                        value={r[f] ?? ""}
-                        onChange={(e) => updateField(r.id, f, e.target.value)}
-                      />
-                      <button
-                        className="secondary"
-                        title="Pick from image"
-                        onClick={() => setPickingField({ itemId: r.id, field: f })}
-                      >🎯</button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ marginTop: 6, fontSize: 13, display: "flex", justifyContent: "space-between" }}>
-                <span>Cost/unit: <strong>{r.computed_cost_per_unit}</strong></span>
-                <label style={{ fontSize: 12 }}>
-                  <input
-                    type="checkbox"
-                    checked={!!applyFlags[r.id]}
-                    onChange={(e) => setApplyFlags((prev) => ({ ...prev, [r.id]: e.target.checked }))}
-                  /> Update master list
-                </label>
-              </div>
-            </div>
+            <ItemCard
+              key={r.id}
+              row={r}
+              applied={applyFlags[r.id]}
+              onFieldChange={updateField}
+              onToggleApply={(id, checked) => setApplyFlags((prev) => ({ ...prev, [id]: checked }))}
+              onPickField={(id, field) => setPickingField({ itemId: id, field })}
+              pickingField={pickingField}
+            />
           ))}
         </div>
       </div>

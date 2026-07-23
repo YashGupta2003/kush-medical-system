@@ -77,4 +77,18 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ low_stock_threshold: threshold }),
     }).then(handle),
+
+  // --- Expiry tracking ---
+  getExpiryDashboard: (days = 90) => fetch(`${BASE}/expiry/dashboard?days=${days}`).then(handle),
+
+  getExpirySummary: () => fetch(`${BASE}/expiry/summary`).then(handle),
+
+  getMissingExpiry: () => fetch(`${BASE}/expiry/missing`).then(handle),
+
+  fillExpiry: (batchId, expiryDate) =>
+    fetch(`${BASE}/expiry/batch/${batchId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ expiry_date: expiryDate }),
+    }).then(handle),
 };

@@ -5,10 +5,37 @@ body {
   background: #f5f6f8;
   color: #1c1c1e;
 }
-.container { max-width: 900px; margin: 0 auto; padding: 16px; }
-nav { display: flex; gap: 8px; background: #1c1c1e; padding: 12px 16px; }
-nav a { color: #fff; text-decoration: none; font-size: 14px; padding: 6px 10px; border-radius: 6px; }
-nav a.active, nav a:hover { background: #3a3a3c; }
+.container { max-width: 1360px; margin: 0 auto; padding: 20px; }
+.app-nav {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  background: linear-gradient(120deg, #14141a, #24242e 60%, #1c1c1e);
+  padding: 14px 22px; box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+.app-nav-brand { color: #fff; font-weight: 700; font-size: 16px; letter-spacing: 0.2px; }
+.app-nav-links { display: flex; gap: 4px; flex-wrap: wrap; }
+.nav-link {
+  position: relative; display: flex; align-items: center; gap: 6px;
+  color: #cfcfd6; text-decoration: none; font-size: 13px; font-weight: 500;
+  padding: 8px 14px; border-radius: 8px;
+  transition: background 0.2s ease, color 0.2s ease, transform 0.15s ease;
+}
+.nav-link:hover { background: rgba(255,255,255,0.08); color: #fff; transform: translateY(-1px); }
+.nav-link.active { background: rgba(255,255,255,0.14); color: #fff; }
+.nav-link.active::after {
+  content: ""; position: absolute; left: 14px; right: 14px; bottom: -3px; height: 2px;
+  background: linear-gradient(90deg, #60a5fa, #34d399); border-radius: 2px;
+}
+.nav-icon { font-size: 15px; }
+.nav-badge {
+  background: #dc2626; color: #fff; font-size: 10px; font-weight: 700;
+  border-radius: 10px; padding: 1px 6px; margin-left: 2px;
+  animation: pulse-badge 1.8s infinite;
+}
+@keyframes pulse-badge {
+  0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.55); }
+  70% { box-shadow: 0 0 0 6px rgba(220,38,38,0); }
+  100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+}
 .card { background: #fff; border-radius: 10px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 6px 8px; border-bottom: 1px solid #eee; text-align: left; }
@@ -72,4 +99,64 @@ button.secondary { background: #eee; color: #1c1c1e; }
 .modal-box {
   background: #fff; border-radius: 12px; padding: 24px; width: 90%; max-width: 480px;
   max-height: 85vh; overflow-y: auto;
+}
+
+.review-grid {
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(460px, 1.15fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1000px) {
+  .review-grid { grid-template-columns: 1fr; }
+}
+
+.item-card {
+  border: 1px solid #e5e5e5; border-radius: 12px; padding: 16px; margin-bottom: 14px;
+  background: #fff; transition: box-shadow 0.15s ease;
+}
+.item-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.06); }
+
+.item-card-header {
+  display: flex; gap: 8px; align-items: center; margin-bottom: 10px;
+}
+.item-card-header input {
+  flex: 1; font-size: 15px; font-weight: 600; padding: 8px 10px;
+}
+.item-match-row { margin-bottom: 12px; }
+
+.item-fields-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 12px;
+}
+@media (max-width: 600px) {
+  .item-fields-grid { grid-template-columns: repeat(2, 1fr); }
+}
+.field-group label {
+  display: block; font-size: 11px; color: #888; margin-bottom: 4px; font-weight: 500;
+  text-transform: uppercase; letter-spacing: 0.3px;
+}
+.field-group-inner { display: flex; gap: 4px; }
+.field-group-inner input[type="number"] {
+  width: 100%; min-width: 0; font-size: 14px; padding: 8px 8px;
+}
+
+.icon-btn {
+  flex-shrink: 0; width: 34px; height: 34px; padding: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 15px; border-radius: 8px;
+}
+
+.item-card-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 10px; border-top: 1px solid #f0f0f0;
+}
+.cost-pill {
+  background: #f0fdf4; color: #14532d; padding: 4px 12px; border-radius: 20px;
+  font-size: 13px; font-weight: 600;
+}
+.update-list-toggle { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #444; }
+
+.image-viewer-card { position: sticky; top: 16px; }
+.image-scroll-area {
+  overflow: auto; height: 640px; border: 1px solid #eee; border-radius: 8px;
+  position: relative; background: #f5f5f5;
 }

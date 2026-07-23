@@ -9,7 +9,7 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Numeric, DateTime, ForeignKey, Text, Enum, Boolean
+    Column, Integer, String, Numeric, DateTime,Date, ForeignKey, Text, Enum, Boolean
 )
 from sqlalchemy.orm import relationship
 
@@ -186,6 +186,21 @@ class ReorderItem(Base):
     note = Column(String(255), nullable=True)
     source = Column(Enum("auto_low_stock", "manual", name="reorder_source"), default="manual")
     fulfilled = Column(Boolean, default=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    medicine = relationship("Medicine")
+    distributor = relationship("Distributor")
+
+class MedicineBatch(Base):
+    __tablename__ = "medicine_batches"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
+    batch_no = Column(String(50), nullable=True)
+    expiry_date = Column(Date, nullable=True, index=True)
+    qty_received = Column(Numeric(10, 2), nullable=False, default=0)
+    bill_item_id = Column(Integer, ForeignKey("bill_items.id"), nullable=True, unique=True)
+    distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     medicine = relationship("Medicine")

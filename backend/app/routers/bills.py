@@ -184,7 +184,7 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
             continue
 
         for attr in ("raw_name", "qty", "free_qty", "mrp", "rate",
-                     "discount_pct", "special_discount_pct", "gst_pct"):
+                     "discount_pct", "special_discount_pct", "gst_pct", "exp_date"):
             value = getattr(edit, attr)
             if value is not None:
                 setattr(item, attr, value)
@@ -238,9 +238,10 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
                 medicine.net_rate = new_rate
                 medicine.mrp = new_mrp
 
-    from app.services import stock_service
+    from app.services import stock_service, expiry_service
     if item.medicine_id:
             stock_service.add_stock_from_confirmed_bill_item(db, item)
+            expiry_service.create_batch_from_confirmed_item(db, item)
 
     bill.status = "confirmed"
     db.commit()
