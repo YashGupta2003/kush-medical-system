@@ -236,3 +236,50 @@ class ExpirySummary(BaseModel):
 
 class FillExpiryRequest(BaseModel):
     expiry_date: date
+
+class MonthlySpendPoint(BaseModel):
+    year: int
+    month: int
+    label: str
+    total_spend: float
+
+
+class DistributorBreakdownItem(BaseModel):
+    distributor_id: Optional[int] = None
+    distributor_name: str
+    total_spend: float
+    bill_count: int
+
+
+class PriceChangeItem(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    old_rate: float
+    new_rate: float
+    pct_change: float
+    change_count: int
+
+
+class TopSpendItem(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    total_spend: float
+
+
+class TopSellingItem(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    qty_sold: float
+
+
+class AnalyticsOverview(BaseModel):
+    this_month_spend: float
+    last_month_spend: float
+    spend_change_pct: Optional[float] = None
+    confirmed_bills_this_month: int
+    distributors_used_this_month: int
+    avg_bill_value: float
+    stock_value: float
+    low_stock_count: int
+    pending_review_count: int
+    expiring_critical: int

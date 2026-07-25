@@ -6,9 +6,11 @@ import SearchDashboard from "./pages/SearchDashboard.jsx";
 import BillHistory from "./pages/BillHistory.jsx";
 import Stock from "./pages/Stock.jsx";
 import Expiry from "./pages/Expiry.jsx";
+import Analytics from "./pages/Analytics.jsx";
 import { api } from "./api/client.js";
 
 const NAV_ITEMS = [
+  { to: "/analytics", label: "Analytics", icon: "📊" },
   { to: "/", label: "Search", icon: "🔍", end: true },
   { to: "/upload", label: "Upload bill", icon: "📤" },
   { to: "/bills", label: "Review queue", icon: "🗂️" },
@@ -59,6 +61,7 @@ export default function App() {
           <Route path="/review/:billId" element={<ReviewBill />} />
           <Route path="/stock" element={<Stock />} />
           <Route path="/expiry" element={<Expiry />} />
+          <Route path="/analytics" element={<Analytics />} />
         </Routes>
       </div>
     </div>

@@ -91,4 +91,29 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ expiry_date: expiryDate }),
     }).then(handle),
+
+    // --- Analytics ---
+  getAnalyticsOverview: () => fetch(`${BASE}/analytics/overview`).then(handle),
+
+  getMonthlySpend: (months = 6) => fetch(`${BASE}/analytics/monthly-spend?months=${months}`).then(handle),
+
+  getDistributorBreakdown: (year, month) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (month) params.set("month", month);
+    return fetch(`${BASE}/analytics/distributor-breakdown?${params.toString()}`).then(handle);
+  },
+
+  getPriceChanges: (days = 90, limit = 10) =>
+    fetch(`${BASE}/analytics/price-changes?days=${days}&limit=${limit}`).then(handle),
+
+  getTopMedicinesBySpend: (year, month, limit = 10) => {
+    const params = new URLSearchParams({ limit });
+    if (year) params.set("year", year);
+    if (month) params.set("month", month);
+    return fetch(`${BASE}/analytics/top-medicines-by-spend?${params.toString()}`).then(handle);
+  },
+
+  getTopSelling: (days = 30, limit = 10) =>
+    fetch(`${BASE}/analytics/top-selling?days=${days}&limit=${limit}`).then(handle),
 };
