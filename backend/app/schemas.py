@@ -283,3 +283,65 @@ class AnalyticsOverview(BaseModel):
     low_stock_count: int
     pending_review_count: int
     expiring_critical: int
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    role: str
+    username: str
+    full_name: Optional[str] = None
+
+
+class UserOut(BaseModel):
+    id: int
+    username: str
+    full_name: Optional[str] = None
+    role: str
+    is_active: bool
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class CreateUserRequest(BaseModel):
+    username: str = Field(min_length=3, max_length=50)
+    password: str = Field(min_length=6)
+    full_name: Optional[str] = None
+    role: str = Field(pattern="^(owner|staff)$")
+
+
+class BarcodeAssignRequest(BaseModel):
+    barcode: str = Field(min_length=3, max_length=64)
+
+
+class BarcodeLookupResult(BaseModel):
+    found: bool
+    medicine: Optional[MedicineOut] = None
+    stock: Optional[StockSnapshot] = None
+
+
+class GstSlabBreakdown(BaseModel):
+    gst_pct: float
+    taxable_amount: float
+    cgst: float
+    sgst: float
+    total_tax: float
+    total_amount: float
+    item_count: int
+
+
+class GstReport(BaseModel):
+    year: int
+    month: int
+    month_label: str
+    slabs: list[GstSlabBreakdown]
+    grand_taxable_amount: float
+    grand_cgst: float
+    grand_sgst: float
+    grand_total_tax: float
+    grand_total_amount: float
+    bill_count: int

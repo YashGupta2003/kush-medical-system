@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import bills, medicines, dashboard, stock, expiry, analytics
+from app.routers import bills, medicines, dashboard, stock, expiry, analytics, auth, gst
 
 # Schema is now managed by Alembic migrations (see backend/alembic/).
 
@@ -35,6 +35,8 @@ app.include_router(dashboard.router)
 app.include_router(stock.router)
 app.include_router(expiry.router)
 app.include_router(analytics.router)
+app.include_router(auth.router)
+app.include_router(gst.router)
 
 
 @app.get("/")

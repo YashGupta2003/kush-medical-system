@@ -4,8 +4,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import schemas
 from app.services import expiry_service
+from app.deps import get_current_user
 
-router = APIRouter(prefix="/expiry", tags=["expiry"])
+router = APIRouter(prefix="/expiry", dependencies=[Depends(get_current_user)],tags=["expiry"])
 
 
 @router.get("/dashboard", response_model=list[schemas.ExpiryBatchOut])

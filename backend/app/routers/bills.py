@@ -10,6 +10,7 @@ from app.database import get_db
 from app.config import settings
 from app import models, schemas
 from app.services.tasks import process_bill_task, reprocess_region_task
+from app.deps import get_current_user, get_current_user_flexible
 
 router = APIRouter(prefix="/bills", tags=["bills"])
 
@@ -66,7 +67,14 @@ async def upload_bill(
     invoice_no: Optional[str] = Form(None),
     invoice_date: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    """
+    Single-bill upload. Returns IMMEDIATELY with a bill_id + task_id -
+    OCR/parsing happens in the background (Celery worker), not in this
+    request. Poll GET /bills/{bill_id}/status to know when it's ready to
+    review.
+    """
     file_bytes = await file.read()
     bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, invoice_no, invoice_date)
     db.commit()
@@ -83,7 +91,14 @@ async def upload_bills_batch(
     files: List[UploadFile] = File(...),
     distributor_name: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
+    """
+    Upload MULTIPLE bill photos in one request (e.g. a whole stack of
+    invoices received in one delivery). Each one gets its own Bill row and
+    its own background task, processed independently and in parallel by
+    the Celery worker(s) - one slow/bad photo doesn't block the rest.
+    """
     if not files:
         raise HTTPException(400, "No files provided")
 
@@ -101,7 +116,13 @@ async def upload_bills_batch(
 
 
 @router.get("/{bill_id}/status", response_model=schemas.BillStatusOut)
-def get_bill_status(bill_id: int, db: Session = Depends(get_db)):
+def get_bill_status(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """
+    Lightweight polling endpoint - frontend calls this every couple seconds
+    after upload instead of re-fetching the full bill (with all items) each
+    time. Once status is 'pending_review' or 'needs_attention', switch to
+    fetching the full bill via GET /bills/{bill_id}.
+    """
     bill = db.query(models.Bill).get(bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
@@ -114,7 +135,7 @@ def get_bill_status(bill_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{bill_id}", response_model=schemas.BillOut)
-def get_bill(bill_id: int, db: Session = Depends(get_db)):
+def get_bill(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     bill = db.query(models.Bill).get(bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
@@ -122,7 +143,7 @@ def get_bill(bill_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{bill_id}/image")
-def get_bill_image(bill_id: int, db: Session = Depends(get_db)):
+def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user_flexible)):
     from fastapi.responses import FileResponse
     bill = db.query(models.Bill).get(bill_id)
     if not bill or not bill.image_path or not os.path.exists(bill.image_path):
@@ -137,6 +158,7 @@ def list_bills(
     status: Optional[str] = None,
     distributor_name: Optional[str] = None,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
 ):
     q = db.query(models.Bill)
     if year:
@@ -152,7 +174,18 @@ def list_bills(
 
 
 @router.post("/{bill_id}/reprocess-region", response_model=schemas.RegionOcrResponse)
-def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Session = Depends(get_db)):
+def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """
+    Powers 'click-to-fill': the frontend sends the pixel rectangle the user
+    just drew on the (possibly zoomed/panned) bill image, mapped back to
+    original image coordinates. This re-runs OCR on JUST that crop and
+    returns the text, which the frontend offers as a fill-in for whichever
+    field the user had selected.
+
+    Runs synchronously (not queued) since the crop is small and this needs
+    to feel instant in the UI - FastAPI runs sync 'def' endpoints in a
+    thread pool automatically, so this doesn't block other requests.
+    """
     bill = db.query(models.Bill).get(bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
@@ -168,11 +201,19 @@ def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Sessio
 
 
 @router.post("/confirm", response_model=List[schemas.ChangeSummaryItem])
-def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_db)):
+def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """
+    The ONLY place the master rate list actually gets updated. Every change
+    is logged to rate_history. Returns a change summary: exactly which
+    column changed for which medicine.
+    """
     bill = db.query(models.Bill).get(payload.bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
     if bill.status == "confirmed":
+        # Prevents accidentally double-adding this bill's stock (and
+        # double-logging rate_history) if /confirm is somehow called twice
+        # for the same bill.
         raise HTTPException(400, "This bill has already been confirmed.")
 
     changes: List[schemas.ChangeSummaryItem] = []
@@ -200,6 +241,10 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
         if edit.medicine_id:
             item.medicine_id = edit.medicine_id
             item.match_status = "manual"
+            # LEARNING LOOP: remember this exact (distributor, raw name) ->
+            # medicine choice, so future bills with the same raw text from
+            # the same distributor auto-link instantly next time instead of
+            # relying on fuzzy matching again.
             from app.services.matcher import save_learned_mapping
             save_learned_mapping(
                 db, raw_name=item.raw_name, medicine_id=edit.medicine_id,
@@ -238,14 +283,23 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
                 medicine.net_rate = new_rate
                 medicine.mrp = new_mrp
 
-    from app.services import stock_service, expiry_service
-    if item.medicine_id:
+        # STOCK TRACKING: regardless of whether this item's rate/MRP is
+        # applied to the master list, the physical stock DID arrive at the
+        # shop - so stock is always incremented for any matched item, tied
+        # to the low-stock-alert and reorder-list feature.
+        from app.services import stock_service, expiry_service
+        if item.medicine_id:
             stock_service.add_stock_from_confirmed_bill_item(db, item)
+            # EXPIRY TRACKING: create a batch record (parses item.exp_date;
+            # if it can't be parsed, the batch still gets created with a
+            # NULL expiry so it shows up in the "missing expiry" prompt
+            # instead of vanishing.
             expiry_service.create_batch_from_confirmed_item(db, item)
 
     bill.status = "confirmed"
     db.commit()
     return changes
+
 
 def _bill_to_out(db: Session, bill: models.Bill) -> schemas.BillOut:
     items_out = []

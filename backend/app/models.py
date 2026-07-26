@@ -32,6 +32,7 @@ class Medicine(Base):
 
     current_stock = Column(Numeric(10, 2), default=0, nullable=False)
     low_stock_threshold = Column(Numeric(10, 2), nullable=True)
+    barcode = Column(String(64), nullable=True, unique=True, index=True)
 
     bill_items = relationship("BillItem", back_populates="medicine")
     rate_history = relationship("RateHistory", back_populates="medicine")
@@ -205,3 +206,14 @@ class MedicineBatch(Base):
 
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
+
+class User(Base):
+    __tablename__ = "users"
+
+    id = Column(Integer, primary_key=True, index=True)
+    username = Column(String(50), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)
+    full_name = Column(String(100), nullable=True)
+    role = Column(Enum("owner", "staff", name="user_role"), nullable=False, default="staff")
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)

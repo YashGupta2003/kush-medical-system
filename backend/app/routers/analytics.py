@@ -6,7 +6,9 @@ from app.database import get_db
 from app import schemas
 from app.services import analytics_service
 
-router = APIRouter(prefix="/analytics", tags=["analytics"])
+from app.deps import require_owner
+
+router = APIRouter(prefix="/analytics", dependencies=[Depends(require_owner)], tags=["analytics"])
 
 
 @router.get("/overview", response_model=schemas.AnalyticsOverview)

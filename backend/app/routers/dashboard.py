@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models
-
-router = APIRouter(prefix="/dashboard", tags=["dashboard"])
+from app.deps import get_current_user
+router = APIRouter(prefix="/dashboard" , dependencies=[Depends(get_current_user)], tags=["dashboard"])
 
 
 @router.get("/summary")

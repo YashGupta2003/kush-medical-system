@@ -1,119 +1,145 @@
 const BASE = "/api";
+const TOKEN_KEY = "kush_medical_token";
 
-async function handle(res) {
+// ---------------------------------------------------------------------------
+// Auth token helpers - a real standalone app (not a claude.ai artifact), so
+// localStorage is the right place for this: it survives page refreshes,
+// which is what you want for "stay logged in" behavior.
+// ---------------------------------------------------------------------------
+export function getToken() {
+  return localStorage.getItem(TOKEN_KEY);
+}
+export function setToken(token) {
+  localStorage.setItem(TOKEN_KEY, token);
+}
+export function clearToken() {
+  localStorage.removeItem(TOKEN_KEY);
+}
+
+// Fired whenever a request comes back 401 (expired/invalid session) so the
+// app shell can redirect to /login without every single page needing to
+// handle this itself.
+let onUnauthorized = () => {};
+export function setUnauthorizedHandler(fn) {
+  onUnauthorized = fn;
+}
+
+async function apiFetch(path, options = {}) {
+  const token = getToken();
+  const headers = { ...(options.headers || {}) };
+  if (token) headers["Authorization"] = `Bearer ${token}`;
+
+  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+
+  if (res.status === 401) {
+    clearToken();
+    onUnauthorized();
+    throw new Error("Session expired — please log in again.");
+  }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.detail || `Request failed (${res.status})`);
   }
+  if (res.status === 204) return null;
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.includes("application/pdf")) return res.blob();
   return res.json();
 }
 
+function jsonBody(payload) {
+  return { headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) };
+}
+
 export const api = {
-  uploadBill: (formData) =>
-    fetch(`${BASE}/bills/upload`, { method: "POST", body: formData }).then(handle),
+  // --- Auth ---
+  login: (username, password) =>
+    apiFetch("/auth/login", { method: "POST", ...jsonBody({ username, password }) }),
+  me: () => apiFetch("/auth/me"),
+  listUsers: () => apiFetch("/auth/users"),
+  createUser: (payload) => apiFetch("/auth/users", { method: "POST", ...jsonBody(payload) }),
+  deactivateUser: (id) => apiFetch(`/auth/users/${id}/deactivate`, { method: "PATCH" }),
 
-  uploadBillsBatch: (formData) =>
-    fetch(`${BASE}/bills/upload-batch`, { method: "POST", body: formData }).then(handle),
-
-  getBillStatus: (id) => fetch(`${BASE}/bills/${id}/status`).then(handle),
-
-  getBill: (id) => fetch(`${BASE}/bills/${id}`).then(handle),
-
-  getBillImageUrl: (id) => `${BASE}/bills/${id}/image`,
-
+  // --- Bills ---
+  uploadBill: (formData) => apiFetch("/bills/upload", { method: "POST", body: formData }),
+  uploadBillsBatch: (formData) => apiFetch("/bills/upload-batch", { method: "POST", body: formData }),
+  getBillStatus: (id) => apiFetch(`/bills/${id}/status`),
+  getBill: (id) => apiFetch(`/bills/${id}`),
+  getBillImageUrl: (id) => `${BASE}/bills/${id}/image?token=${encodeURIComponent(getToken() || "")}`,
   listBills: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
-    return fetch(`${BASE}/bills${qs ? "?" + qs : ""}`).then(handle);
+    return apiFetch(`/bills${qs ? "?" + qs : ""}`);
   },
-
-  confirmBill: (payload) =>
-    fetch(`${BASE}/bills/confirm`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(handle),
-
+  confirmBill: (payload) => apiFetch("/bills/confirm", { method: "POST", ...jsonBody(payload) }),
   reprocessRegion: (billId, box) =>
-    fetch(`${BASE}/bills/${billId}/reprocess-region`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(box),
-    }).then(handle),
+    apiFetch(`/bills/${billId}/reprocess-region`, { method: "POST", ...jsonBody(box) }),
 
+  // --- Medicines ---
   browseMedicines: ({ q = "", page = 1, page_size = 50 } = {}) => {
     const params = new URLSearchParams({ page, page_size });
     if (q) params.set("q", q);
-    return fetch(`${BASE}/medicines?${params.toString()}`).then(handle);
+    return apiFetch(`/medicines?${params.toString()}`);
   },
+  getMedicineHistory: (id) => apiFetch(`/medicines/${id}/history`),
+  lookupBarcode: (code) => apiFetch(`/medicines/barcode/${encodeURIComponent(code)}`),
+  assignBarcode: (medicineId, barcode) =>
+    apiFetch(`/medicines/${medicineId}/barcode`, { method: "PATCH", ...jsonBody({ barcode }) }),
 
-  getMedicineHistory: (id) => fetch(`${BASE}/medicines/${id}/history`).then(handle),
+  dashboardSummary: () => apiFetch("/dashboard/summary"),
 
-  dashboardSummary: () => fetch(`${BASE}/dashboard/summary`).then(handle),
-
-  getStockSnapshot: (medicineId) => fetch(`${BASE}/stock/medicine/${medicineId}/snapshot`).then(handle),
-
+  // --- Stock, sales, reorder list ---
+  getStockSnapshot: (medicineId) => apiFetch(`/stock/medicine/${medicineId}/snapshot`),
   recordSale: (medicineId, qtySold) =>
-    fetch(`${BASE}/stock/sales`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ medicine_id: medicineId, qty_sold: qtySold }),
-    }).then(handle),
-
-  getReorderList: () => fetch(`${BASE}/stock/reorder-list`).then(handle),
-
-  addManualReorderItem: (payload) =>
-    fetch(`${BASE}/stock/reorder-list/manual`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    }).then(handle),
-
-  removeReorderItem: (id) =>
-    fetch(`${BASE}/stock/reorder-list/${id}`, { method: "DELETE" }).then(handle),
-
+    apiFetch("/stock/sales", { method: "POST", ...jsonBody({ medicine_id: medicineId, qty_sold: qtySold }) }),
+  getReorderList: () => apiFetch("/stock/reorder-list"),
+  addManualReorderItem: (payload) => apiFetch("/stock/reorder-list/manual", { method: "POST", ...jsonBody(payload) }),
+  removeReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}`, { method: "DELETE" }),
   updateLowStockThreshold: (medicineId, threshold) =>
-    fetch(`${BASE}/stock/medicine/${medicineId}/threshold`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ low_stock_threshold: threshold }),
-    }).then(handle),
+    apiFetch(`/stock/medicine/${medicineId}/threshold`, { method: "PATCH", ...jsonBody({ low_stock_threshold: threshold }) }),
 
   // --- Expiry tracking ---
-  getExpiryDashboard: (days = 90) => fetch(`${BASE}/expiry/dashboard?days=${days}`).then(handle),
-
-  getExpirySummary: () => fetch(`${BASE}/expiry/summary`).then(handle),
-
-  getMissingExpiry: () => fetch(`${BASE}/expiry/missing`).then(handle),
-
+  getExpiryDashboard: (days = 90) => apiFetch(`/expiry/dashboard?days=${days}`),
+  getExpirySummary: () => apiFetch("/expiry/summary"),
+  getMissingExpiry: () => apiFetch("/expiry/missing"),
   fillExpiry: (batchId, expiryDate) =>
-    fetch(`${BASE}/expiry/batch/${batchId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ expiry_date: expiryDate }),
-    }).then(handle),
+    apiFetch(`/expiry/batch/${batchId}`, { method: "PATCH", ...jsonBody({ expiry_date: expiryDate }) }),
 
-    // --- Analytics ---
-  getAnalyticsOverview: () => fetch(`${BASE}/analytics/overview`).then(handle),
-
-  getMonthlySpend: (months = 6) => fetch(`${BASE}/analytics/monthly-spend?months=${months}`).then(handle),
-
+  // --- Analytics (owner only) ---
+  getAnalyticsOverview: () => apiFetch("/analytics/overview"),
+  getMonthlySpend: (months = 6) => apiFetch(`/analytics/monthly-spend?months=${months}`),
   getDistributorBreakdown: (year, month) => {
     const params = new URLSearchParams();
     if (year) params.set("year", year);
     if (month) params.set("month", month);
-    return fetch(`${BASE}/analytics/distributor-breakdown?${params.toString()}`).then(handle);
+    return apiFetch(`/analytics/distributor-breakdown?${params.toString()}`);
   },
-
-  getPriceChanges: (days = 90, limit = 10) =>
-    fetch(`${BASE}/analytics/price-changes?days=${days}&limit=${limit}`).then(handle),
-
+  getPriceChanges: (days = 90, limit = 10) => apiFetch(`/analytics/price-changes?days=${days}&limit=${limit}`),
   getTopMedicinesBySpend: (year, month, limit = 10) => {
     const params = new URLSearchParams({ limit });
     if (year) params.set("year", year);
     if (month) params.set("month", month);
-    return fetch(`${BASE}/analytics/top-medicines-by-spend?${params.toString()}`).then(handle);
+    return apiFetch(`/analytics/top-medicines-by-spend?${params.toString()}`);
   },
+  getTopSelling: (days = 30, limit = 10) => apiFetch(`/analytics/top-selling?days=${days}&limit=${limit}`),
 
-  getTopSelling: (days = 30, limit = 10) =>
-    fetch(`${BASE}/analytics/top-selling?days=${days}&limit=${limit}`).then(handle),
+  // --- GST reports (owner only) ---
+  getGstReport: (year, month) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (month) params.set("month", month);
+    return apiFetch(`/gst/report?${params.toString()}`);
+  },
+  downloadGstReportPdf: async (year, month) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (month) params.set("month", month);
+    const blob = await apiFetch(`/gst/report/pdf?${params.toString()}`);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `GST_Report_${year}_${month}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
 };

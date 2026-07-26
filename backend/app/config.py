@@ -18,6 +18,10 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
     ocr_confidence_threshold: float = 55.0
 
+    jwt_secret_key: str = "change-this-secret-in-your-.env-file-please"
+    jwt_algorithm: str = "HS256"
+    jwt_expire_minutes: int = 60 * 12
+
     class Config:
         env_file = ".env"
 

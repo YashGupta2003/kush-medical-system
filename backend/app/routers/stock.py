@@ -5,8 +5,9 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models, schemas
 from app.services import stock_service
+from app.deps import get_current_user
 
-router = APIRouter(prefix="/stock", tags=["stock"])
+router = APIRouter(prefix="/stock", dependencies=[Depends(get_current_user)],tags=["stock"])
 
 
 @router.get("/medicine/{medicine_id}/snapshot", response_model=schemas.StockSnapshot)
