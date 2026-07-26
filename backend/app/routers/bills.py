@@ -10,6 +10,7 @@ from app.database import get_db
 from app.config import settings
 from app import models, schemas
 from app.services.tasks import process_bill_task, reprocess_region_task
+from app.services.image_preprocessing import correct_orientation
 from app.deps import get_current_user, get_current_user_flexible
 
 router = APIRouter(prefix="/bills", tags=["bills"])
@@ -29,6 +30,12 @@ def _resolve_distributor(db: Session, name: Optional[str]) -> Optional[models.Di
 def _create_queued_bill(db: Session, file_bytes: bytes, filename: str,
                          distributor_name: Optional[str], invoice_no: Optional[str],
                          invoice_date: Optional[str]) -> models.Bill:
+    # Fix EXIF-tagged or physically-sideways photos BEFORE anything else
+    # touches the file - the saved image on disk, the review screen's
+    # <img>, preprocessing, OCR, and reprocess-region all read this same
+    # file, so correcting it once here fixes all of them at once.
+    file_bytes = correct_orientation(file_bytes)
+
     os.makedirs(settings.upload_dir, exist_ok=True)
     ext = os.path.splitext(filename or "")[1] or ".jpg"
     saved_name = f"{uuid.uuid4().hex}{ext}"

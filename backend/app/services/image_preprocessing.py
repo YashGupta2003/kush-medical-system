@@ -5,10 +5,19 @@ from one that tolerates real phone photos: slightly rotated, with background
 table/hand visible, uneven lighting.
 
 Pipeline, in order:
+  0. Orientation correction: fix EXIF-tagged rotation, and fix genuinely
+     sideways/upside-down pixel data (no reliable EXIF tag) via Tesseract's
+     OSD. Runs BEFORE step 1-4 below and before OCR - OpenCV never reads
+     EXIF, and Google Vision has no rotation-correction of its own, so
+     without this step a sideways photo produces word bounding boxes in
+     the wrong coordinate frame: row-clustering in bill_parser.py can't
+     find a header row at all (not "low confidence" - zero rows).
   1. Decode bytes -> OpenCV BGR array
   2. Auto-crop: find the largest rectangular light region (the paper) and
      crop everything else out (table wood, fingers, background).
-  3. Deskew: detect the dominant text-line angle and rotate to straighten it.
+  3. Deskew: detect the dominant text-line angle and rotate to straighten
+     it. This only handles SMALL tilts (a few degrees) - it is not a
+     substitute for step 0's full 90/180/270-degree correction.
   4. Adaptive threshold: convert to a clean high-contrast black/white image.
 
 Every step is defensive: if a step's assumptions don't hold for a given
@@ -17,6 +26,7 @@ mangling it further.
 """
 import cv2
 import numpy as np
+from io import BytesIO
 from dataclasses import dataclass
 
 
@@ -26,6 +36,47 @@ class PreprocessResult:
     was_cropped: bool
     deskew_angle_degrees: float
     warnings: list[str]
+
+
+def correct_orientation(image_bytes: bytes) -> bytes:
+    """
+    Two passes, cheapest/most-reliable first:
+
+      1. EXIF orientation tag - what most modern phone cameras record
+         instead of physically rotating the saved pixels. PIL's
+         exif_transpose() bakes it into the actual pixel data and strips
+         the tag, so every downstream consumer (OpenCV, which never reads
+         EXIF; the browser <img> on the review screen; Vision/Tesseract)
+         sees a correctly-oriented image from here on.
+      2. Tesseract OSD (Orientation & Script Detection) - catches photos
+         that are physically sideways/upside-down with no EXIF tag (or an
+         incorrect one). This is a single lightweight OSD call, not a full
+         OCR pass, so it's cheap enough to run on every upload.
+
+    Defensive by design: any failure here just returns the original bytes
+    unchanged rather than blocking the upload.
+    """
+    from PIL import Image, ImageOps
+
+    try:
+        image = Image.open(BytesIO(image_bytes))
+        image = ImageOps.exif_transpose(image)
+    except Exception:
+        return image_bytes
+
+    try:
+        import pytesseract
+        osd = pytesseract.image_to_osd(image, output_type=pytesseract.Output.DICT)
+        rotate_by = int(osd.get("rotate", 0)) % 360
+    except Exception:
+        rotate_by = 0  # OSD can fail on blurry/sparse images - don't block the upload over it
+
+    if rotate_by:
+        image = image.rotate(-rotate_by, expand=True)
+
+    buf = BytesIO()
+    image.convert("RGB").save(buf, format="JPEG", quality=95)
+    return buf.getvalue()
 
 
 def _decode(image_bytes: bytes) -> np.ndarray:
