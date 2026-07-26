@@ -9,6 +9,87 @@ const FIELD_LABELS = {
 const EDITABLE_FIELDS = Object.keys(FIELD_LABELS);
 
 // ---------------------------------------------------------------------------
+// Mirrors app/services/cost_calculator.py compute_cost_per_unit() exactly,
+// so the pill on screen always matches what the backend will actually save
+// - including live updates as the user edits fields, instead of showing the
+// stale number from the original (possibly OCR-misread) parse.
+// ---------------------------------------------------------------------------
+function computeCostPerUnit(row) {
+  const qty = Number(row.qty) || 0;
+  const free = Number(row.free_qty) || 0;
+  const rate = Number(row.rate) || 0;
+  const disc1 = Number(row.discount_pct) || 0;
+  const disc2 = Number(row.special_discount_pct) || 0;
+  const gst = Number(row.gst_pct) || 0;
+
+  const effectiveUnits = qty + free;
+  if (effectiveUnits <= 0) return 0;
+
+  const gross = rate * qty;
+  const afterDiscount1 = gross * (1 - disc1 / 100);
+  const afterDiscount2 = afterDiscount1 * (1 - disc2 / 100);
+  const netLanded = afterDiscount2 * (1 + gst / 100);
+
+  return netLanded / effectiveUnits;
+}
+
+// ---------------------------------------------------------------------------
+// Search-and-link widget for line items that OCR/fuzzy-matching couldn't
+// resolve to a medicine on their own. Without this, medicine_id stays null
+// forever for unmatched items, and /bills/confirm silently skips the master
+// list update, stock increment, AND expiry batch creation for that item
+// (all three require a non-null medicine_id on the backend).
+// ---------------------------------------------------------------------------
+function MedicineLinkPicker({ onLink }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (query.trim().length < 2) {
+      setResults([]);
+      return;
+    }
+    setSearching(true);
+    const t = setTimeout(() => {
+      api.browseMedicines({ q: query, page: 1, page_size: 8 })
+        .then((d) => setResults(d.items))
+        .finally(() => setSearching(false));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  return (
+    <div style={{ marginTop: 6 }}>
+      <input
+        style={{ width: "100%" }}
+        placeholder="Type to search the master list and link the correct medicine..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {searching && <p style={{ fontSize: 12, color: "#888", margin: "4px 0 0" }}>Searching...</p>}
+      {results.length > 0 && (
+        <table style={{ marginTop: 6 }}>
+          <tbody>
+            {results.map((m) => (
+              <tr
+                key={m.id}
+                style={{ cursor: "pointer" }}
+                onClick={() => { onLink(m); setQuery(""); setResults([]); }}
+              >
+                <td>{m.particulars}</td>
+                <td style={{ color: "#888" }}>{m.unit}</td>
+                <td><button className="secondary">Link this</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // Left pane: zoomable/pannable bill image with click-to-fill rectangle select
 // ---------------------------------------------------------------------------
 function BillImageViewer({ billId, pickingField, onRegionSelected }) {
@@ -120,7 +201,7 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
 // ---------------------------------------------------------------------------
 // One editable line-item card
 // ---------------------------------------------------------------------------
-function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pickingField }) {
+function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pickingField, onLinkMedicine }) {
   const isPicking = (field) => pickingField && pickingField.itemId === row.id && pickingField.field === field;
 
   return (
@@ -138,13 +219,18 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
       </div>
 
       <div className="item-match-row">
-        {row.suggested_medicine_name ? (
+        {row.medicine_id && row.suggested_medicine_name ? (
           <span className={`badge ${row.match_status}`}>
-            {row.match_status === "learned" ? "Learned match: " : row.match_status === "auto" ? "Auto-matched: " : ""}
+            {row.match_status === "learned" ? "Learned match: "
+              : row.match_status === "auto" ? "Auto-matched: "
+              : row.match_status === "manual" ? "Linked: " : ""}
             {row.suggested_medicine_name} ({Math.round(row.match_confidence || 0)}%)
           </span>
         ) : (
-          <span className="badge unmatched">Unmatched — pick manually</span>
+          <>
+            <span className="badge unmatched">Unmatched — pick manually</span>
+            <MedicineLinkPicker onLink={(medicine) => onLinkMedicine(row.id, medicine)} />
+          </>
         )}
       </div>
 
@@ -169,10 +255,18 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
       </div>
 
       <div className="item-card-footer">
-        <span className="cost-pill">Cost/unit: ₹{row.computed_cost_per_unit ?? "—"}</span>
+        <span className="cost-pill">Cost/unit: ₹{computeCostPerUnit(row).toFixed(2)}</span>
         <label className="update-list-toggle">
-          <input type="checkbox" checked={!!applied} onChange={(e) => onToggleApply(row.id, e.target.checked)} />
+          <input
+            type="checkbox"
+            checked={!!applied}
+            disabled={!row.medicine_id}
+            onChange={(e) => onToggleApply(row.id, e.target.checked)}
+          />
           Update master list
+          {!row.medicine_id && (
+            <span style={{ color: "#999", fontSize: 11 }}>(link a medicine first)</span>
+          )}
         </label>
       </div>
     </div>
@@ -209,6 +303,25 @@ export default function ReviewBill() {
 
   function updateField(itemId, field, value) {
     setRows((prev) => ({ ...prev, [itemId]: { ...prev[itemId], [field]: value } }));
+  }
+
+  // Called when the user picks a medicine from MedicineLinkPicker for a
+  // previously-unmatched row. This is the piece that was missing entirely -
+  // without setting medicine_id here, /bills/confirm has nothing to attach
+  // the master-list update, stock increment, or expiry batch to, no matter
+  // what the user typed into the other fields.
+  function handleLinkMedicine(itemId, medicine) {
+    setRows((prev) => ({
+      ...prev,
+      [itemId]: {
+        ...prev[itemId],
+        medicine_id: medicine.id,
+        suggested_medicine_name: medicine.particulars,
+        match_status: "manual",
+        match_confidence: 100,
+      },
+    }));
+    setApplyFlags((prev) => ({ ...prev, [itemId]: true }));
   }
 
   const handleRegionSelected = useCallback(async (box) => {
@@ -385,6 +498,7 @@ export default function ReviewBill() {
               onToggleApply={(id, checked) => setApplyFlags((prev) => ({ ...prev, [id]: checked }))}
               onPickField={(id, field) => setPickingField({ itemId: id, field })}
               pickingField={pickingField}
+              onLinkMedicine={handleLinkMedicine}
             />
           ))}
         </div>
