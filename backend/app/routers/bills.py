@@ -158,6 +158,53 @@ def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: mo
     return FileResponse(bill.image_path)
 
 
+@router.post("/{bill_id}/items", response_model=schemas.BillItemOut)
+def add_manual_item(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """
+    Adds one blank line item to a bill for manual entry - the fallback for
+    bills where OCR found no table at all (needs_attention_reason already
+    tells the user "this bill needs fully manual entry on the review
+    screen", but until this endpoint existed there was no way to actually
+    do that). The new row behaves exactly like an OCR-extracted one from
+    here on: it goes through the same medicine-link, cost-calc, and
+    /bills/confirm code paths, no special-casing needed anywhere else.
+    """
+    bill = db.query(models.Bill).get(bill_id)
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+    if bill.status == "confirmed":
+        raise HTTPException(400, "This bill has already been confirmed - items can no longer be added.")
+
+    item = models.BillItem(
+        bill_id=bill.id,
+        raw_name="",
+        qty=0, free_qty=0,
+        discount_pct=0, special_discount_pct=0, gst_pct=0,
+        match_confidence=0, match_status="unmatched",
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
+
+
+@router.delete("/{bill_id}/items/{item_id}")
+def remove_bill_item(bill_id: int, item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """Removes a line item before confirming - a manually-added row entered by mistake, or a bad OCR extraction."""
+    bill = db.query(models.Bill).get(bill_id)
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+    if bill.status == "confirmed":
+        raise HTTPException(400, "This bill has already been confirmed - items can no longer be removed.")
+
+    item = db.query(models.BillItem).filter_by(id=item_id, bill_id=bill_id).first()
+    if not item:
+        raise HTTPException(404, "Item not found")
+    db.delete(item)
+    db.commit()
+    return {"status": "ok"}
+
+
 @router.get("", response_model=List[schemas.BillOut])
 def list_bills(
     year: Optional[int] = None,

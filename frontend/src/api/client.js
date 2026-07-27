@@ -72,6 +72,8 @@ export const api = {
   confirmBill: (payload) => apiFetch("/bills/confirm", { method: "POST", ...jsonBody(payload) }),
   reprocessRegion: (billId, box) =>
     apiFetch(`/bills/${billId}/reprocess-region`, { method: "POST", ...jsonBody(box) }),
+  addBillItem: (billId) => apiFetch(`/bills/${billId}/items`, { method: "POST" }),
+  removeBillItem: (billId, itemId) => apiFetch(`/bills/${billId}/items/${itemId}`, { method: "DELETE" }),
 
   // --- Medicines ---
   browseMedicines: ({ q = "", page = 1, page_size = 50 } = {}) => {

@@ -201,7 +201,7 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
 // ---------------------------------------------------------------------------
 // One editable line-item card
 // ---------------------------------------------------------------------------
-function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pickingField, onLinkMedicine }) {
+function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pickingField, onLinkMedicine, onRemove }) {
   const isPicking = (field) => pickingField && pickingField.itemId === row.id && pickingField.field === field;
 
   return (
@@ -209,6 +209,7 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
       <div className="item-card-header">
         <input
           value={row.raw_name || ""}
+          placeholder="Medicine name as printed on the bill..."
           onChange={(e) => onFieldChange(row.id, "raw_name", e.target.value)}
         />
         <button
@@ -216,6 +217,11 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
           title="Pick name from image"
           onClick={() => onPickField(row.id, "raw_name")}
         >🎯</button>
+        <button
+          className="icon-btn secondary"
+          title="Remove this item"
+          onClick={() => onRemove(row.id)}
+        >🗑️</button>
       </div>
 
       <div className="item-match-row">
@@ -322,6 +328,44 @@ export default function ReviewBill() {
       },
     }));
     setApplyFlags((prev) => ({ ...prev, [itemId]: true }));
+  }
+
+  // Fallback for bills where OCR found no table at all (or missed a row) -
+  // adds one blank, fully-editable row backed by a real BillItem in the DB,
+  // so it flows through the exact same link/edit/confirm path as every
+  // OCR-extracted item.
+  const [addingItem, setAddingItem] = useState(false);
+  async function handleAddItem() {
+    setAddingItem(true);
+    setError(null);
+    try {
+      const newItem = await api.addBillItem(billId);
+      setRows((prev) => ({ ...prev, [newItem.id]: { ...newItem } }));
+      setApplyFlags((prev) => ({ ...prev, [newItem.id]: false }));
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setAddingItem(false);
+    }
+  }
+
+  async function handleRemoveItem(itemId) {
+    setError(null);
+    try {
+      await api.removeBillItem(billId, itemId);
+      setRows((prev) => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+      setApplyFlags((prev) => {
+        const next = { ...prev };
+        delete next[itemId];
+        return next;
+      });
+    } catch (err) {
+      setError(err.message);
+    }
   }
 
   const handleRegionSelected = useCallback(async (box) => {
@@ -469,7 +513,7 @@ export default function ReviewBill() {
               {" "}{bill.year}-{String(bill.month).padStart(2, "0")}
             </p>
           </div>
-          <button onClick={handleProceedClick}>
+          <button onClick={handleProceedClick} disabled={Object.keys(rows).length === 0}>
             Looks good — proceed ({itemsToApplyCount} to update)
           </button>
         </div>
@@ -486,9 +530,24 @@ export default function ReviewBill() {
         <BillImageViewer billId={bill.id} pickingField={pickingField} onRegionSelected={handleRegionSelected} />
 
         <div>
-          <p style={{ fontSize: 13, color: "#666", marginBottom: 10 }}>
-            Click 🎯 next to any field, then drag a box around the correct value on the image to re-read just that spot.
-          </p>
+          <div className="flex-between" style={{ marginBottom: 10 }}>
+            <p style={{ fontSize: 13, color: "#666", margin: 0 }}>
+              Click 🎯 next to any field, then drag a box around the correct value on the image to re-read just that spot.
+            </p>
+            <button className="secondary" onClick={handleAddItem} disabled={addingItem}>
+              {addingItem ? "Adding..." : "+ Add item manually"}
+            </button>
+          </div>
+
+          {Object.keys(rows).length === 0 && (
+            <div className="card" style={{ borderLeft: "4px solid #ea580c" }}>
+              <p style={{ margin: 0, fontSize: 13, color: "#666" }}>
+                No items could be read automatically from this bill. Use "+ Add item manually" above
+                to enter each line item by hand, using the original bill image on the left as reference.
+              </p>
+            </div>
+          )}
+
           {Object.values(rows).map((r) => (
             <ItemCard
               key={r.id}
@@ -499,6 +558,7 @@ export default function ReviewBill() {
               onPickField={(id, field) => setPickingField({ itemId: id, field })}
               pickingField={pickingField}
               onLinkMedicine={handleLinkMedicine}
+              onRemove={handleRemoveItem}
             />
           ))}
         </div>
