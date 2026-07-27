@@ -13,6 +13,7 @@ class MedicineOut(BaseModel):
     stockist: Optional[str] = None
     current_stock: Optional[float] = None
     low_stock_threshold: Optional[float] = None
+    barcode: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 
