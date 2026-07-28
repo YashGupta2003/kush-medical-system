@@ -2,12 +2,13 @@
 
 
 def test_record_sale_via_api_decrements_stock(client, owner_headers, sample_medicine):
+    initial_stock = float(sample_medicine.current_stock)
     response = client.post(
         "/stock/sales", json={"medicine_id": sample_medicine.id, "qty_sold": 2}, headers=owner_headers,
     )
     assert response.status_code == 200
     body = response.json()
-    assert body["current_stock"] == float(sample_medicine.current_stock) - 2
+    assert body["current_stock"] == initial_stock - 2
 
 
 def test_record_sale_rejects_zero_or_negative_quantity(client, owner_headers, sample_medicine):

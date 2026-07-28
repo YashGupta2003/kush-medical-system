@@ -127,6 +127,7 @@ def save_learned_mapping(db: Session, raw_name: str, medicine_id: int, distribut
         existing.medicine_id = medicine_id
     else:
         db.add(UserMapping(raw_name=normalized, medicine_id=medicine_id, distributor_id=distributor_id))
+    db.flush()
 
 
 def find_best_match(

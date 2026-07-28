@@ -125,6 +125,6 @@ class TestLearnedMappings:
         save_learned_mapping(db_session, "SAME-CODE", another_medicine.id, sample_distributor.id)
         db_session.commit()
 
-        all_mappings = db_session.query(models.UserMapping).filter_by(raw_name="SAME-CODE").all()
+        all_mappings = db_session.query(models.UserMapping).filter_by(raw_name=normalize("SAME-CODE")).all()
         assert len(all_mappings) == 1
         assert all_mappings[0].medicine_id == another_medicine.id
