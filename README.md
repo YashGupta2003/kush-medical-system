@@ -91,7 +91,14 @@ cp .env.example .env            # then edit .env with your MySQL password + key 
 
 python scripts/import_rate_list.py /path/to/kush_medical_rate_list_.xlsx
 
+# Run the FastAPI server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+In a separate terminal, start the Celery worker which processes the background OCR extractions:
+```bash
+cd backend
+source venv/bin/activate
+celery -A app.celery_app worker --loglevel=info
 ```
 Visit `http://localhost:8000/docs` for interactive API docs (auto-generated
 by FastAPI — very useful for your project demo/viva).

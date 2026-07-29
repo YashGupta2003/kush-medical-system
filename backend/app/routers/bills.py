@@ -311,10 +311,15 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
             medicine = db.query(models.Medicine).get(item.medicine_id)
             old_rate, old_mrp = medicine.net_rate, medicine.mrp
             new_rate = item.computed_cost_per_unit
-            new_mrp = item.mrp if item.mrp else medicine.mrp
+            new_mrp = item.mrp if item.mrp is not None else medicine.mrp
 
-            rate_changed = old_rate != new_rate
-            mrp_changed = old_mrp != new_mrp
+            old_rate_f = float(old_rate) if old_rate is not None else None
+            old_mrp_f = float(old_mrp) if old_mrp is not None else None
+            new_rate_f = float(new_rate) if new_rate is not None else None
+            new_mrp_f = float(new_mrp) if new_mrp is not None else None
+
+            rate_changed = old_rate_f != new_rate_f
+            mrp_changed = old_mrp_f != new_mrp_f
 
             if rate_changed or mrp_changed:
                 db.add(models.RateHistory(
@@ -325,14 +330,14 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
                 if rate_changed:
                     changes.append(schemas.ChangeSummaryItem(
                         medicine_name=medicine.particulars, field="net_rate",
-                        old_value=float(old_rate) if old_rate is not None else None,
-                        new_value=float(new_rate) if new_rate is not None else None,
+                        old_value=old_rate_f,
+                        new_value=new_rate_f,
                     ))
                 if mrp_changed:
                     changes.append(schemas.ChangeSummaryItem(
                         medicine_name=medicine.particulars, field="mrp",
-                        old_value=float(old_mrp) if old_mrp is not None else None,
-                        new_value=float(new_mrp) if new_mrp is not None else None,
+                        old_value=old_mrp_f,
+                        new_value=new_mrp_f,
                     ))
                 medicine.net_rate = new_rate
                 medicine.mrp = new_mrp

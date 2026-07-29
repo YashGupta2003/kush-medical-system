@@ -410,16 +410,21 @@ export default function ReviewBill() {
     setStage("applying");
     setError(null);
     try {
+      const parseNum = (val) => {
+        const parsed = Number(val);
+        return Number.isNaN(parsed) ? 0 : (parsed || 0);
+      };
+      
       const items = Object.values(rows).map((r) => ({
         id: r.id,
         raw_name: r.raw_name,
-        qty: Number(r.qty) || 0,
-        free_qty: Number(r.free_qty) || 0,
-        mrp: Number(r.mrp) || 0,
-        rate: Number(r.rate) || 0,
-        discount_pct: Number(r.discount_pct) || 0,
-        special_discount_pct: Number(r.special_discount_pct) || 0,
-        gst_pct: Number(r.gst_pct) || 0,
+        qty: parseNum(r.qty),
+        free_qty: parseNum(r.free_qty),
+        mrp: parseNum(r.mrp),
+        rate: parseNum(r.rate),
+        discount_pct: parseNum(r.discount_pct),
+        special_discount_pct: parseNum(r.special_discount_pct),
+        gst_pct: parseNum(r.gst_pct),
         exp_date: r.exp_date || null,
         medicine_id: r.medicine_id || null,
         apply_to_master_list: !!applyFlags[r.id],
