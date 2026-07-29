@@ -1,34 +1,30 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import bills, medicines, dashboard, stock, expiry, analytics, auth, gst
+from app.routers import bills, medicines, dashboard, stock, expiry, analytics, auth, gst, health
+from app.database import ensure_database_schema_synced
+from app.events.subscribers import register_all_subscribers
 
-# Schema is now managed by Alembic migrations (see backend/alembic/).
-
-
-
-# from app.database import Base, engine
-# from app.routers import bills, medicines, dashboard
-
-# # Creates tables if they don't exist yet. For real schema changes later,
-# # switch to Alembic migrations instead of relying on this.
-# Base.metadata.create_all(bind=engine)
+# Auto-sync DB schema and initialize Event Bus Subscribers on startup
+ensure_database_schema_synced()
+register_all_subscribers()
 
 app = FastAPI(
     title="Kush Medical Hall - Bill Digitization & Rate List System",
     description="Uploads pharmacy purchase bills, extracts line items via OCR, "
                 "computes true landed cost per unit, and keeps the master rate "
                 "list in sync with a full audit trail.",
-    version="1.0.0",
+    version="2.0.0",
 )
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],   # tighten this to your frontend's actual origin before deploying
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
+app.include_router(health.router)
 app.include_router(bills.router)
 app.include_router(medicines.router)
 app.include_router(dashboard.router)
@@ -41,4 +37,4 @@ app.include_router(gst.router)
 
 @app.get("/")
 def root():
-    return {"status": "ok", "service": "kush-medical-backend"}
+    return {"status": "ok", "service": "kush-medical-backend", "architecture": "event-driven-pipeline"}

@@ -14,12 +14,14 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc, and_
 
 from app import models
+from app.core.cache import cache_response
 
 
 def _month_bounds(year: int, month: int):
     return year, month
 
 
+@cache_response(ttl_seconds=300, key_prefix="analytics")
 def get_monthly_spend(db: Session, months: int = 6) -> list[dict]:
     """
     Total confirmed-bill spend per calendar month, most recent `months`
@@ -158,6 +160,7 @@ def get_top_selling(db: Session, days: int = 30, limit: int = 10) -> list[dict]:
     return [{"medicine_id": r[0], "medicine_name": r[1], "qty_sold": float(r[2] or 0)} for r in rows]
 
 
+@cache_response(ttl_seconds=300, key_prefix="analytics")
 def get_overview(db: Session) -> dict:
     """
     The single call that powers the top stat-card row - deliberately pulls

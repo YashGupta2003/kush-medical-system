@@ -194,3 +194,42 @@ def mark_reorder_item_fulfilled(db: Session, reorder_item_id: int) -> bool:
     item.fulfilled = True
     db.commit()
     return True
+
+
+def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None) -> dict:
+    medicine = db.query(models.Medicine).get(medicine_id)
+    if not medicine:
+        raise ValueError("Medicine not found")
+    current = Decimal(str(medicine.current_stock or 0))
+    target = Decimal(str(new_total_stock))
+    diff = target - current
+    _add_ledger_entry(db, medicine, diff, reason="manual_adjustment", note=note or "Manual inventory adjustment")
+    db.commit()
+    return {
+        "medicine_id": medicine.id,
+        "medicine_name": medicine.particulars,
+        "change_qty": float(diff),
+        "resulting_balance": float(target),
+    }
+
+
+def get_stock_ledger(db: Session, limit: int = 50) -> list[dict]:
+    rows = (
+        db.query(models.StockLedger)
+        .order_by(desc(models.StockLedger.created_at))
+        .limit(limit)
+        .all()
+    )
+    return [
+        {
+            "id": r.id,
+            "medicine_id": r.medicine_id,
+            "medicine_name": r.medicine.particulars if r.medicine else None,
+            "change_qty": float(r.change_qty),
+            "resulting_balance": float(r.resulting_balance),
+            "reason": r.reason.value if hasattr(r.reason, "value") else str(r.reason),
+            "note": r.note,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]

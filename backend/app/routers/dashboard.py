@@ -12,11 +12,15 @@ router = APIRouter(prefix="/dashboard" , dependencies=[Depends(get_current_user)
 def summary(db: Session = Depends(get_db)):
     total_medicines = db.query(func.count(models.Medicine.id)).scalar()
 
-    status_counts = dict(
+    raw_status_counts = (
         db.query(models.Bill.status, func.count(models.Bill.id))
         .group_by(models.Bill.status)
         .all()
     )
+    status_counts = {}
+    for st, cnt in raw_status_counts:
+        key = st.value if hasattr(st, "value") else str(st) if st else "queued"
+        status_counts[key] = cnt
 
     recent_changes = (
         db.query(models.RateHistory)

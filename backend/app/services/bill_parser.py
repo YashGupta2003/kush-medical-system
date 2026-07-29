@@ -3,6 +3,9 @@ from dataclasses import dataclass, field
 from typing import List, Optional
 
 from app.services.ocr_service import Word
+from app.core.logging import get_logger
+
+logger = get_logger("bill_parser")
 
 ROW_Y_TOLERANCE_FALLBACK = 12
 
@@ -67,8 +70,7 @@ def _find_header_row(rows: List[List[Word]]) -> Optional[int]:
         score = sum(1 for w in row if _clean_token(w.text) in HEADER_ALIASES)
         if score > best_score:
             best_score, best_idx = score, i
-    print(f"[bill_parser] best header row candidate: index={best_idx}, keyword_score={best_score}, "
-          f"total_rows_detected={len(rows)}")
+    logger.debug(f"best header row candidate: index={best_idx}, keyword_score={best_score}, total_rows_detected={len(rows)}")
     return best_idx if best_score >= 4 else None
 
 
@@ -78,8 +80,8 @@ def _build_column_map(header_row: List[Word]) -> List[tuple[float, str]]:
         key = _clean_token(w.text)
         if key in HEADER_ALIASES:
             columns.append((w.x_center, HEADER_ALIASES[key]))
-    print(f"[bill_parser] header row raw words: {[w.text for w in header_row]}")
-    print(f"[bill_parser] columns mapped: {columns}")
+    logger.debug(f"header row raw words: {[w.text for w in header_row]}")
+    logger.debug(f"columns mapped: {columns}")
     return sorted(columns, key=lambda c: c[0])
 
 
@@ -104,17 +106,17 @@ def _to_number(text: str) -> Optional[float]:
 
 
 def parse_bill_words(words: List[Word]) -> List[ParsedRow]:
-    print(f"[bill_parser] total OCR words detected: {len(words)}")
+    logger.info(f"total OCR words detected: {len(words)}")
     rows = _cluster_rows(words)
-    print(f"[bill_parser] words clustered into {len(rows)} rows")
+    logger.info(f"words clustered into {len(rows)} rows")
     header_idx = _find_header_row(rows)
     if header_idx is None:
-        print("[bill_parser] FAILED: no header row found.")
+        logger.warning("FAILED: no header row found.")
         return []
 
     columns = _build_column_map(rows[header_idx])
     if not columns:
-        print("[bill_parser] FAILED: header row found but no columns could be mapped.")
+        logger.warning("FAILED: header row found but no columns could be mapped.")
         return []
 
     parsed_rows: List[ParsedRow] = []
@@ -149,10 +151,7 @@ def parse_bill_words(words: List[Word]) -> List[ParsedRow]:
         if has_name and has_qty_or_rate:
             parsed_rows.append(pr)
         else:
-            print(f"[bill_parser] row dropped - name={pr.fields.get('name')!r} "
-                  f"qty={pr.fields.get('qty')} rate={pr.fields.get('rate')} "
-                  f"all_fields={pr.fields}")
+            logger.debug(f"row dropped - name={pr.fields.get('name')!r} qty={pr.fields.get('qty')} rate={pr.fields.get('rate')}")
 
-    print(f"[bill_parser] final result: {len(parsed_rows)} usable line items out of "
-          f"{len(rows) - header_idx - 1} candidate rows after the header")
+    logger.info(f"final result: {len(parsed_rows)} usable line items out of {len(rows) - header_idx - 1} candidate rows")
     return parsed_rows

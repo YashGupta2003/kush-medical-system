@@ -4,6 +4,9 @@ from io import BytesIO
 from typing import List
 
 from app.config import settings
+from app.core.logging import get_logger
+
+logger = get_logger("ocr_service")
 
 
 @dataclass
@@ -94,7 +97,7 @@ def _auto_rotate_and_ocr(processed_image):
         score, data = _score_orientation(candidate)
         if score > best_score:
             best_score, best_data, best_angle = score, data, angle
-    print(f"[OCR] auto-rotation chose {best_angle} degrees (confidence score={best_score:.1f})")
+    logger.info(f"auto-rotation chose {best_angle} degrees (confidence score={best_score:.1f})")
     return best_data
 
 
@@ -136,7 +139,7 @@ def run_ocr(image_bytes: bytes) -> OcrResult:
     try:
         return _run_google_vision(image_bytes)
     except Exception as google_error:
-        print(f"[OCR] Google Vision failed ({google_error}); falling back to Tesseract.")
+        logger.warning(f"Google Vision failed ({google_error}); falling back to Tesseract.")
         try:
             return _run_tesseract(image_bytes)
         except Exception as tesseract_error:

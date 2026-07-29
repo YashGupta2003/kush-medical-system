@@ -17,15 +17,64 @@ import { api } from "./api/client.js";
 
 const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
-  { to: "/", label: "Search", icon: "🔍", end: true },
-  { to: "/scan", label: "Scan", icon: "📷" },
-  { to: "/upload", label: "Upload bill", icon: "📤" },
-  { to: "/bills", label: "Review queue", icon: "🗂️" },
+  { to: "/", label: "Search & Master", icon: "🔍", end: true },
+  { to: "/scan", label: "Barcode Scan", icon: "📷" },
+  { to: "/upload", label: "Upload Bill", icon: "📤" },
+  { to: "/bills", label: "Review Queue", icon: "🗂️" },
   { to: "/stock", label: "Stock & Reorder", icon: "📦" },
   { to: "/expiry", label: "Expiry Tracker", icon: "⏳", badgeKey: "urgent" },
-  { to: "/gst", label: "GST Report", icon: "🧾", ownerOnly: true },
+  { to: "/gst", label: "GST Summary", icon: "🧾", ownerOnly: true },
   { to: "/users", label: "Staff", icon: "👥", ownerOnly: true },
 ];
+
+function HealthBadge() {
+  const [health, setHealth] = useState(null);
+
+  useEffect(() => {
+    function check() {
+      api.getHealth()
+        .then(setHealth)
+        .catch(() => setHealth({ status: "down" }));
+    }
+    check();
+    const interval = setInterval(check, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (!health) return null;
+
+  const isHealthy = health.status === "healthy";
+  const statusColor = isHealthy ? "#10b981" : health.status === "degraded" ? "#f59e0b" : "#ef4444";
+
+  return (
+    <div
+      title={`System Status: ${health.status.toUpperCase()}\nDB: ${health.services?.database?.status || 'N/A'}\nRedis: ${health.services?.redis?.status || 'N/A'}\nCelery Workers: ${health.services?.celery?.active_workers ?? 'N/A'}`}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 6,
+        background: "rgba(255,255,255,0.06)",
+        padding: "4px 10px",
+        borderRadius: 20,
+        fontSize: 12,
+        color: "#e2e8f0",
+        border: "1px solid rgba(255,255,255,0.1)",
+        cursor: "help",
+      }}
+    >
+      <span
+        style={{
+          width: 8,
+          height: 8,
+          borderRadius: "50%",
+          background: statusColor,
+          boxShadow: `0 0 6px ${statusColor}`,
+        }}
+      />
+      <span>System {health.status}</span>
+    </div>
+  );
+}
 
 function NavBar() {
   const { user, logout, isOwner } = useAuth();
@@ -47,7 +96,10 @@ function NavBar() {
 
   return (
     <nav className="app-nav">
-      <div className="app-nav-brand">💊 Kush Medical Hall</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <div className="app-nav-brand">💊 Kush Medical Hall</div>
+        <HealthBadge />
+      </div>
       <div className="app-nav-links">
         {NAV_ITEMS.filter((item) => !item.ownerOnly || isOwner).map((item) => (
           <NavLink
@@ -77,7 +129,7 @@ export default function App() {
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
 
-  if (loading) return <p style={{ padding: 20 }}>Loading...</p>;
+  if (loading) return <p style={{ padding: 20 }}>Loading System...</p>;
 
   return (
     <div>

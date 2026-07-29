@@ -28,8 +28,17 @@ function RecordSaleTab() {
     setError(null);
     setResults([]);
     setQuery(med.particulars);
-    const snap = await api.getStockSnapshot(med.id);
-    setSnapshot(snap);
+    try {
+      const snap = await api.getStockSnapshot(med.id);
+      setSnapshot(snap);
+    } catch {
+      setSnapshot({
+        medicine_id: med.id,
+        medicine_name: med.particulars,
+        current_stock: med.current_stock ?? 0,
+        low_stock_threshold: med.low_stock_threshold,
+      });
+    }
   }
 
   async function handleRecordSale(e) {
@@ -54,12 +63,11 @@ function RecordSaleTab() {
       <div className="card">
         <h2>Record a Sale</h2>
         <p style={{ color: "#666", fontSize: 13 }}>
-          Search the medicine that was just sold, check the last purchase details below, then enter
-          how many pieces were sold.
+          Search the medicine that was just sold, check current stock levels, then enter how many pieces were sold.
         </p>
         <input
           style={{ width: "100%" }}
-          placeholder="Search medicine name (e.g. Horlicks 500gm)..."
+          placeholder="Search medicine name (e.g. AMLOKIND-AT TABS)..."
           value={query}
           onChange={(e) => { setQuery(e.target.value); setSelected(null); setSnapshot(null); }}
         />
@@ -68,8 +76,9 @@ function RecordSaleTab() {
             <tbody>
               {results.map((m) => (
                 <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer" }}>
-                  <td>{m.particulars}</td>
-                  <td style={{ color: "#888" }}>{m.unit}</td>
+                  <td><strong>{m.particulars}</strong></td>
+                  <td style={{ color: "#888" }}>{m.unit || "—"}</td>
+                  <td>Stock: {m.current_stock ?? 0}</td>
                 </tr>
               ))}
             </tbody>
@@ -94,12 +103,13 @@ function RecordSaleTab() {
 
           {snapshot.last_purchase ? (
             <div className="last-purchase-card">
-              <div className="title">📦 Last time this arrived</div>
-              <div><strong>{snapshot.last_purchase.qty_received}</strong> units
+              <div className="title">📦 Last Delivery Received</div>
+              <div>
+                <strong>{snapshot.last_purchase.qty_received}</strong> units
                 {snapshot.last_purchase.free_qty_received > 0 && <> (+{snapshot.last_purchase.free_qty_received} free)</>}
-                {" "}from <strong>{snapshot.last_purchase.distributor_name || "unknown distributor"}</strong>
+                {" "}from <strong>{snapshot.last_purchase.distributor_name || "distributor"}</strong>
               </div>
-              <div>Rate: ₹{snapshot.last_purchase.rate ?? "—"} per unit · MRP: ₹{snapshot.last_purchase.mrp ?? "—"}</div>
+              <div>Rate: ₹{snapshot.last_purchase.rate ?? "—"} · MRP: ₹{snapshot.last_purchase.mrp ?? "—"}</div>
               <div>Date: {snapshot.last_purchase.purchase_date ? new Date(snapshot.last_purchase.purchase_date).toLocaleDateString() : "—"}</div>
             </div>
           ) : (
@@ -108,7 +118,7 @@ function RecordSaleTab() {
 
           <form onSubmit={handleRecordSale} style={{ display: "flex", gap: 8, alignItems: "flex-end", marginTop: 12 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, color: "#666" }}>How many sold today?</label>
+              <label style={{ fontSize: 12, color: "#666" }}>Quantity Sold</label>
               <input
                 type="number" min="0.01" step="0.01" required
                 style={{ width: "100%" }}
@@ -128,10 +138,175 @@ function RecordSaleTab() {
 }
 
 // ---------------------------------------------------------------------------
-// Add-manual-item modal
+// TAB 2: Manual Stock Adjustment
+// ---------------------------------------------------------------------------
+function AdjustmentTab() {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [newStock, setNewStock] = useState("");
+  const [note, setNote] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    if (query.length < 2) { setResults([]); return; }
+    const t = setTimeout(() => {
+      api.browseMedicines({ q: query, page: 1, page_size: 10 }).then((d) => setResults(d.items));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  async function handleAdjust(e) {
+    e.preventDefault();
+    if (!selected || newStock === "") return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await api.recordAdjustment({
+        medicine_id: selected.id,
+        new_total_stock: Number(newStock),
+        note: note.trim() || undefined,
+      });
+      setMessage(`✅ Stock updated for ${selected.particulars}. New total balance: ${res.resulting_balance}`);
+      setSelected(null);
+      setNewStock("");
+      setNote("");
+      setQuery("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="card">
+      <h2>Manual Physical Inventory Adjustment</h2>
+      <p style={{ color: "#666", fontSize: 13 }}>
+        Directly align stock records with physical shelf counts (e.g. damaged stock, manual audit counts). Every change is audited in the Stock Ledger.
+      </p>
+      <form onSubmit={handleAdjust}>
+        <div style={{ marginBottom: 12 }}>
+          <label style={{ fontSize: 12, color: "#666" }}>Select Medicine</label>
+          <input
+            style={{ width: "100%" }}
+            placeholder="Search medicine to adjust..."
+            value={selected ? selected.particulars : query}
+            onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
+          />
+          {results.length > 0 && !selected && (
+            <table style={{ marginTop: 6 }}>
+              <tbody>
+                {results.map((m) => (
+                  <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => { setSelected(m); setNewStock(m.current_stock ?? 0); setResults([]); }}>
+                    <td><strong>{m.particulars}</strong></td>
+                    <td>Current: {m.current_stock ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+
+        {selected && (
+          <>
+            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ fontSize: 12, color: "#666" }}>New Physical Stock Count</label>
+                <input
+                  type="number" step="0.01" required
+                  style={{ width: "100%" }}
+                  value={newStock}
+                  onChange={(e) => setNewStock(e.target.value)}
+                />
+              </div>
+              <div style={{ flex: 2 }}>
+                <label style={{ fontSize: 12, color: "#666" }}>Audit Note / Reason</label>
+                <input
+                  placeholder="e.g. Shelf audit, broken bottle discarded"
+                  style={{ width: "100%" }}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                />
+              </div>
+            </div>
+            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Adjustment"}</button>
+          </>
+        )}
+      </form>
+      {message && <p style={{ color: "#16a34a", marginTop: 10 }}>{message}</p>}
+      {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TAB 3: Stock Ledger Audit Trail
+// ---------------------------------------------------------------------------
+function StockLedgerTab() {
+  const [ledger, setLedger] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    api.getStockLedger({ limit: 50 })
+      .then((res) => setLedger(res.items || res))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="card">
+      <h2>Stock Ledger Audit Trail</h2>
+      <p style={{ color: "#666", fontSize: 13 }}>
+        Immutable history of every inventory change across bills, sales, and adjustments.
+      </p>
+      {loading ? (
+        <p>Loading ledger entries...</p>
+      ) : ledger.length === 0 ? (
+        <p style={{ color: "#888" }}>No ledger movements recorded yet.</p>
+      ) : (
+        <table style={{ marginTop: 12 }}>
+          <thead>
+            <tr>
+              <th>Timestamp</th>
+              <th>Medicine</th>
+              <th>Reason</th>
+              <th>Change Qty</th>
+              <th>Resulting Balance</th>
+              <th>Note / Ref</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ledger.map((row) => (
+              <tr key={row.id}>
+                <td>{new Date(row.created_at).toLocaleString()}</td>
+                <td><strong>{row.medicine_name || row.medicine_id}</strong></td>
+                <td>
+                  <span className={`badge ${row.reason === "bill_received" ? "auto" : row.reason === "sale" ? "learned" : "manual"}`}>
+                    {row.reason}
+                  </span>
+                </td>
+                <td style={{ color: row.change_qty > 0 ? "#16a34a" : "#dc2626", fontWeight: "bold" }}>
+                  {row.change_qty > 0 ? `+${row.change_qty}` : row.change_qty}
+                </td>
+                <td><strong>{row.resulting_balance}</strong></td>
+                <td>{row.note || "—"}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Add-manual-item modal for Reorder
 // ---------------------------------------------------------------------------
 function AddReorderItemModal({ onClose, onAdded }) {
-  const [mode, setMode] = useState("existing"); // "existing" | "custom"
+  const [mode, setMode] = useState("existing");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [selectedMedicine, setSelectedMedicine] = useState(null);
@@ -219,22 +394,21 @@ function AddReorderItemModal({ onClose, onAdded }) {
           )}
 
           <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 12, color: "#666" }}>Order from which distributor? (optional, type name)</label>
+            <label style={{ fontSize: 12, color: "#666" }}>Order from distributor (optional)</label>
             <input style={{ width: "100%" }} value={distributorName} onChange={(e) => setDistributorName(e.target.value)}
-              placeholder="e.g. Hari Krishna Distributor" />
+              placeholder="e.g. RATHORE MEDICOS" />
           </div>
 
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, color: "#666" }}>Quantity needed (optional)</label>
+              <label style={{ fontSize: 12, color: "#666" }}>Quantity needed</label>
               <input type="number" min="1" style={{ width: "100%" }} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </div>
           </div>
 
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 12, color: "#666" }}>Note (optional)</label>
-            <input style={{ width: "100%" }} value={note} onChange={(e) => setNote(e.target.value)}
-              placeholder="e.g. bhaiya ne bola tha yeh bhi mangwana" />
+            <input style={{ width: "100%" }} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
 
           {error && <p style={{ color: "#b91c1c", fontSize: 13 }}>{error}</p>}
@@ -250,7 +424,7 @@ function AddReorderItemModal({ onClose, onAdded }) {
 }
 
 // ---------------------------------------------------------------------------
-// TAB 2: Reorder List (grouped by distributor)
+// TAB 4: Reorder List (grouped by distributor)
 // ---------------------------------------------------------------------------
 function ReorderListTab() {
   const [groups, setGroups] = useState([]);
@@ -262,6 +436,11 @@ function ReorderListTab() {
   }
 
   useEffect(() => { refresh(); }, []);
+
+  async function handleFulfill(id) {
+    await api.fulfillReorderItem(id);
+    refresh();
+  }
 
   async function handleRemove(id) {
     await api.removeReorderItem(id);
@@ -281,7 +460,7 @@ function ReorderListTab() {
               {totalItems > 0 && <> <strong>{totalItems}</strong> item{totalItems === 1 ? "" : "s"} need attention.</>}
             </p>
           </div>
-          <button onClick={() => setShowModal(true)}>+ Add item</button>
+          <button onClick={() => setShowModal(true)}>+ Add manual item</button>
         </div>
       </div>
 
@@ -315,7 +494,10 @@ function ReorderListTab() {
                     {item.source === "auto_low_stock" ? "Low stock" : "Manually added"}
                   </span>
                   {item.id && (
-                    <button className="secondary" onClick={() => handleRemove(item.id)}>Remove</button>
+                    <>
+                      <button onClick={() => handleFulfill(item.id)}>Mark Fulfilled</button>
+                      <button className="secondary" onClick={() => handleRemove(item.id)}>Remove</button>
+                    </>
                   )}
                 </div>
               </div>
@@ -330,7 +512,7 @@ function ReorderListTab() {
 }
 
 // ---------------------------------------------------------------------------
-// Main page: two tabs
+// Main Stock Component with 4 Tabs
 // ---------------------------------------------------------------------------
 export default function Stock() {
   const [tab, setTab] = useState("sale");
@@ -339,9 +521,14 @@ export default function Stock() {
     <div>
       <div className="tabs">
         <button className={`tab-button ${tab === "sale" ? "active" : ""}`} onClick={() => setTab("sale")}>Record a Sale</button>
+        <button className={`tab-button ${tab === "adjustment" ? "active" : ""}`} onClick={() => setTab("adjustment")}>Stock Adjustment</button>
+        <button className={`tab-button ${tab === "ledger" ? "active" : ""}`} onClick={() => setTab("ledger")}>Stock Ledger</button>
         <button className={`tab-button ${tab === "reorder" ? "active" : ""}`} onClick={() => setTab("reorder")}>Reorder List</button>
       </div>
-      {tab === "sale" ? <RecordSaleTab /> : <ReorderListTab />}
+      {tab === "sale" && <RecordSaleTab />}
+      {tab === "adjustment" && <AdjustmentTab />}
+      {tab === "ledger" && <StockLedgerTab />}
+      {tab === "reorder" && <ReorderListTab />}
     </div>
   );
 }

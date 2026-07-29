@@ -74,6 +74,7 @@ class Bill(Base):
     ocr_confidence = Column(Numeric(5, 2), nullable=True)
     needs_attention_reason = Column(String(255), nullable=True)
     preprocessing_notes = Column(Text, nullable=True)
+    checksum = Column(String(64), nullable=True, index=True)
 
     # status = Column(
     #     Enum("pending_review", "confirmed", "rejected", name="bill_status"),

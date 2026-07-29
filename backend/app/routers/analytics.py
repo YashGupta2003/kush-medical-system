@@ -64,3 +64,13 @@ def top_selling(
     db: Session = Depends(get_db),
 ):
     return analytics_service.get_top_selling(db, days=days, limit=limit)
+
+
+@router.get("/inventory-valuation")
+def inventory_valuation(db: Session = Depends(get_db)):
+    return analytics_service.get_inventory_valuation(db)
+
+
+@router.get("/dead-stock")
+def dead_stock(days: int = Query(90, ge=30, le=365), db: Session = Depends(get_db)):
+    return analytics_service.get_dead_stock(db, days=days)

@@ -67,6 +67,32 @@ def remove_reorder_item(reorder_item_id: int, db: Session = Depends(get_db)):
     return {"status": "ok"}
 
 
+@router.patch("/reorder-list/{reorder_item_id}/fulfill")
+def fulfill_reorder_item(reorder_item_id: int, db: Session = Depends(get_db)):
+    ok = stock_service.mark_reorder_item_fulfilled(db, reorder_item_id)
+    if not ok:
+        raise HTTPException(404, "Reorder item not found")
+    return {"status": "ok"}
+
+
+@router.get("/ledger")
+def get_ledger(limit: int = 50, db: Session = Depends(get_db)):
+    return stock_service.get_stock_ledger(db, limit=limit)
+
+
+@router.post("/adjustments")
+def record_adjustment(payload: dict, db: Session = Depends(get_db)):
+    med_id = payload.get("medicine_id")
+    target = payload.get("new_total_stock")
+    note = payload.get("note")
+    if not med_id or target is None:
+        raise HTTPException(422, "Missing medicine_id or new_total_stock")
+    try:
+        return stock_service.record_adjustment(db, med_id, float(target), note)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
 @router.patch("/medicine/{medicine_id}/threshold", response_model=schemas.MedicineOut)
 def update_threshold(medicine_id: int, payload: schemas.ThresholdUpdate, db: Session = Depends(get_db)):
     medicine = db.query(models.Medicine).get(medicine_id)
