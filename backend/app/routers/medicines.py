@@ -66,6 +66,17 @@ def assign_barcode(medicine_id: int, payload: schemas.BarcodeAssignRequest, db: 
     db.refresh(medicine)
     return medicine
 
+@router.patch("/{medicine_id}/composition", response_model=schemas.MedicineOut)
+def update_composition(medicine_id: int, payload: schemas.CompositionUpdate, db: Session = Depends(get_db)):
+    from app.services import composition_service
+
+    medicine = composition_service.set_medicine_composition(db, medicine_id, payload.composition)
+    if not medicine:
+        raise HTTPException(404, "Medicine not found")
+    db.commit()
+    db.refresh(medicine)
+    return medicine
+
 
 @router.get("/{medicine_id}", response_model=schemas.MedicineOut)
 def get_medicine(medicine_id: int, db: Session = Depends(get_db)):

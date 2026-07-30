@@ -84,6 +84,14 @@ export const api = {
   lookupBarcode: (code) => apiFetch(`/medicines/barcode/${encodeURIComponent(code)}`),
   assignBarcode: (medicineId, barcode) =>
     apiFetch(`/medicines/${medicineId}/barcode`, { method: "PATCH", ...jsonBody({ barcode }) }),
+  updateComposition: (medicineId, composition) =>
+    apiFetch(`/medicines/${medicineId}/composition`, { method: "PATCH", ...jsonBody({ composition }) }),
+
+  // --- Substitute Medicine Suggestion ---
+  searchSubstitutes: (q, inStockOnly = true) =>
+    apiFetch(`/substitutes/search?q=${encodeURIComponent(q)}&in_stock_only=${inStockOnly}`),
+  getSubstitutesForMedicine: (medicineId, inStockOnly = true) =>
+    apiFetch(`/substitutes/for-medicine/${medicineId}?in_stock_only=${inStockOnly}`),
   getLearningRules: () => apiFetch("/medicines/learning/rules"),
   deleteLearningRule: (ruleId) => apiFetch(`/medicines/learning/rules/${ruleId}`, { method: "DELETE" }),
 

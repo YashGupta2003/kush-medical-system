@@ -14,6 +14,7 @@ class MedicineOut(BaseModel):
     current_stock: Optional[float] = None
     low_stock_threshold: Optional[float] = None
     barcode: Optional[str] = None
+    composition: Optional[str] = None
     lead_time_days: Optional[int] = None
     suggested_low_stock_threshold: Optional[float] = None
     avg_daily_sales_30d: Optional[float] = None
@@ -375,3 +376,33 @@ class GstReport(BaseModel):
     grand_total_tax: float
     grand_total_amount: float
     bill_count: int
+
+
+# Substitute Medicine Suggestion
+
+class CompositionUpdate(BaseModel):
+    composition: str = Field(min_length=1, max_length=500)
+
+
+class SubstituteMedicineItem(BaseModel):
+    medicine_id: int
+    particulars: str
+    company: Optional[str] = None
+    unit: Optional[str] = None
+    mrp: Optional[float] = None
+    current_stock: float
+    composition: Optional[str] = None
+    match_type: str
+    matched_salts: int
+    query_salts: int
+
+
+class MedicineSubstituteSource(BaseModel):
+    id: int
+    particulars: str
+    composition: Optional[str] = None
+
+
+class MedicineSubstituteResult(BaseModel):
+    medicine: MedicineSubstituteSource
+    substitutes: list[SubstituteMedicineItem]

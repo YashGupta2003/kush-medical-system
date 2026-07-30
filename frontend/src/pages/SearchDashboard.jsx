@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../api/client.js";
 
@@ -12,6 +13,8 @@ export default function SearchDashboard() {
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState(null);
   const [history, setHistory] = useState([]);
+  const [compositionInput, setCompositionInput] = useState("");
+  const [savingComposition, setSavingComposition] = useState(false);
 
   // Load the full list (or a filtered page of it) whenever the query or page changes.
   useEffect(() => {
@@ -37,6 +40,7 @@ export default function SearchDashboard() {
 
   async function selectMedicine(med) {
     setSelected(med);
+    setCompositionInput(med.composition || "");
     const h = await api.getMedicineHistory(med.id);
     setHistory(
       h
@@ -47,6 +51,18 @@ export default function SearchDashboard() {
           net_rate: r.new_net_rate,
         }))
     );
+  }
+
+  async function handleSaveComposition() {
+    if (!selected || !compositionInput.trim()) return;
+    setSavingComposition(true);
+    try {
+      const updated = await api.updateComposition(selected.id, compositionInput.trim());
+      setSelected(updated);
+      setResults((prev) => prev.map((m) => (m.id === updated.id ? { ...m, composition: updated.composition } : m)));
+    } finally {
+      setSavingComposition(false);
+    }
   }
 
   return (
@@ -68,7 +84,7 @@ export default function SearchDashboard() {
 
        <table style={{ marginTop: 12 }}>
             <thead>
-              <tr><th>Name</th><th>Unit</th><th>MRP</th><th>Cost price</th><th>Stock</th><th>Company</th></tr>
+              <tr><th>Name</th><th>Unit</th><th>MRP</th><th>Cost price</th><th>Stock</th><th>Company</th><th>Composition</th></tr>
             </thead>
             <tbody>
               {results.map((m) => {
@@ -81,6 +97,7 @@ export default function SearchDashboard() {
                     <td>{m.net_rate}</td>
                     <td>{isLow ? <span className="badge unmatched">{m.current_stock} low!</span> : (m.current_stock ?? "—")}</td>
                     <td>{m.company || "—"}</td>
+                    <td style={{ color: m.composition ? "#1c1c1e" : "#bbb" }}>{m.composition || "not set"}</td>
                   </tr>
                 );
               })}
@@ -103,6 +120,25 @@ export default function SearchDashboard() {
         <div className="card">
           <h3>{selected.particulars}</h3>
           <p>Current MRP: <strong>{selected.mrp}</strong> · Current cost price: <strong>{selected.net_rate}</strong></p>
+
+          <div style={{ display: "flex", gap: 8, alignItems: "flex-end", margin: "10px 0" }}>
+            <div style={{ flex: 1 }}>
+              <label style={{ fontSize: 12, color: "#666" }}>Composition / salt</label>
+              <input
+                style={{ width: "100%" }}
+                placeholder="e.g. Paracetamol 650mg"
+                value={compositionInput}
+                onChange={(e) => setCompositionInput(e.target.value)}
+              />
+            </div>
+            <button className="secondary" onClick={handleSaveComposition} disabled={savingComposition}>
+              {savingComposition ? "Saving..." : "Save"}
+            </button>
+            <Link to={`/substitutes?medicine_id=${selected.id}`}>
+              <button className="secondary">🔄 Find substitutes</button>
+            </Link>
+          </div>
+
           {history.length > 1 ? (
             <ResponsiveContainer width="100%" height={200}>
               <LineChart data={history}>

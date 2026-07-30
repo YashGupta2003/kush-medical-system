@@ -3,6 +3,7 @@ import { Routes, Route, NavLink, useLocation } from "react-router-dom";
 import UploadBill from "./pages/UploadBill.jsx";
 import ReviewBill from "./pages/ReviewBill.jsx";
 import SearchDashboard from "./pages/SearchDashboard.jsx";
+import Substitutes from "./pages/Substitutes.jsx";
 import BillHistory from "./pages/BillHistory.jsx";
 import Stock from "./pages/Stock.jsx";
 import Expiry from "./pages/Expiry.jsx";
@@ -18,6 +19,7 @@ import { api } from "./api/client.js";
 const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
   { to: "/", label: "Search & Master", icon: "🔍", end: true },
+  { to: "/substitutes", label: "Substitutes", icon: "🔄" },
   { to: "/scan", label: "Barcode Scan", icon: "📷" },
   { to: "/upload", label: "Upload Bill", icon: "📤" },
   { to: "/bills", label: "Review Queue", icon: "🗂️" },
@@ -138,6 +140,7 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireAuth><SearchDashboard /></RequireAuth>} />
+          <Route path="/substitutes" element={<RequireAuth><Substitutes /></RequireAuth>} />
           <Route path="/scan" element={<RequireAuth><BarcodeScan /></RequireAuth>} />
           <Route path="/upload" element={<RequireAuth><UploadBill /></RequireAuth>} />
           <Route path="/bills" element={<RequireAuth><BillHistory /></RequireAuth>} />

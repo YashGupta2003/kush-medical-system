@@ -34,6 +34,10 @@ class Medicine(Base):
     low_stock_threshold = Column(Numeric(10, 2), nullable=True)
     barcode = Column(String(64), nullable=True, unique=True, index=True)
 
+    # --- Substitute Medicine Suggestion feature ---
+    composition = Column(String(500), nullable=True)   # raw display text, e.g. "Paracetamol 650mg"
+
+
     lead_time_days = Column(Integer, nullable=True)
     suggested_low_stock_threshold = Column(Numeric(10, 2), nullable=True)
     avg_daily_sales_30d = Column(Numeric(10, 2), nullable=True)
@@ -41,6 +45,7 @@ class Medicine(Base):
 
     bill_items = relationship("BillItem", back_populates="medicine")
     rate_history = relationship("RateHistory", back_populates="medicine")
+    salts = relationship("MedicineSalt", back_populates="medicine", cascade="all, delete-orphan")
 
 
 class Distributor(Base):
@@ -223,3 +228,18 @@ class User(Base):
     role = Column(Enum("owner", "staff", name="user_role"), nullable=False, default="staff")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+class MedicineSalt(Base):
+    """
+    One row per individual salt inside a medicine's composition, produced by
+    composition_service.parse_composition(). A combination drug like
+    "Paracetamol 650mg + Caffeine 30mg" gets TWO rows here.
+    """
+    __tablename__ = "medicine_salts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
+    salt_name = Column(String(150), nullable=False, index=True)
+    strength = Column(String(50), nullable=True)
+
+    medicine = relationship("Medicine", back_populates="salts")
