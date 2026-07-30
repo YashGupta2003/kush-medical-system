@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 12
 
+    default_lead_time_days: int = 3
+    reorder_safety_z_score: float = 1.65
+
     class Config:
         env_file = ".env"
 

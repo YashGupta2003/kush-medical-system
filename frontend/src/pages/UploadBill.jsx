@@ -36,7 +36,7 @@ function usePolledStatus(billId) {
   return { status, confidence, error };
 }
 
-function BillProgressRow({ billId, filename }) {
+function BillProgressRow({ billId, filename, duplicateWarning }) {
   const { status, confidence, error } = usePolledStatus(billId);
   const navigate = useNavigate();
 
@@ -55,15 +55,22 @@ function BillProgressRow({ billId, filename }) {
   }[status] || "manual";
 
   return (
-    <div className="card" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div>
-        <strong>{filename}</strong>
-        <div style={{ fontSize: 13, color: "#666" }}>
-          <span className={`badge ${badgeClass}`}>{statusLabel}</span>
+    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <strong>{filename}</strong>
+          <div style={{ fontSize: 13, color: "#666" }}>
+            <span className={`badge ${badgeClass}`}>{statusLabel}</span>
+          </div>
         </div>
+        {(status === "pending_review" || status === "needs_attention") && (
+          <button onClick={() => navigate(`/review/${billId}`)}>Review</button>
+        )}
       </div>
-      {(status === "pending_review" || status === "needs_attention") && (
-        <button onClick={() => navigate(`/review/${billId}`)}>Review</button>
+      {duplicateWarning && (
+        <div style={{ background: "#fff7ed", border: "1px solid #fdba74", color: "#c2410c", padding: "8px 12px", borderRadius: "6px", fontSize: 13 }}>
+          ⚠️ {duplicateWarning}
+        </div>
       )}
     </div>
   );
@@ -93,13 +100,13 @@ export default function UploadBill() {
         if (invoiceNo) formData.append("invoice_no", invoiceNo);
         if (invoiceDate) formData.append("invoice_date", invoiceDate);
         const res = await api.uploadBill(formData);
-        setUploadedBills([{ bill_id: res.bill_id, filename: files[0].name }]);
+        setUploadedBills([{ bill_id: res.bill_id, filename: files[0].name, duplicate_warning: res.duplicate_warning }]);
       } else {
         const formData = new FormData();
         files.forEach((f) => formData.append("files", f));
         if (distributorName) formData.append("distributor_name", distributorName);
         const res = await api.uploadBillsBatch(formData);
-        setUploadedBills(res.map((r, i) => ({ bill_id: r.bill_id, filename: files[i]?.name || `bill ${i + 1}` })));
+        setUploadedBills(res.map((r, i) => ({ bill_id: r.bill_id, filename: files[i]?.name || `bill ${i + 1}`, duplicate_warning: r.duplicate_warning })));
       }
       setFiles([]);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -158,7 +165,7 @@ export default function UploadBill() {
       </div>
 
       {uploadedBills.map((b) => (
-        <BillProgressRow key={b.bill_id} billId={b.bill_id} filename={b.filename} />
+        <BillProgressRow key={b.bill_id} billId={b.bill_id} filename={b.filename} duplicateWarning={b.duplicate_warning} />
       ))}
     </div>
   );

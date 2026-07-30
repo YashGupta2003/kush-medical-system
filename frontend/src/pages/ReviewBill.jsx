@@ -285,17 +285,22 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
 export default function ReviewBill() {
   const { billId } = useParams();
   const [bill, setBill] = useState(null);
+  const [invoiceNo, setInvoiceNo] = useState("");
+  const [distributorName, setDistributorName] = useState("");
   const [rows, setRows] = useState({});
   const [applyFlags, setApplyFlags] = useState({});
   const [stage, setStage] = useState("reviewing");
   const [changeSummary, setChangeSummary] = useState(null);
   const [error, setError] = useState(null);
+  const [is409Error, setIs409Error] = useState(false);
   const [pickingField, setPickingField] = useState(null);
   const [regionLoading, setRegionLoading] = useState(false);
 
   useEffect(() => {
     api.getBill(billId).then((b) => {
       setBill(b);
+      setInvoiceNo(b.invoice_no || "");
+      setDistributorName(b.distributor_name || "");
       const initialRows = {};
       const initialFlags = {};
       b.items.forEach((item) => {
@@ -311,11 +316,6 @@ export default function ReviewBill() {
     setRows((prev) => ({ ...prev, [itemId]: { ...prev[itemId], [field]: value } }));
   }
 
-  // Called when the user picks a medicine from MedicineLinkPicker for a
-  // previously-unmatched row. This is the piece that was missing entirely -
-  // without setting medicine_id here, /bills/confirm has nothing to attach
-  // the master-list update, stock increment, or expiry batch to, no matter
-  // what the user typed into the other fields.
   function handleLinkMedicine(itemId, medicine) {
     setRows((prev) => ({
       ...prev,
@@ -330,10 +330,6 @@ export default function ReviewBill() {
     setApplyFlags((prev) => ({ ...prev, [itemId]: true }));
   }
 
-  // Fallback for bills where OCR found no table at all (or missed a row) -
-  // adds one blank, fully-editable row backed by a real BillItem in the DB,
-  // so it flows through the exact same link/edit/confirm path as every
-  // OCR-extracted item.
   const [addingItem, setAddingItem] = useState(false);
   async function handleAddItem() {
     setAddingItem(true);
@@ -409,6 +405,7 @@ export default function ReviewBill() {
   async function handleFinalConfirm() {
     setStage("applying");
     setError(null);
+    setIs409Error(false);
     try {
       const parseNum = (val) => {
         const parsed = Number(val);
@@ -429,10 +426,20 @@ export default function ReviewBill() {
         medicine_id: r.medicine_id || null,
         apply_to_master_list: !!applyFlags[r.id],
       }));
-      const summary = await api.confirmBill({ bill_id: Number(billId), items });
+      const summary = await api.confirmBill({
+        bill_id: Number(billId),
+        items,
+        invoice_no: invoiceNo || null,
+        distributor_name: distributorName || null,
+      });
       setChangeSummary(summary);
       setStage("done");
     } catch (err) {
+      if (err.status === 409 || (err.message && err.message.toLowerCase().includes("already confirmed"))) {
+        setIs409Error(true);
+      } else {
+        setIs409Error(false);
+      }
       setError(err.message);
       setStage("reviewing");
     }
@@ -514,11 +521,30 @@ export default function ReviewBill() {
           <div>
             <h2 style={{ marginBottom: 4 }}>Review bill #{bill.id}</h2>
             <p style={{ color: "#666", fontSize: 13, margin: 0 }}>
-              {bill.distributor_name || "Unknown distributor"} · {bill.invoice_no || "no invoice no."} ·
-              {" "}{bill.year}-{String(bill.month).padStart(2, "0")}
+              {bill.year}-{String(bill.month).padStart(2, "0")} · Uploaded {new Date(bill.uploaded_at).toLocaleDateString()}
             </p>
+            <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <label style={{ fontSize: 11, color: "#666", display: "block", marginBottom: 2 }}>Distributor Name</label>
+                <input
+                  style={{ width: "100%" }}
+                  value={distributorName}
+                  onChange={(e) => { setDistributorName(e.target.value); setIs409Error(false); }}
+                  placeholder="Distributor name..."
+                />
+              </div>
+              <div style={{ flex: 1, minWidth: 180 }}>
+                <label style={{ fontSize: 11, color: "#666", display: "block", marginBottom: 2 }}>Invoice No.</label>
+                <input
+                  style={{ width: "100%" }}
+                  value={invoiceNo}
+                  onChange={(e) => { setInvoiceNo(e.target.value); setIs409Error(false); }}
+                  placeholder="Invoice number..."
+                />
+              </div>
+            </div>
           </div>
-          <button onClick={handleProceedClick} disabled={Object.keys(rows).length === 0}>
+          <button onClick={handleProceedClick} disabled={Object.keys(rows).length === 0} style={{ alignSelf: "flex-start" }}>
             Looks good — proceed ({itemsToApplyCount} to update)
           </button>
         </div>
@@ -527,7 +553,17 @@ export default function ReviewBill() {
             ⚠️ This bill needs extra attention: {bill.needs_attention_reason}
           </p>
         )}
-        {error && <p style={{ color: "#b91c1c", marginTop: 8 }}>{error}</p>}
+        {is409Error ? (
+          <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#991b1b", padding: 12, borderRadius: 8, marginTop: 10, fontSize: 13 }}>
+            <strong style={{ fontSize: 14 }}>⚠️ Duplicate Invoice Conflict (HTTP 409)</strong>
+            <p style={{ margin: "4px 0 0" }}>{error}</p>
+            <p style={{ margin: "6px 0 0", color: "#7f1d1d" }}>
+              This invoice number and distributor match an already-confirmed bill. If this is a separate delivery, please update the Invoice No. field above before confirming.
+            </p>
+          </div>
+        ) : (
+          error && <p style={{ color: "#b91c1c", marginTop: 8 }}>{error}</p>
+        )}
         {regionLoading && <p style={{ color: "#666", marginTop: 8 }}>Reading selected region...</p>}
       </div>
 

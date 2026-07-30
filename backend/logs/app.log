@@ -103,3 +103,166 @@ message: "This API method requires billing to be enabled. Please enable billing 
 [2026-07-30 00:52:41] [INFO] [bill_parser] [bill_parser.py:156]: final result: 0 usable line items out of 13 candidate rows
 [2026-07-30 00:52:41] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 0 line item rows from OCR text
 [2026-07-30 00:52:42] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s)
+[2026-07-30 11:44:21] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-30 11:44:28] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:44:28] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s)
+[2026-07-30 11:44:28] [ERROR] [event_bus] [bus.py:43]: Error executing subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 41, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-07-30 11:44:29] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-07-30 11:50:09] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-30 11:50:12] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 5 subscriber(s)
+[2026-07-30 11:50:12] [INFO] [event_subscribers] [subscribers.py:30]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-07-30 11:50:12] [INFO] [event_subscribers] [subscribers.py:102]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-07-30 11:50:12] [INFO] [event_subscribers] [subscribers.py:122]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-07-30 11:50:12] [INFO] [event_subscribers] [subscribers.py:137]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-07-30 11:50:12] [INFO] [event_subscribers] [subscribers.py:152]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-07-30 11:50:13] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:50:13] [INFO] [event_subscribers] [subscribers.py:160]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-07-30 11:50:13] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 5 subscriber(s)
+[2026-07-30 11:50:13] [INFO] [event_subscribers] [subscribers.py:30]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-07-30 11:50:13] [INFO] [event_subscribers] [subscribers.py:102]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-07-30 11:50:13] [INFO] [event_subscribers] [subscribers.py:122]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-07-30 11:50:13] [INFO] [event_subscribers] [subscribers.py:137]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-07-30 11:50:13] [INFO] [event_subscribers] [subscribers.py:152]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-07-30 11:50:18] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:50:18] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s)
+[2026-07-30 11:50:18] [ERROR] [event_bus] [bus.py:43]: Error executing subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 41, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-07-30 11:50:18] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-07-30 11:50:52] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-30 11:50:55] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 5 subscriber(s)
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:30]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:102]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:122]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:137]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:152]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-07-30 11:50:55] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:160]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-07-30 11:50:55] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 5 subscriber(s)
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:30]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:102]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:122]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:137]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-07-30 11:50:55] [INFO] [event_subscribers] [subscribers.py:152]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-07-30 11:50:59] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:50:59] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s)
+[2026-07-30 11:50:59] [ERROR] [event_bus] [bus.py:43]: Error executing subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 41, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-07-30 11:51:00] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-07-30 11:53:22] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-07-30 11:53:22] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-07-30 11:53:22] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-07-30 11:53:22] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-07-30 11:53:22] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-07-30 11:53:22] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-07-30 11:53:23] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-07-30 11:53:24] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-07-30 11:53:25] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-07-30 11:53:25] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-07-30 11:53:25] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 60
+[2026-07-30 11:53:25] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 7 rows
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-07-30 11:53:25] [INFO] [bill_parser] [bill_parser.py:156]: final result: 3 usable line items out of 4 candidate rows
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 3 line item rows from OCR text
+[2026-07-30 11:53:25] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 60
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:93]: Stage 4: Computing costs and linking items against master rate list
+[2026-07-30 11:53:25] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 7 rows
+[2026-07-30 11:53:25] [INFO] [bill_parser] [bill_parser.py:156]: final result: 3 usable line items out of 4 candidate rows
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 3 line item rows from OCR text
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:93]: Stage 4: Computing costs and linking items against master rate list
+[2026-07-30 11:53:25] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s)
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:154]: Pipeline successfully completed for Bill #2 in 2.57s
+[2026-07-30 11:53:25] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s)
+[2026-07-30 11:53:25] [INFO] [bill_pipeline] [pipeline.py:154]: Pipeline successfully completed for Bill #2 in 2.57s
+[2026-07-30 11:53:42] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-30 11:57:42] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-30 11:57:45] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 5 subscriber(s)
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:30]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:102]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:122]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:137]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:152]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-07-30 11:57:45] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:160]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-07-30 11:57:45] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 5 subscriber(s)
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:30]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:102]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:122]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:137]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-07-30 11:57:45] [INFO] [event_subscribers] [subscribers.py:152]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-07-30 11:57:50] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-07-30 11:57:50] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s)
+[2026-07-30 11:57:50] [ERROR] [event_bus] [bus.py:43]: Error executing subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 41, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-07-30 11:57:51] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)

@@ -512,7 +512,138 @@ function ReorderListTab() {
 }
 
 // ---------------------------------------------------------------------------
-// Main Stock Component with 4 Tabs
+// ---------------------------------------------------------------------------
+// TAB 5: Smart Reorder Engine
+// ---------------------------------------------------------------------------
+function SmartReorderTab() {
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [windowDays, setWindowDays] = useState(30);
+  const [notice, setNotice] = useState(null);
+  const [error, setError] = useState(null);
+
+  function loadList() {
+    setLoading(true);
+    setError(null);
+    api.getSmartReorderList(windowDays)
+      .then((data) => setItems(data))
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadList();
+  }, [windowDays]);
+
+  async function handleApply(medicineId) {
+    setNotice(null);
+    setError(null);
+    try {
+      const updated = await api.applySmartThreshold(medicineId);
+      setNotice(`✅ Applied smart threshold ${updated.low_stock_threshold} for medicine ID ${medicineId}.`);
+      loadList();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  async function handleLeadTimeChange(medicineId, val) {
+    const parsed = val === "" ? null : parseInt(val, 10);
+    try {
+      await api.updateLeadTime(medicineId, parsed);
+      loadList();
+    } catch (err) {
+      setError(err.message);
+    }
+  }
+
+  return (
+    <div>
+      <div className="card">
+        <div className="flex-between">
+          <div>
+            <h2 style={{ marginBottom: 4 }}>Smart Reorder Point Engine</h2>
+            <p style={{ color: "#666", fontSize: 13, margin: 0 }}>
+              Data-driven reorder point suggestions based on rolling sales history, lead time demand, and safety stock.
+            </p>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <label style={{ fontSize: 12, color: "#666" }}>Rolling Window:</label>
+            <select value={windowDays} onChange={(e) => setWindowDays(Number(e.target.value))}>
+              <option value={7}>7 Days</option>
+              <option value={14}>14 Days</option>
+              <option value={30}>30 Days</option>
+              <option value={60}>60 Days</option>
+              <option value={90}>90 Days</option>
+            </select>
+          </div>
+        </div>
+        {notice && <p style={{ color: "#16a34a", marginTop: 10 }}>{notice}</p>}
+        {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
+      </div>
+
+      {loading ? (
+        <p>Calculating data-driven reorder thresholds...</p>
+      ) : items.length === 0 ? (
+        <div className="card"><p style={{ color: "#888" }}>No sales history recorded yet across medicines.</p></div>
+      ) : (
+        <div className="card">
+          <table>
+            <thead>
+              <tr>
+                <th>Medicine</th>
+                <th>Avg. Daily Sales ({windowDays}d)</th>
+                <th>Current Threshold</th>
+                <th>Suggested Threshold</th>
+                <th>Lead Time (Days)</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((row) => (
+                <tr key={row.medicine_id} style={{ opacity: row.has_sufficient_data ? 1 : 0.65 }}>
+                  <td><strong>{row.medicine_name || `Medicine #${row.medicine_id}`}</strong></td>
+                  <td>{row.avg_daily_sales} units/day</td>
+                  <td>{row.current_threshold ?? "—"}</td>
+                  <td>
+                    {row.has_sufficient_data ? (
+                      <strong style={{ color: "#2563eb", fontSize: 15 }}>{row.suggested_threshold} units</strong>
+                    ) : (
+                      <span style={{ color: "#64748b", fontSize: 12, fontStyle: "italic" }}>
+                        {row.reason || "Not enough sales data"}
+                      </span>
+                    )}
+                  </td>
+                  <td>
+                    <input
+                      type="number"
+                      min="1"
+                      style={{ width: 70 }}
+                      defaultValue={row.lead_time_days}
+                      onBlur={(e) => handleLeadTimeChange(row.medicine_id, e.target.value)}
+                    />
+                  </td>
+                  <td>
+                    <button
+                      disabled={!row.has_sufficient_data}
+                      onClick={() => handleApply(row.medicine_id)}
+                      className={row.has_sufficient_data ? "" : "secondary"}
+                    >
+                      Apply suggestion
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Main Stock Component with Tabs
 // ---------------------------------------------------------------------------
 export default function Stock() {
   const [tab, setTab] = useState("sale");
@@ -524,11 +655,13 @@ export default function Stock() {
         <button className={`tab-button ${tab === "adjustment" ? "active" : ""}`} onClick={() => setTab("adjustment")}>Stock Adjustment</button>
         <button className={`tab-button ${tab === "ledger" ? "active" : ""}`} onClick={() => setTab("ledger")}>Stock Ledger</button>
         <button className={`tab-button ${tab === "reorder" ? "active" : ""}`} onClick={() => setTab("reorder")}>Reorder List</button>
+        <button className={`tab-button ${tab === "smart-reorder" ? "active" : ""}`} onClick={() => setTab("smart-reorder")}>Smart Reorder</button>
       </div>
       {tab === "sale" && <RecordSaleTab />}
       {tab === "adjustment" && <AdjustmentTab />}
       {tab === "ledger" && <StockLedgerTab />}
       {tab === "reorder" && <ReorderListTab />}
+      {tab === "smart-reorder" && <SmartReorderTab />}
     </div>
   );
 }

@@ -19,6 +19,8 @@ list by hand every 15 days" workflow at a real medical shop with:
    what changed.
 7. A search screen replaces Ctrl+F, and shows a price-history graph per
    medicine.
+8. **Duplicate Invoice Detection**: Prevents double-counting inventory and GST by detecting if a bill with the same distributor and invoice number has already been confirmed. Uploading returns a prominent warning banner, and confirming a duplicate returns an HTTP 409 Conflict hard gate.
+9. **Smart Reorder Point Engine**: Calculates data-driven low-stock threshold suggestions based on rolling sales history (30-day default zero-filled series), lead time demand, and safety stock ($Z = 1.65$ for 95% service level). The owner can review suggestions and explicitly apply them to update the low-stock thresholds.
 
 ## Stack
 - **Backend**: Python, FastAPI, SQLAlchemy
@@ -136,6 +138,9 @@ matched the invoice's printed totals exactly.
   differences well, but very short or generic names may need manual linking.
 - The `FUZZY_MATCH_THRESHOLD` in `.env` controls how confident a match must
   be before it's auto-linked — tune it against your own data.
+- Duplicate invoice detection relies on resolved distributor ID and normalized invoice number; bills uploaded without an invoice number or distributor cannot be deduplicated until those fields are filled in.
+- The Smart Reorder Point Engine safety-stock formula assumes roughly steady demand over the rolling window; it will be less reliable for highly seasonal medicines or sudden one-off bulk orders.
+
 
 ## Suggested next features (good "future work" section for your report)
 - Low-stock alerts once you add a running quantity-in-stock field.

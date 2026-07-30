@@ -15,6 +15,7 @@ from app.deps import get_current_user, get_current_user_flexible
 from app.events.bus import event_bus
 from app.events.events import BillConfirmedEvent, BillUploadedEvent
 from app.services.duplicate_checker import compute_file_checksum, check_duplicate_bill
+from app.services import duplicate_service
 from app.core.logging import get_logger
 
 logger = get_logger("bills_router")
@@ -105,7 +106,13 @@ async def upload_bill(
     bill.celery_task_id = task.id
     db.commit()
 
-    return schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status)
+    dup_bill = duplicate_service.find_confirmed_duplicate(db, bill.distributor_id, bill.invoice_no)
+    dup_warning = None
+    if dup_bill:
+        conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
+        dup_warning = f"Warning: Bill #{dup_bill.id} from this distributor with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}."
+
+    return schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status, duplicate_warning=dup_warning)
 
 
 @router.post("/upload-batch", response_model=List[schemas.UploadAcceptedResponse])
@@ -132,9 +139,17 @@ async def upload_bills_batch(
         task = process_bill_task.delay(bill.id)
         bill.celery_task_id = task.id
         db.commit()
-        responses.append(schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status))
+
+        dup_bill = duplicate_service.find_confirmed_duplicate(db, bill.distributor_id, bill.invoice_no)
+        dup_warning = None
+        if dup_bill:
+            conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
+            dup_warning = f"Warning: Bill #{dup_bill.id} from this distributor with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}."
+
+        responses.append(schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status, duplicate_warning=dup_warning))
 
     return responses
+
 
 
 @router.get("/{bill_id}/status", response_model=schemas.BillStatusOut)
@@ -279,6 +294,25 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
     bill = db.query(models.Bill).get(payload.bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
+
+    # Apply optional invoice_no and distributor_name corrections if provided during review
+    if payload.distributor_name is not None and payload.distributor_name.strip():
+        dist = _resolve_distributor(db, payload.distributor_name.strip())
+        bill.distributor_id = dist.id
+    if payload.invoice_no is not None:
+        bill.invoice_no = payload.invoice_no
+
+    # Hard gate check for duplicate confirmed invoice before confirming
+    dup_bill = duplicate_service.find_confirmed_duplicate(
+        db, distributor_id=bill.distributor_id, invoice_no=bill.invoice_no, exclude_bill_id=bill.id
+    )
+    if dup_bill:
+        conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
+        raise HTTPException(
+            status_code=409,
+            detail=f"Bill #{dup_bill.id} with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}. Please double-check or update the invoice number before confirming."
+        )
+
     if bill.status == "confirmed":
         raise HTTPException(400, "This bill has already been confirmed.")
 

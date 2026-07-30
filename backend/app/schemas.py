@@ -14,6 +14,10 @@ class MedicineOut(BaseModel):
     current_stock: Optional[float] = None
     low_stock_threshold: Optional[float] = None
     barcode: Optional[str] = None
+    lead_time_days: Optional[int] = None
+    suggested_low_stock_threshold: Optional[float] = None
+    avg_daily_sales_30d: Optional[float] = None
+    suggestion_computed_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -112,11 +116,36 @@ class UploadAcceptedResponse(BaseModel):
     bill_id: int
     task_id: str
     status: str
+    duplicate_warning: Optional[str] = None
 
 
 class ConfirmBillRequest(BaseModel):
     bill_id: int
     items: List[BillItemEdit]
+    invoice_no: Optional[str] = None
+    distributor_name: Optional[str] = None
+
+
+class SmartThresholdSuggestion(BaseModel):
+    medicine_id: int
+    medicine_name: Optional[str] = None
+    avg_daily_sales: float
+    std_dev_daily_sales: float
+    lead_time_days: int
+    window_days: int
+    sale_days_in_window: int
+    total_units_sold_in_window: float
+    has_sufficient_data: bool
+    suggested_threshold: Optional[int] = None
+    current_threshold: Optional[float] = None
+    reason: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class LeadTimeUpdate(BaseModel):
+    lead_time_days: Optional[int] = Field(default=None, ge=1)
+
 
 
 class ChangeSummaryItem(BaseModel):

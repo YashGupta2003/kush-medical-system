@@ -34,6 +34,11 @@ class Medicine(Base):
     low_stock_threshold = Column(Numeric(10, 2), nullable=True)
     barcode = Column(String(64), nullable=True, unique=True, index=True)
 
+    lead_time_days = Column(Integer, nullable=True)
+    suggested_low_stock_threshold = Column(Numeric(10, 2), nullable=True)
+    avg_daily_sales_30d = Column(Numeric(10, 2), nullable=True)
+    suggestion_computed_at = Column(DateTime, nullable=True)
+
     bill_items = relationship("BillItem", back_populates="medicine")
     rate_history = relationship("RateHistory", back_populates="medicine")
 

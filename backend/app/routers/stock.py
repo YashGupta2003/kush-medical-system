@@ -4,10 +4,42 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
-from app.services import stock_service
+from app.services import stock_service, reorder_intelligence
 from app.deps import get_current_user
 
 router = APIRouter(prefix="/stock", dependencies=[Depends(get_current_user)],tags=["stock"])
+
+
+@router.get("/smart-reorder", response_model=list[schemas.SmartThresholdSuggestion])
+def get_smart_reorder_list(window_days: int = 30, db: Session = Depends(get_db)):
+    return reorder_intelligence.compute_smart_thresholds_bulk(db, window_days=window_days)
+
+
+@router.get("/medicine/{medicine_id}/smart-threshold", response_model=schemas.SmartThresholdSuggestion)
+def get_smart_threshold(medicine_id: int, window_days: int = 30, db: Session = Depends(get_db)):
+    try:
+        return reorder_intelligence.compute_smart_threshold(db, medicine_id, window_days=window_days)
+    except ValueError as e:
+        raise HTTPException(404, str(e))
+
+
+@router.post("/medicine/{medicine_id}/smart-threshold/apply", response_model=schemas.MedicineOut)
+def apply_smart_threshold(medicine_id: int, db: Session = Depends(get_db)):
+    try:
+        return reorder_intelligence.apply_suggested_threshold(db, medicine_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e))
+
+
+@router.patch("/medicine/{medicine_id}/lead-time", response_model=schemas.MedicineOut)
+def update_lead_time(medicine_id: int, payload: schemas.LeadTimeUpdate, db: Session = Depends(get_db)):
+    medicine = db.query(models.Medicine).get(medicine_id)
+    if not medicine:
+        raise HTTPException(404, "Medicine not found")
+    medicine.lead_time_days = payload.lead_time_days
+    db.commit()
+    db.refresh(medicine)
+    return medicine
 
 
 @router.get("/medicine/{medicine_id}/snapshot", response_model=schemas.StockSnapshot)
@@ -16,6 +48,7 @@ def get_snapshot(medicine_id: int, db: Session = Depends(get_db)):
     if not snapshot:
         raise HTTPException(404, "Medicine not found")
     return snapshot
+
 
 
 @router.post("/sales", response_model=schemas.StockSnapshot)

@@ -30,7 +30,9 @@ async function apiFetch(path, options = {}) {
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed (${res.status})`);
+    const err = new Error(body.detail || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
   }
   if (res.status === 204) return null;
   const contentType = res.headers.get("content-type") || "";
@@ -105,6 +107,12 @@ export const api = {
   removeReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}`, { method: "DELETE" }),
   updateLowStockThreshold: (medicineId, threshold) =>
     apiFetch(`/stock/medicine/${medicineId}/threshold`, { method: "PATCH", ...jsonBody({ low_stock_threshold: threshold }) }),
+  getSmartReorderList: (windowDays = 30) => apiFetch(`/stock/smart-reorder?window_days=${windowDays}`),
+  getSmartThreshold: (medicineId, windowDays = 30) => apiFetch(`/stock/medicine/${medicineId}/smart-threshold?window_days=${windowDays}`),
+  applySmartThreshold: (medicineId) => apiFetch(`/stock/medicine/${medicineId}/smart-threshold/apply`, { method: "POST" }),
+  updateLeadTime: (medicineId, leadTimeDays) =>
+    apiFetch(`/stock/medicine/${medicineId}/lead-time`, { method: "PATCH", ...jsonBody({ lead_time_days: leadTimeDays }) }),
+
 
   // --- Expiry Tracking ---
   getExpiryDashboard: (days = 90) => apiFetch(`/expiry/dashboard?days=${days}`),
