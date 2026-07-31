@@ -5,7 +5,8 @@ attaches composition text to medicines that are already in the `medicines`
 table (matched by exact normalized name), so it's safe to run against your
 live data.
 
-Expected Excel format: Sheet1, row 1 = headers, from row 2 onward:
+Accepts EITHER a .xlsx file OR a .csv file - whichever you already have.
+Expected format (row 1 = headers, from row 2 onward):
     Column A: Medicine Name   (must match a `particulars` value already in
                                 the database - matched case/punctuation-
                                 insensitively via the same normalize() used
@@ -21,6 +22,7 @@ on an EXACT normalized name.
 Usage:
     cd backend
     python scripts/backfill_composition.py /path/to/composition_list.xlsx
+    python scripts/backfill_composition.py /path/to/composition_list.csv
 """
 import sys
 import os
@@ -28,18 +30,36 @@ import csv
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
-import openpyxl
 from app.database import SessionLocal
 from app.models import Medicine
 from app.services.matcher import normalize
 from app.services.composition_service import set_medicine_composition
 
 
-def main(xlsx_path: str):
-    db = SessionLocal()
+def _read_rows(path: str):
+    """Yields (name_cell, composition_cell) tuples for rows 2+ of either an .xlsx or .csv file."""
+    ext = os.path.splitext(path)[1].lower()
+    if ext == ".csv":
+        with open(path, encoding="utf-8-sig", newline="") as f:
+            reader = csv.reader(f)
+            next(reader, None)  # skip header row
+            for row in reader:
+                yield (row[0] if len(row) > 0 else None, row[1] if len(row) > 1 else None)
+    else:
+        import openpyxl
+        wb = openpyxl.load_workbook(path, data_only=True)
+        ws = wb["Sheet1"]
+        for row in ws.iter_rows(min_row=2, values_only=True):
+            yield (row[0] if len(row) > 0 else None, row[1] if len(row) > 1 else None)
 
-    wb = openpyxl.load_workbook(xlsx_path, data_only=True)
-    ws = wb["Sheet1"] if "Sheet1" in wb.sheetnames else wb.active
+
+def main(path: str):
+    if not os.path.exists(path):
+        print(f"File not found: {path}")
+        print("Double check the path - on Windows, paste it exactly as shown in File Explorer's address bar.")
+        sys.exit(1)
+
+    db = SessionLocal()
 
     # Build a lookup of every existing medicine by normalized name once,
     # instead of querying the DB per row.
@@ -49,10 +69,7 @@ def main(xlsx_path: str):
 
     updated, skipped_blank, unmatched, ambiguous = 0, 0, [], []
 
-    for row in ws.iter_rows(min_row=2, values_only=True):
-        name_cell = row[0] if len(row) > 0 else None
-        composition_cell = row[1] if len(row) > 1 else None
-
+    for name_cell, composition_cell in _read_rows(path):
         if not name_cell or not str(name_cell).strip():
             skipped_blank += 1
             continue
@@ -92,7 +109,7 @@ def main(xlsx_path: str):
           f"{len(unmatched)} unmatched, {len(ambiguous)} matched multiple rows (applied to all).")
 
     if unmatched:
-        report_path = os.path.join(os.path.dirname(xlsx_path), "unmatched_compositions.csv")
+        report_path = os.path.join(os.path.dirname(os.path.abspath(path)), "unmatched_compositions.csv")
         with open(report_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.writer(f)
             writer.writerow(["Medicine Name (not found in master list)", "Composition"])
@@ -103,6 +120,6 @@ def main(xlsx_path: str):
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Usage: python scripts/backfill_composition.py /path/to/composition_list.xlsx")
+        print("Usage: python scripts/backfill_composition.py /path/to/composition_list.xlsx (or .csv)")
         sys.exit(1)
     main(sys.argv[1])

@@ -450,3 +450,7 @@ Traceback (most recent call last):
     raise ValueError("Simulated subscriber error")
 ValueError: Simulated subscriber error
 [2026-07-30 18:16:30] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-07-31 05:58:01] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-31 06:13:56] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-31 06:14:10] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
+[2026-07-31 06:19:27] [INFO] [event_subscribers] [subscribers.py:187]: All domain event subscribers successfully registered with EventBus.
