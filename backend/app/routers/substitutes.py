@@ -29,6 +29,19 @@ def search_substitutes(
     return composition_service.find_substitutes(db, q, in_stock_only=in_stock_only)
 
 
+@router.get("/availability", response_model=schemas.SaltAvailability)
+def check_availability(
+    q: str = Query(..., min_length=2),
+    db: Session = Depends(get_db),
+):
+    """
+    Powers the smarter "no results" messaging: tells the frontend whether a
+    salt genuinely isn't in the master list at all, vs it IS in the master
+    list but nothing carrying it currently has stock.
+    """
+    return composition_service.check_salt_availability(db, q)
+
+
 @router.get("/for-medicine/{medicine_id}", response_model=schemas.MedicineSubstituteResult)
 def substitutes_for_medicine(
     medicine_id: int,

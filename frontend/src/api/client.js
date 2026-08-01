@@ -1,6 +1,12 @@
 const BASE = "/api";
 const TOKEN_KEY = "kush_medical_token";
 
+
+// ---------------------------------------------------------------------------
+// Auth token helpers - a real standalone app (not a claude.ai artifact), so
+// localStorage is the right place for this: it survives page refreshes,
+// which is what you want for "stay logged in" behavior.
+// ---------------------------------------------------------------------------
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -11,6 +17,9 @@ export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
 }
 
+// Fired whenever a request comes back 401 (expired/invalid session) so the
+// app shell can redirect to /login without every single page needing to
+// handle this itself.
 let onUnauthorized = () => {};
 export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
@@ -22,6 +31,7 @@ async function apiFetch(path, options = {}) {
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  
 
   if (res.status === 401) {
     clearToken();
@@ -30,9 +40,7 @@ async function apiFetch(path, options = {}) {
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    const err = new Error(body.detail || `Request failed (${res.status})`);
-    err.status = res.status;
-    throw err;
+    throw new Error(body.detail || `Request failed (${res.status})`);
   }
   if (res.status === 204) return null;
   const contentType = res.headers.get("content-type") || "";
@@ -45,10 +53,7 @@ function jsonBody(payload) {
 }
 
 export const api = {
-  // --- System Health ---
-  getHealth: () => apiFetch("/health"),
-
-  // --- Auth & Users ---
+  // --- Auth ---
   login: (username, password) =>
     apiFetch("/auth/login", { method: "POST", ...jsonBody({ username, password }) }),
   me: () => apiFetch("/auth/me"),
@@ -69,8 +74,6 @@ export const api = {
   confirmBill: (payload) => apiFetch("/bills/confirm", { method: "POST", ...jsonBody(payload) }),
   reprocessRegion: (billId, box) =>
     apiFetch(`/bills/${billId}/reprocess-region`, { method: "POST", ...jsonBody(box) }),
-  addBillItem: (billId) => apiFetch(`/bills/${billId}/items`, { method: "POST" }),
-  removeBillItem: (billId, itemId) => apiFetch(`/bills/${billId}/items/${itemId}`, { method: "DELETE" }),
 
   // --- Medicines ---
   browseMedicines: ({ q = "", page = 1, page_size = 50 } = {}) => {
@@ -78,8 +81,6 @@ export const api = {
     if (q) params.set("q", q);
     return apiFetch(`/medicines?${params.toString()}`);
   },
-  createMedicine: (payload) => apiFetch("/medicines", { method: "POST", ...jsonBody(payload) }),
-  updateMedicine: (id, payload) => apiFetch(`/medicines/${id}`, { method: "PUT", ...jsonBody(payload) }),
   getMedicineHistory: (id) => apiFetch(`/medicines/${id}/history`),
   lookupBarcode: (code) => apiFetch(`/medicines/barcode/${encodeURIComponent(code)}`),
   assignBarcode: (medicineId, barcode) =>
@@ -92,47 +93,28 @@ export const api = {
     apiFetch(`/substitutes/search?q=${encodeURIComponent(q)}&in_stock_only=${inStockOnly}`),
   getSubstitutesForMedicine: (medicineId, inStockOnly = true) =>
     apiFetch(`/substitutes/for-medicine/${medicineId}?in_stock_only=${inStockOnly}`),
-  getLearningRules: () => apiFetch("/medicines/learning/rules"),
-  deleteLearningRule: (ruleId) => apiFetch(`/medicines/learning/rules/${ruleId}`, { method: "DELETE" }),
+  checkSaltAvailability: (q) => apiFetch(`/substitutes/availability?q=${encodeURIComponent(q)}`),
 
-  // --- Dashboard ---
   dashboardSummary: () => apiFetch("/dashboard/summary"),
 
-  // --- Stock & Reorder ---
-  getStockSummary: () => apiFetch("/stock/summary"),
+  // --- Stock, sales, reorder list ---
   getStockSnapshot: (medicineId) => apiFetch(`/stock/medicine/${medicineId}/snapshot`),
-  getStockLedger: (params = {}) => {
-    const qs = new URLSearchParams(params).toString();
-    return apiFetch(`/stock/ledger${qs ? "?" + qs : ""}`);
-  },
   recordSale: (medicineId, qtySold) =>
     apiFetch("/stock/sales", { method: "POST", ...jsonBody({ medicine_id: medicineId, qty_sold: qtySold }) }),
-  recordAdjustment: (payload) =>
-    apiFetch("/stock/adjustments", { method: "POST", ...jsonBody(payload) }),
   getReorderList: () => apiFetch("/stock/reorder-list"),
   addManualReorderItem: (payload) => apiFetch("/stock/reorder-list/manual", { method: "POST", ...jsonBody(payload) }),
-  fulfillReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}/fulfill`, { method: "PATCH" }),
   removeReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}`, { method: "DELETE" }),
   updateLowStockThreshold: (medicineId, threshold) =>
     apiFetch(`/stock/medicine/${medicineId}/threshold`, { method: "PATCH", ...jsonBody({ low_stock_threshold: threshold }) }),
-  getSmartReorderList: (windowDays = 30) => apiFetch(`/stock/smart-reorder?window_days=${windowDays}`),
-  getSmartThreshold: (medicineId, windowDays = 30) => apiFetch(`/stock/medicine/${medicineId}/smart-threshold?window_days=${windowDays}`),
-  applySmartThreshold: (medicineId) => apiFetch(`/stock/medicine/${medicineId}/smart-threshold/apply`, { method: "POST" }),
-  updateLeadTime: (medicineId, leadTimeDays) =>
-    apiFetch(`/stock/medicine/${medicineId}/lead-time`, { method: "PATCH", ...jsonBody({ lead_time_days: leadTimeDays }) }),
 
-
-  // --- Expiry Tracking ---
+  // --- Expiry tracking ---
   getExpiryDashboard: (days = 90) => apiFetch(`/expiry/dashboard?days=${days}`),
-  getExpiryBatches: (days = 90) => apiFetch(`/expiry/dashboard?days=${typeof days === "object" ? days.days || 90 : days}`),
   getExpirySummary: () => apiFetch("/expiry/summary"),
   getMissingExpiry: () => apiFetch("/expiry/missing"),
   fillExpiry: (batchId, expiryDate) =>
     apiFetch(`/expiry/batch/${batchId}`, { method: "PATCH", ...jsonBody({ expiry_date: expiryDate }) }),
-  updateExpiryBatch: (batchId, payload) =>
-    apiFetch(`/expiry/batch/${batchId}`, { method: "PATCH", ...jsonBody(payload) }),
 
-  // --- Analytics ---
+  // --- Analytics (owner only) ---
   getAnalyticsOverview: () => apiFetch("/analytics/overview"),
   getMonthlySpend: (months = 6) => apiFetch(`/analytics/monthly-spend?months=${months}`),
   getDistributorBreakdown: (year, month) => {
@@ -149,15 +131,27 @@ export const api = {
     return apiFetch(`/analytics/top-medicines-by-spend?${params.toString()}`);
   },
   getTopSelling: (days = 30, limit = 10) => apiFetch(`/analytics/top-selling?days=${days}&limit=${limit}`),
-  getTopHikes: (limit = 10) => apiFetch(`/analytics/top-hikes?limit=${limit}`),
-  getInventoryValuation: () => apiFetch("/analytics/inventory-valuation"),
-  getDeadStock: (days = 90) => apiFetch(`/analytics/dead-stock?days=${days}`),
 
-  // --- GST Reports ---
+  // --- GST reports (owner only) ---
   getGstReport: (year, month) => {
     const params = new URLSearchParams();
     if (year) params.set("year", year);
     if (month) params.set("month", month);
-    return apiFetch(`/gst/summary?${params.toString()}`);
+    return apiFetch(`/gst/report?${params.toString()}`);
   },
+  downloadGstReportPdf: async (year, month) => {
+    const params = new URLSearchParams();
+    if (year) params.set("year", year);
+    if (month) params.set("month", month);
+    const blob = await apiFetch(`/gst/report/pdf?${params.toString()}`);
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `GST_Report_${year}_${month}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
+  getHealth: () => apiFetch("/health"),
 };

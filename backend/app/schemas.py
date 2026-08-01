@@ -378,8 +378,9 @@ class GstReport(BaseModel):
     bill_count: int
 
 
+# ---------------------------------------------------------------------------
 # Substitute Medicine Suggestion
-
+# ---------------------------------------------------------------------------
 class CompositionUpdate(BaseModel):
     composition: str = Field(min_length=1, max_length=500)
 
@@ -392,7 +393,7 @@ class SubstituteMedicineItem(BaseModel):
     mrp: Optional[float] = None
     current_stock: float
     composition: Optional[str] = None
-    match_type: str
+    match_type: str   # "exact" | "partial"
     matched_salts: int
     query_salts: int
 
@@ -406,3 +407,9 @@ class MedicineSubstituteSource(BaseModel):
 class MedicineSubstituteResult(BaseModel):
     medicine: MedicineSubstituteSource
     substitutes: list[SubstituteMedicineItem]
+
+
+class SaltAvailability(BaseModel):
+    exists_in_catalog: bool
+    in_stock_count: int
+    out_of_stock_count: int
