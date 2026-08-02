@@ -120,6 +120,10 @@ def set_medicine_composition(db: Session, medicine_id: int, raw_composition: str
         db.add(models.MedicineSalt(
             medicine_id=medicine_id, salt_name=parsed.salt_name, strength=parsed.strength,
         ))
+    db.flush()
+
+    from app.services import graph_service
+    graph_service.sync_contains_edges_for_medicine(db, medicine_id)
 
     return medicine
 

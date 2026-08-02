@@ -52,3 +52,17 @@ def reprocess_region_task(bill_id: int, x0: int, y0: int, x1: int, y1: int) -> d
         return {"status": "error", "detail": str(e)}
     finally:
         db.close()
+
+@celery_app.task(bind=True, name="rebuild_graph")
+def rebuild_graph_task(self):
+    from app.services import graph_service
+
+    db = SessionLocal()
+    try:
+        stats = graph_service.rebuild_full_graph(db)
+        return {"status": "ok", "stats": stats}
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()

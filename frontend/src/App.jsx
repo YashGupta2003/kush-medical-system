@@ -4,6 +4,7 @@ import UploadBill from "./pages/UploadBill.jsx";
 import ReviewBill from "./pages/ReviewBill.jsx";
 import SearchDashboard from "./pages/SearchDashboard.jsx";
 import Substitutes from "./pages/Substitutes.jsx";
+import GraphExplorer from "./pages/GraphExplorer.jsx";
 import BillHistory from "./pages/BillHistory.jsx";
 import Stock from "./pages/Stock.jsx";
 import Expiry from "./pages/Expiry.jsx";
@@ -20,6 +21,7 @@ const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
   { to: "/", label: "Search & Master", icon: "🔍", end: true },
   { to: "/substitutes", label: "Substitutes", icon: "🔄" },
+  { to: "/graph", label: "PharmaGraph", icon: "🕸️" },
   { to: "/scan", label: "Barcode Scan", icon: "📷" },
   { to: "/upload", label: "Upload Bill", icon: "📤" },
   { to: "/bills", label: "Review Queue", icon: "🗂️" },
@@ -127,7 +129,7 @@ function NavBar() {
 }
 
 export default function App() {
-  const { loading } = useAuth();
+  const { loading ,isOwner } = useAuth();
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
 
@@ -141,6 +143,7 @@ export default function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireAuth><SearchDashboard /></RequireAuth>} />
           <Route path="/substitutes" element={<RequireAuth><Substitutes /></RequireAuth>} />
+          <Route path="/graph" element={<RequireAuth><GraphExplorer isOwner={isOwner} /></RequireAuth>} />
           <Route path="/scan" element={<RequireAuth><BarcodeScan /></RequireAuth>} />
           <Route path="/upload" element={<RequireAuth><UploadBill /></RequireAuth>} />
           <Route path="/bills" element={<RequireAuth><BillHistory /></RequireAuth>} />

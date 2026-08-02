@@ -413,3 +413,72 @@ class SaltAvailability(BaseModel):
     exists_in_catalog: bool
     in_stock_count: int
     out_of_stock_count: int
+
+# ---------------------------------------------------------------------------
+# PharmaGraph (Pillar 1)
+# ---------------------------------------------------------------------------
+class GraphSaltRef(BaseModel):
+    salt: str
+
+
+class GraphInteraction(BaseModel):
+    salt: str
+    interacts_with: str
+    severity: Optional[str] = None
+    note: Optional[str] = None
+
+
+class GraphTreats(BaseModel):
+    salt: str
+    condition: str
+
+
+class GraphSubstituteRef(BaseModel):
+    medicine_id: int
+    particulars: str
+    company: Optional[str] = None
+    current_stock: float
+    weight: Optional[float] = None
+
+
+class GraphDistributorRef(BaseModel):
+    distributor_id: int
+    name: str
+
+
+class MedicineGraph(BaseModel):
+    medicine_id: int
+    particulars: str
+    composition: Optional[str] = None
+    contains: list[GraphSaltRef]
+    interacts_with: list[GraphInteraction]
+    treats: list[GraphTreats]
+    substitutes: list[GraphSubstituteRef]
+    supplied_by: list[GraphDistributorRef]
+
+
+class InteractionCheckResult(BaseModel):
+    salt_a: str
+    salt_b: str
+    severity: str
+    note: str
+
+
+class ConditionMedicineItem(BaseModel):
+    medicine_id: int
+    particulars: str
+    company: Optional[str] = None
+    composition: Optional[str] = None
+    current_stock: float
+    mrp: Optional[float] = None
+
+
+class GraphRebuildResponse(BaseModel):
+    task_id: str
+    status: str
+
+
+class GraphRebuildStatus(BaseModel):
+    status: str
+    stats: Optional[dict] = None
+    error: Optional[str] = None

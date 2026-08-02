@@ -95,6 +95,14 @@ export const api = {
     apiFetch(`/substitutes/for-medicine/${medicineId}?in_stock_only=${inStockOnly}`),
   checkSaltAvailability: (q) => apiFetch(`/substitutes/availability?q=${encodeURIComponent(q)}`),
 
+  // --- PharmaGraph (Pillar 1) ---
+  getMedicineGraph: (medicineId) => apiFetch(`/graph/medicine/${medicineId}`),
+  checkInteractions: (saltNames) => apiFetch(`/graph/check-interactions?salts=${encodeURIComponent(saltNames.join(","))}`),
+  getMedicinesForCondition: (condition, inStockOnly = true) =>
+    apiFetch(`/graph/condition/${encodeURIComponent(condition)}?in_stock_only=${inStockOnly}`),
+  triggerGraphRebuild: () => apiFetch("/graph/rebuild", { method: "POST" }),
+  getGraphRebuildStatus: (taskId) => apiFetch(`/graph/rebuild/${taskId}/status`),
+
   dashboardSummary: () => apiFetch("/dashboard/summary"),
 
   // --- Stock, sales, reorder list ---

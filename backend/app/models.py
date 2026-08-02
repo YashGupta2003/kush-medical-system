@@ -243,3 +243,22 @@ class MedicineSalt(Base):
     strength = Column(String(50), nullable=True)
 
     medicine = relationship("Medicine", back_populates="salts")
+
+
+class GraphEdge(Base):
+    """
+    PharmaGraph - a generic typed-edge table implementing a knowledge graph
+    on top of the existing relational schema.
+    """
+    __tablename__ = "graph_edges"
+
+    id = Column(Integer, primary_key=True, index=True)
+    source_type = Column(String(30), nullable=False, index=True)
+    source_id = Column(String(150), nullable=False, index=True)
+    edge_type = Column(String(30), nullable=False, index=True)
+    target_type = Column(String(30), nullable=False)
+    target_id = Column(String(150), nullable=False, index=True)
+    weight = Column(Numeric(5, 2), nullable=True)
+    edge_metadata = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
