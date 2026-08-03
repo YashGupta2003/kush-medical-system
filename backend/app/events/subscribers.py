@@ -16,7 +16,7 @@ from app.events.events import (
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
 from app.services.matcher import save_learned_mapping
-from app.services import stock_service, expiry_service
+from app.services import stock_service, expiry_service, graph_service
 from app.core.cache import invalidate_analytics_cache
 
 logger = get_logger("event_subscribers")
@@ -144,6 +144,23 @@ def handle_bill_confirmed_expiry(event: BillConfirmedEvent) -> None:
         if item.medicine_id:
             expiry_service.create_batch_from_confirmed_item(db, item)
 
+def handle_bill_confirmed_graph_sync(event: BillConfirmedEvent) -> None:
+    """
+    Subscriber: Keeps PharmaGraph's SUPPLIES edges (distributor -> medicine)
+    live - cheap (one edge per matched item), so synced on every confirm
+    rather than waiting for the periodic full graph rebuild. See
+    app/services/graph_service.py for the full PharmaGraph design.
+    """
+    logger.info(f"[SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #{event.bill_id}")
+    db = event.db
+    bill = db.query(models.Bill).get(event.bill_id)
+    if not bill:
+        return
+
+    for item in bill.items:
+        if item.medicine_id:
+            graph_service.sync_supplies_edge(db, bill.distributor_id, item.medicine_id)
+
 
 def handle_bill_confirmed_cache_invalidation(event: BillConfirmedEvent) -> None:
     """
@@ -181,6 +198,7 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_learning)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_stock)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_expiry)
+    event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_graph_sync)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_cache_invalidation)
     event_bus.subscribe(BillUploadedEvent, handle_bill_uploaded_logging)
     event_bus.subscribe(BillProcessedEvent, handle_bill_processed_logging)
