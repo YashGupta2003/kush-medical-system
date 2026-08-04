@@ -369,15 +369,29 @@ def _dispatch_tool(db: Session, name: str, kwargs: dict) -> tuple[object, Option
         return None, f"Tool '{name}' failed: {e}"
 
 
-def _to_plain(obj):
-    """Recursively converts Groq SDK response objects (pydantic models, same shape as the OpenAI SDK) into plain dicts/lists so message history is JSON-serializable and safe to echo back to the frontend."""
-    if hasattr(obj, "model_dump"):
-        return obj.model_dump()
-    if isinstance(obj, list):
-        return [_to_plain(x) for x in obj]
-    if isinstance(obj, dict):
-        return {k: _to_plain(v) for k, v in obj.items()}
-    return obj
+def _assistant_message_dict(message) -> dict:
+    """
+    Builds a minimal, API-safe assistant message dict from a Groq/OpenAI
+    response message object - deliberately NOT a raw .model_dump() of the
+    whole object. Newer SDK response objects include extra response-only
+    fields (e.g. "annotations") that the chat-completions endpoint REJECTS
+    when that same dict is echoed back as INPUT on the next turn ("property
+    'annotations' is unsupported"). Only role/content/tool_calls are valid
+    to send back - this function keeps exactly those and nothing else, so
+    conversation history is always safe to replay regardless of which extra
+    fields a given SDK version happens to add to its response objects.
+    """
+    result = {"role": "assistant", "content": message.content}
+    if message.tool_calls:
+        result["tool_calls"] = [
+            {
+                "id": tc.id,
+                "type": "function",
+                "function": {"name": tc.function.name, "arguments": tc.function.arguments},
+            }
+            for tc in message.tool_calls
+        ]
+    return result
 
 
 def _to_groq_tools() -> list[dict]:
@@ -440,7 +454,7 @@ def run_copilot_query(db: Session, user_message: str, history: Optional[list] = 
 
         choice = response.choices[0]
         message = choice.message
-        conversation.append(_to_plain(message))
+        conversation.append(_assistant_message_dict(message))
 
         if choice.finish_reason != "tool_calls" or not message.tool_calls:
             return {"reply": message.content or "", "tool_calls": tool_calls_made, "history": conversation}

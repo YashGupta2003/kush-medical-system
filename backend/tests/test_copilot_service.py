@@ -37,6 +37,38 @@ def test_groq_tool_format_conversion():
         assert "parameters" in t["function"]
 
 
+def test_assistant_message_dict_never_leaks_extra_sdk_fields():
+    """
+    Regression test for the real bug hit in production: newer Groq/OpenAI
+    SDK response objects include response-only fields (e.g. "annotations")
+    that the chat-completions endpoint REJECTS if echoed back as input on
+    the next turn. _assistant_message_dict must only ever produce
+    role/content/tool_calls, regardless of what extra attributes the SDK's
+    message object happens to carry.
+    """
+    fake_message = SimpleNamespace(content="hello", tool_calls=None, annotations=[], refusal=None)
+    result = copilot_service._assistant_message_dict(fake_message)
+    assert set(result.keys()) == {"role", "content"}
+    assert "annotations" not in result
+    assert "refusal" not in result
+
+
+def test_assistant_message_dict_includes_clean_tool_calls():
+    tool_call = _fake_tool_call_for_dict_test("call_1", "search_medicines", {"query": "x"})
+    fake_message = SimpleNamespace(content=None, tool_calls=[tool_call], annotations=[])
+    result = copilot_service._assistant_message_dict(fake_message)
+    assert set(result.keys()) == {"role", "content", "tool_calls"}
+    assert result["tool_calls"][0] == {
+        "id": "call_1", "type": "function",
+        "function": {"name": "search_medicines", "arguments": '{"query": "x"}'},
+    }
+
+
+def _fake_tool_call_for_dict_test(call_id, name, arguments_dict):
+    import json as _json
+    return SimpleNamespace(id=call_id, function=SimpleNamespace(name=name, arguments=_json.dumps(arguments_dict)))
+
+
 # ---------------------------------------------------------------------------
 # _dispatch_tool - the safety-critical function: this is the ONLY path
 # through which the LLM can ever cause code to run.
