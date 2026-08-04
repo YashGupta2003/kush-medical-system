@@ -482,3 +482,22 @@ class GraphRebuildStatus(BaseModel):
     status: str
     stats: Optional[dict] = None
     error: Optional[str] = None
+
+# ---------------------------------------------------------------------------
+# PharmaCopilot (Pillar 2)
+# ---------------------------------------------------------------------------
+class CopilotChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=2000)
+    history: list[dict] = Field(default_factory=list)
+
+
+class CopilotToolCall(BaseModel):
+    tool: str
+    input: dict
+    error: Optional[str] = None
+
+
+class CopilotChatResponse(BaseModel):
+    reply: str
+    tool_calls: list[CopilotToolCall]
+    history: list[dict]

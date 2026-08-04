@@ -60,6 +60,8 @@ export const api = {
   listUsers: () => apiFetch("/auth/users"),
   createUser: (payload) => apiFetch("/auth/users", { method: "POST", ...jsonBody(payload) }),
   deactivateUser: (id) => apiFetch(`/auth/users/${id}/deactivate`, { method: "PATCH" }),
+  sendCopilotMessage: (message, history) =>
+    apiFetch("/copilot/chat", { method: "POST", ...jsonBody({ message, history }) }),
 
   // --- Bills ---
   uploadBill: (formData) => apiFetch("/bills/upload", { method: "POST", body: formData }),

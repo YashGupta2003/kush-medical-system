@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     jwt_expire_minutes: int = 60 * 12
 
+    groq_api_key: str = ""
+    groq_model: str = "openai/gpt-oss-120b"
+
     default_lead_time_days: int = 3
     reorder_safety_z_score: float = 1.65
 

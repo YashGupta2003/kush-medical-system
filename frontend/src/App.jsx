@@ -16,6 +16,7 @@ import Login from "./pages/Login.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { RequireAuth, RequireOwner } from "./auth/guards.jsx";
 import { api } from "./api/client.js";
+import Copilot from "./pages/Copilot.jsx";
 
 const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { to: "/expiry", label: "Expiry Tracker", icon: "⏳", badgeKey: "urgent" },
   { to: "/gst", label: "GST Summary", icon: "🧾", ownerOnly: true },
   { to: "/users", label: "Staff", icon: "👥", ownerOnly: true },
+  { to: "/copilot", label: "PharmaCopilot", icon: "🤖", ownerOnly: true },
 ];
 
 function HealthBadge() {
@@ -153,6 +155,7 @@ export default function App() {
           <Route path="/analytics" element={<RequireOwner><Analytics /></RequireOwner>} />
           <Route path="/gst" element={<RequireOwner><GstReport /></RequireOwner>} />
           <Route path="/users" element={<RequireOwner><Users /></RequireOwner>} />
+          <Route path="/copilot" element={<RequireOwner><Copilot /></RequireOwner>} />
         </Routes>
       </div>
     </div>
