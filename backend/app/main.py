@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import bills, medicines, dashboard, stock, expiry, analytics, auth, gst, health, substitutes, graph, copilot
+from app.routers import bills, medicines, dashboard, stock, expiry, analytics, auth, gst, health, substitutes, graph, copilot, pos
 from app.database import ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
 
@@ -36,6 +36,7 @@ app.include_router(gst.router)
 app.include_router(substitutes.router)
 app.include_router(graph.router)
 app.include_router(copilot.router)
+app.include_router(pos.router)
 
 @app.get("/")
 def root():

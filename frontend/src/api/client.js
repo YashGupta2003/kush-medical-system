@@ -164,4 +164,8 @@ export const api = {
     window.URL.revokeObjectURL(url);
   },
   getHealth: () => apiFetch("/health"),
+
+  checkCart: (items) => apiFetch("/pos/check-cart", { method: "POST", ...jsonBody({ items }) }),
+  recordCartSale: (items, confirmOverride = false) =>
+    apiFetch("/pos/sales", { method: "POST", ...jsonBody({ items, confirm_override: confirmOverride }) }),
 };

@@ -464,3 +464,4 @@ ValueError: Simulated subscriber error
 [2026-08-04 11:38:42] [INFO] [event_subscribers] [subscribers.py:205]: All domain event subscribers successfully registered with EventBus.
 [2026-08-04 12:02:55] [INFO] [event_subscribers] [subscribers.py:205]: All domain event subscribers successfully registered with EventBus.
 [2026-08-04 12:03:33] [INFO] [event_subscribers] [subscribers.py:205]: All domain event subscribers successfully registered with EventBus.
+[2026-08-06 00:08:15] [INFO] [event_subscribers] [subscribers.py:205]: All domain event subscribers successfully registered with EventBus.

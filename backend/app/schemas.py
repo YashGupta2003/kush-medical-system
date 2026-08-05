@@ -501,3 +501,36 @@ class CopilotChatResponse(BaseModel):
     reply: str
     tool_calls: list[CopilotToolCall]
     history: list[dict]
+
+# ---------------------------------------------------------------------------
+# Point of Sale / Safety Guardrail (Pillar 3)
+# ---------------------------------------------------------------------------
+class CartItemInput(BaseModel):
+    medicine_id: int
+    qty_sold: float = Field(gt=0)
+
+
+class CartSaleRequest(BaseModel):
+    items: list[CartItemInput] = Field(min_length=1)
+    confirm_override: bool = False
+
+
+class CartInteractionFlag(BaseModel):
+    salt_a: str
+    salt_b: str
+    severity: str
+    note: str
+
+
+class CartItemDetail(BaseModel):
+    medicine_id: int
+    particulars: str
+    salts: list[str]
+
+
+class CartSaleResponse(BaseModel):
+    status: str
+    has_interactions: bool
+    interactions: list[CartInteractionFlag]
+    items: list[CartItemDetail]
+    results: list[dict] = Field(default_factory=list)
