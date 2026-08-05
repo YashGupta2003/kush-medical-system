@@ -92,3 +92,49 @@ def record_cart_sale(db: Session, items: list[dict], confirm_override: bool = Fa
         results.append(snapshot)
 
     return {"status": "recorded", **check, "results": results}
+
+def _find_duplicate_salts(item_details: list[dict]) -> list[dict]:
+    """
+    Flags a salt that appears in TWO OR MORE DIFFERENT medicines in the
+    cart — e.g. Combiflam Syp + Aceclowal SP both containing Paracetamol.
+    This is an overdose/duplication risk that curated INTERACTS_WITH pairs
+    don't catch (a salt doesn't "interact" with itself in that dataset).
+    """
+    salt_to_medicines: dict[str, list[str]] = {}
+    for item in item_details:
+        for salt in item["salts"]:
+            salt_to_medicines.setdefault(salt, []).append(item["particulars"])
+
+    flags = []
+    for salt, medicine_names in salt_to_medicines.items():
+        if len(set(medicine_names)) >= 2:
+            flags.append({
+                "salt_a": salt, "salt_b": salt, "severity": "medium",
+                "note": f"'{salt}' appears in multiple cart items ({', '.join(sorted(set(medicine_names)))}) "
+                        f"— check for unintentional double-dosing before selling together.",
+            })
+    return flags
+
+
+def check_cart_interactions(db: Session, items: list[dict]) -> dict:
+    all_salts: set[str] = set()
+    item_details = []
+
+    for entry in items:
+        medicine = db.query(models.Medicine).get(entry["medicine_id"])
+        if not medicine:
+            continue
+        salts = _medicine_salts(db, medicine.id)
+        all_salts.update(salts)
+        item_details.append({
+            "medicine_id": medicine.id, "particulars": medicine.particulars, "salts": salts,
+        })
+
+    interactions = graph_service.check_interactions(db, list(all_salts)) if len(all_salts) >= 2 else []
+    interactions += _find_duplicate_salts(item_details)   # 👈 add this line
+
+    return {
+        "has_interactions": len(interactions) > 0,
+        "interactions": interactions,
+        "items": item_details,
+    }
