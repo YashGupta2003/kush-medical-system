@@ -18,6 +18,7 @@ import { RequireAuth, RequireOwner } from "./auth/guards.jsx";
 import { api } from "./api/client.js";
 import Copilot from "./pages/Copilot.jsx";
 import PointOfSale from "./pages/PointOfSale.jsx";
+import AuditTrail from "./pages/AuditTrail.jsx";
 
 const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
@@ -33,6 +34,7 @@ const NAV_ITEMS = [
   { to: "/users", label: "Staff", icon: "👥", ownerOnly: true },
   { to: "/copilot", label: "PharmaCopilot", icon: "🤖", ownerOnly: true },
   { to: "/pos", label: "Point of Sale", icon: "🛒" },
+  { to: "/audit", label: "TrustChain", icon: "🔗", ownerOnly: true },
 ];
 
 function HealthBadge() {
@@ -159,6 +161,7 @@ export default function App() {
           <Route path="/users" element={<RequireOwner><Users /></RequireOwner>} />
           <Route path="/copilot" element={<RequireOwner><Copilot /></RequireOwner>} />
           <Route path="/pos" element={<RequireAuth><PointOfSale /></RequireAuth>} />
+          <Route path="/audit" element={<RequireOwner><AuditTrail /></RequireOwner>} />
         </Routes>
       </div>
     </div>

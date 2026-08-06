@@ -9,17 +9,21 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app import models
+from app.services import audit_service
 
 
 def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decimal,
                        reason: str, bill_item_id: Optional[int] = None,
-                       sale_id: Optional[int] = None, note: Optional[str] = None) -> None:
+                       sale_id: Optional[int] = None, note: Optional[str] = None) -> models.StockLedger:
     new_balance = Decimal(str(medicine.current_stock or 0)) + change_qty
     medicine.current_stock = new_balance
-    db.add(models.StockLedger(
+    entry = models.StockLedger(
         medicine_id=medicine.id, change_qty=change_qty, resulting_balance=new_balance,
         reason=reason, reference_bill_item_id=bill_item_id, reference_sale_id=sale_id, note=note,
-    ))
+    )
+    db.add(entry)
+    db.flush()   # assigns entry.id, needed by callers that reference it (e.g. TrustChain audit logging)
+    return entry
 
 
 def add_stock_from_confirmed_bill_item(db: Session, bill_item: models.BillItem) -> None:
@@ -197,13 +201,35 @@ def mark_reorder_item_fulfilled(db: Session, reorder_item_id: int) -> bool:
 
 
 def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None) -> dict:
+    """
+    Manual inventory correction (e.g. a physical stock count didn't match
+    the system). This is the single most fraud/error-prone stock event in
+    the whole system - it's the one path that lets a number be overridden
+    with no upstream bill or sale to cross-check it against - so it's also
+    logged to TrustChain's tamper-evident ledger (Pillar 4): if a
+    'previous_stock'/'new_stock' pair is ever quietly edited after the
+    fact to cover up a discrepancy, verify_chain() will detect it.
+    """
     medicine = db.query(models.Medicine).get(medicine_id)
     if not medicine:
         raise ValueError("Medicine not found")
     current = Decimal(str(medicine.current_stock or 0))
     target = Decimal(str(new_total_stock))
     diff = target - current
-    _add_ledger_entry(db, medicine, diff, reason="manual_adjustment", note=note or "Manual inventory adjustment")
+    ledger_entry = _add_ledger_entry(
+        db, medicine, diff, reason="manual_adjustment", note=note or "Manual inventory adjustment"
+    )
+
+    # --- TrustChain (Pillar 4) ---
+    audit_service.log_event(db, "stock_adjustment", ledger_entry.id, {
+        "medicine_id": medicine.id,
+        "medicine_name": medicine.particulars,
+        "previous_stock": float(current),
+        "new_stock": float(target),
+        "change_qty": float(diff),
+        "note": note,
+    })
+
     db.commit()
     return {
         "medicine_id": medicine.id,

@@ -534,3 +534,32 @@ class CartSaleResponse(BaseModel):
     interactions: list[CartInteractionFlag]
     items: list[CartItemDetail]
     results: list[dict] = Field(default_factory=list)
+
+# ---------------------------------------------------------------------------
+# TrustChain — Tamper-Evident Audit Trail (Pillar 4)
+# ---------------------------------------------------------------------------
+class AuditLedgerEntryOut(BaseModel):
+    id: int
+    event_type: str
+    reference_id: Optional[int] = None
+    payload: dict
+    payload_hash: str
+    previous_hash: str
+    entry_hash: str
+    created_at: datetime
+ 
+ 
+class BrokenLedgerEntry(BaseModel):
+    id: int
+    event_type: str
+    reference_id: Optional[int] = None
+    created_at: Optional[str] = None
+    problems: list[str]
+ 
+ 
+class AuditVerifyResult(BaseModel):
+    total_entries: int
+    is_valid: bool
+    broken_entries: list[BrokenLedgerEntry]
+    verified_at: str
+ 

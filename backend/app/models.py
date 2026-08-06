@@ -262,3 +262,35 @@ class GraphEdge(Base):
     edge_metadata = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class AuditLedgerEntry(Base):
+    """
+    TrustChain — Pillar 4's tamper-evident audit trail.
+ 
+    This is a HASH CHAIN, not a blockchain, and that's a deliberate,
+    documented engineering decision (see app/services/audit_service.py for
+    the full reasoning): a single shop's database has ONE trust boundary
+    (you trust your own MySQL instance), so a distributed ledger would be
+    solving a problem this system doesn't have. What a hash chain gives
+    you for 1% of the complexity is the property that actually matters —
+    TAMPER-EVIDENCE: if anyone (even someone with direct DB access) edits
+    a past entry, every entry chained after it visibly breaks.
+ 
+    Every other service/router that wants to write an audit entry goes
+    through app/services/audit_service.py's log_event() — never inserts
+    into this table directly, matching this codebase's existing
+    single-writer convention (see graph_service.py for graph_edges).
+    """
+    __tablename__ = "audit_ledger"
+ 
+    id = Column(Integer, primary_key=True, index=True)
+    event_type = Column(String(50), nullable=False, index=True)   # "rate_change" | "batch_received" | "bill_confirmed" | "stock_adjustment"
+    reference_id = Column(Integer, nullable=True, index=True)      # e.g. RateHistory.id, MedicineBatch.id, Bill.id, StockLedger.id
+ 
+    payload_json = Column(Text, nullable=False)     # canonical JSON of the event's actual data
+    payload_hash = Column(String(64), nullable=False)   # SHA-256(payload_json)
+    previous_hash = Column(String(64), nullable=False)  # chains to the prior ledger entry's entry_hash
+    entry_hash = Column(String(64), nullable=False, unique=True, index=True)  # SHA-256(payload_hash + previous_hash)
+ 
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+ 

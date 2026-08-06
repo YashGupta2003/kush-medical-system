@@ -116,6 +116,8 @@ export const api = {
   removeReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}`, { method: "DELETE" }),
   updateLowStockThreshold: (medicineId, threshold) =>
     apiFetch(`/stock/medicine/${medicineId}/threshold`, { method: "PATCH", ...jsonBody({ low_stock_threshold: threshold }) }),
+  recordStockAdjustment: (medicineId, newTotalStock, note) =>
+    apiFetch("/stock/adjustments", { method: "POST", ...jsonBody({ medicine_id: medicineId, new_total_stock: newTotalStock, note }) }),
 
   // --- Expiry tracking ---
   getExpiryDashboard: (days = 90) => apiFetch(`/expiry/dashboard?days=${days}`),
@@ -165,7 +167,17 @@ export const api = {
   },
   getHealth: () => apiFetch("/health"),
 
+  // --- Point of Sale Safety Guardrail (Pillar 3) ---
   checkCart: (items) => apiFetch("/pos/check-cart", { method: "POST", ...jsonBody({ items }) }),
   recordCartSale: (items, confirmOverride = false) =>
     apiFetch("/pos/sales", { method: "POST", ...jsonBody({ items, confirm_override: confirmOverride }) }),
+
+  // --- TrustChain / tamper-evident audit ledger (Pillar 4, owner only) ---
+  getAuditLedger: ({ event_type, limit = 100 } = {}) => {
+    const params = new URLSearchParams({ limit });
+    if (event_type) params.set("event_type", event_type);
+    return apiFetch(`/audit/ledger?${params.toString()}`);
+  },
+  verifyAuditChain: () => apiFetch("/audit/verify"),
+  getAuditEntriesFor: (eventType, referenceId) => apiFetch(`/audit/for/${eventType}/${referenceId}`),
 };

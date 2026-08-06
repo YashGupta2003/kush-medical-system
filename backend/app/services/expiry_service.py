@@ -14,6 +14,7 @@ from sqlalchemy import asc
 
 from app import models
 from app.services.expiry_parser import parse_expiry_string
+from app.services import audit_service
 
 
 def create_batch_from_confirmed_item(db: Session, bill_item: models.BillItem) -> None:
@@ -23,6 +24,11 @@ def create_batch_from_confirmed_item(db: Session, bill_item: models.BillItem) ->
     the expiry couldn't be parsed - so the quantity/batch-number is on
     record and the item shows up in "missing expiry info" for the user to
     complete, rather than silently having no batch tracking at all.
+
+    Also appends a tamper-evident 'batch_received' entry to TrustChain's
+    ledger (Pillar 4) - a batch's received quantity is exactly the kind of
+    number a GST audit cares couldn't have been quietly altered after
+    receiving.
     """
     if not bill_item.medicine_id:
         return
@@ -36,20 +42,33 @@ def create_batch_from_confirmed_item(db: Session, bill_item: models.BillItem) ->
     qty = Decimal(str(bill_item.qty or 0)) + Decimal(str(bill_item.free_qty or 0))
     bill = bill_item.bill
 
-    db.add(models.MedicineBatch(
+    batch = models.MedicineBatch(
         medicine_id=bill_item.medicine_id,
         batch_no=bill_item.batch,
         expiry_date=parsed_date,
         qty_received=qty,
         bill_item_id=bill_item.id,
         distributor_id=bill.distributor_id if bill else None,
-    ))
+    )
+    db.add(batch)
     # Flush immediately (not just commit) so the bill_item_id uniqueness
     # guard above actually sees this row if the function is somehow called
     # again for the same item before the enclosing transaction commits -
     # otherwise two calls in the same transaction could both pass the
-    # "does it already exist" check and only collide at commit time.
+    # "does it already exist" check and only collide at commit time. This
+    # flush also assigns batch.id, needed below as the audit entry's
+    # reference_id.
     db.flush()
+
+    # --- TrustChain (Pillar 4) ---
+    audit_service.log_event(db, "batch_received", batch.id, {
+        "medicine_id": bill_item.medicine_id,
+        "batch_no": batch.batch_no,
+        "expiry_date": parsed_date.isoformat() if parsed_date else None,
+        "qty_received": float(qty),
+        "bill_item_id": bill_item.id,
+        "distributor_id": batch.distributor_id,
+    })
 
 
 def _urgency_for(days_remaining: int) -> str:

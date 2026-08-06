@@ -1,8 +1,9 @@
 """
 Subscribers / Event Handlers for Domain Events.
-Decouples domain actions (stock update, rate history, batch creation, caching, learning)
-from API controllers and background tasks.
+Decouples domain actions (stock update, rate history, batch creation, caching, learning,
+tamper-evident audit logging) from API controllers and background tasks.
 """
+from datetime import datetime
 from typing import List
 from app.core.logging import get_logger
 from app.events.bus import event_bus
@@ -16,7 +17,7 @@ from app.events.events import (
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
 from app.services.matcher import save_learned_mapping
-from app.services import stock_service, expiry_service, graph_service
+from app.services import stock_service, expiry_service, graph_service, audit_service
 from app.core.cache import invalidate_analytics_cache
 
 logger = get_logger("event_subscribers")
@@ -25,7 +26,9 @@ logger = get_logger("event_subscribers")
 def handle_bill_confirmed_rate_history(event: BillConfirmedEvent) -> None:
     """
     Subscriber: Computes landed unit costs, updates master rate list,
-    and logs rate change history audit entries.
+    logs rate change history audit entries, and appends a matching
+    tamper-evident 'rate_change' entry to TrustChain's ledger for every
+    rate/MRP change (Pillar 4).
     """
     logger.info(f"[SUBSCRIBER: RateHistory] Processing rate updates for Bill #{event.bill_id}")
     db = event.db
@@ -76,11 +79,24 @@ def handle_bill_confirmed_rate_history(event: BillConfirmedEvent) -> None:
                 mrp_changed = old_mrp_f != new_mrp_f
 
                 if rate_changed or mrp_changed:
-                    db.add(models.RateHistory(
+                    history = models.RateHistory(
                         medicine_id=medicine.id, bill_item_id=item.id,
                         old_net_rate=old_rate, new_net_rate=new_rate,
                         old_mrp=old_mrp, new_mrp=new_mrp,
-                    ))
+                    )
+                    db.add(history)
+                    db.flush()  # need history.id before it can be the audit entry's reference_id
+
+                    # --- TrustChain (Pillar 4): tamper-evident record of this rate change ---
+                    audit_service.log_event(db, "rate_change", history.id, {
+                        "medicine_id": medicine.id,
+                        "medicine_name": medicine.particulars,
+                        "bill_item_id": item.id,
+                        "bill_id": bill.id,
+                        "old_net_rate": old_rate_f, "new_net_rate": new_rate_f,
+                        "old_mrp": old_mrp_f, "new_mrp": new_mrp_f,
+                    })
+
                     if rate_changed and changes_collector is not None:
                         changes_collector.append(schemas.ChangeSummaryItem(
                             medicine_name=medicine.particulars, field="net_rate",
@@ -133,6 +149,8 @@ def handle_bill_confirmed_stock(event: BillConfirmedEvent) -> None:
 def handle_bill_confirmed_expiry(event: BillConfirmedEvent) -> None:
     """
     Subscriber: Creates medicine batch / expiry records for confirmed bill items.
+    Each batch creation also appends a 'batch_received' TrustChain entry
+    (see expiry_service.create_batch_from_confirmed_item, Pillar 4).
     """
     logger.info(f"[SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #{event.bill_id}")
     db = event.db
@@ -170,6 +188,35 @@ def handle_bill_confirmed_cache_invalidation(event: BillConfirmedEvent) -> None:
     invalidate_analytics_cache()
 
 
+def handle_bill_confirmed_audit_log(event: BillConfirmedEvent) -> None:
+    """
+    Subscriber: TrustChain (Pillar 4) - appends ONE top-level 'bill_confirmed'
+    entry to the tamper-evident ledger per confirmed bill, independent of
+    the more granular 'rate_change' and 'batch_received' entries the other
+    subscribers above already log for the same confirm action.
+
+    Registered LAST so it reads the bill's fully-processed state (item
+    count, total_amount) after every other subscriber has run - though
+    since it re-queries the DB fresh, correctness doesn't actually depend
+    on subscriber ordering, only the readability of the snapshot does.
+    """
+    logger.info(f"[SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #{event.bill_id}")
+    db = event.db
+    bill = db.query(models.Bill).get(event.bill_id)
+    if not bill:
+        return
+
+    audit_service.log_event(db, "bill_confirmed", bill.id, {
+        "bill_id": bill.id,
+        "distributor_id": bill.distributor_id,
+        "invoice_no": bill.invoice_no,
+        "total_amount": float(bill.total_amount) if bill.total_amount is not None else None,
+        "item_count": len(bill.items),
+        "matched_item_count": sum(1 for i in bill.items if i.medicine_id),
+        "confirmed_at": datetime.utcnow().isoformat(),
+    })
+
+
 def handle_bill_uploaded_logging(event: BillUploadedEvent) -> None:
     """
     Subscriber: Logs bill upload events.
@@ -200,6 +247,7 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_expiry)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_graph_sync)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_cache_invalidation)
+    event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_audit_log)
     event_bus.subscribe(BillUploadedEvent, handle_bill_uploaded_logging)
     event_bus.subscribe(BillProcessedEvent, handle_bill_processed_logging)
     logger.info("All domain event subscribers successfully registered with EventBus.")
