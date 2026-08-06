@@ -59,16 +59,14 @@ function HealthBadge() {
   return (
     <div
       title={`System Status: ${health.status.toUpperCase()}\nDB: ${health.services?.database?.status || 'N/A'}\nRedis: ${health.services?.redis?.status || 'N/A'}\nCelery Workers: ${health.services?.celery?.active_workers ?? 'N/A'}`}
+      className="health-badge-glass"
       style={{
         display: "flex",
         alignItems: "center",
         gap: 6,
-        background: "rgba(255,255,255,0.06)",
-        padding: "4px 10px",
         borderRadius: 20,
         fontSize: 12,
         color: "#e2e8f0",
-        border: "1px solid rgba(255,255,255,0.1)",
         cursor: "help",
       }}
     >
@@ -106,10 +104,14 @@ function NavBar() {
 
   return (
     <nav className="app-nav">
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        <div className="app-nav-brand">💊 Kush Medical Hall</div>
+      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+        <div className="app-nav-brand">
+          <span className="app-nav-brand-icon">💊</span>
+          Kush Medical Hall
+        </div>
         <HealthBadge />
       </div>
+      
       <div className="app-nav-links">
         {NAV_ITEMS.filter((item) => !item.ownerOnly || isOwner).map((item) => (
           <NavLink
@@ -119,16 +121,23 @@ function NavBar() {
             className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
           >
             <span className="nav-icon">{item.icon}</span>
-            <span>{item.label}</span>
+            <span className="nav-text">{item.label}</span>
             {item.badgeKey === "urgent" && urgentCount > 0 && (
               <span className="nav-badge">{urgentCount}</span>
             )}
           </NavLink>
         ))}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, color: "#cfcfd6", fontSize: 13 }}>
-        <span>{user.full_name || user.username} <span className="badge auto" style={{ marginLeft: 4 }}>{user.role}</span></span>
-        <button className="secondary" onClick={logout}>Logout</button>
+      
+      <div className="user-profile-section">
+        <div className="user-profile-info">
+          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #38bdf8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: 13, boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)' }}>
+            {(user.full_name || user.username).charAt(0).toUpperCase()}
+          </div>
+          <span className="user-profile-name">{user.full_name || user.username}</span>
+          <span className="badge" style={{ marginLeft: 6, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '2px 8px', fontSize: 11 }}>{user.role}</span>
+        </div>
+        <button className="user-profile-logout" onClick={logout}>Logout</button>
       </div>
     </nav>
   );

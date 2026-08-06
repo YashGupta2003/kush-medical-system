@@ -500,3 +500,4 @@ ValueError: Simulated subscriber error
 [2026-08-06 17:52:05] [INFO] [event_subscribers] [subscribers.py:187]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
 [2026-08-06 17:52:05] [INFO] [event_subscribers] [subscribers.py:203]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
 [2026-08-06 17:52:25] [INFO] [event_subscribers] [subscribers.py:253]: All domain event subscribers successfully registered with EventBus.
+[2026-08-06 22:19:32] [INFO] [event_subscribers] [subscribers.py:253]: All domain event subscribers successfully registered with EventBus.
