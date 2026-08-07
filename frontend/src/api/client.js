@@ -170,7 +170,7 @@ export const api = {
   // --- Point of Sale Safety Guardrail (Pillar 3) ---
   checkCart: (items) => apiFetch("/pos/check-cart", { method: "POST", ...jsonBody({ items }) }),
   recordCartSale: (items, confirmOverride = false) =>
-    apiFetch("/pos/sales", { method: "POST", ...jsonBody({ items, confirm_override: confirmOverride }) }),
+    apiFetch("/pos/sales", { method: "POST", ...jsonBody({ items, confirm_override: confirmOverride , customer_id: customerId, payment_mode: paymentMode }), }),
 
   // --- TrustChain / tamper-evident audit ledger (Pillar 4, owner only) ---
   getAuditLedger: ({ event_type, limit = 100 } = {}) => {
@@ -180,4 +180,36 @@ export const api = {
   },
   verifyAuditChain: () => apiFetch("/audit/verify"),
   getAuditEntriesFor: (eventType, referenceId) => apiFetch(`/audit/for/${eventType}/${referenceId}`),
+
+   // --- Customer Health Companion (Pillar 5, Part A) ---
+  searchCustomers: (q = "") => apiFetch(`/customers${q ? "?q=" + encodeURIComponent(q) : ""}`),
+  getCustomer: (id) => apiFetch(`/customers/${id}`),
+  createOrGetCustomer: (payload) => apiFetch("/customers", { method: "POST", ...jsonBody(payload) }),
+  getCustomerLedger: (id) => apiFetch(`/customers/${id}/ledger`),
+  chargeCustomerCredit: (id, amount, note) =>
+    apiFetch(`/customers/${id}/credit/charge`, { method: "POST", ...jsonBody({ amount, note }) }),
+  recordCustomerPayment: (id, amount, note) =>
+    apiFetch(`/customers/${id}/credit/payment`, { method: "POST", ...jsonBody({ amount, note }) }),
+  getOutstandingBalances: () => apiFetch("/customers/outstanding"),
+  getAdherenceAlerts: () => apiFetch("/customers/adherence-alerts"),
+ 
+  // --- Symptom-to-Stock Bot (Pillar 5, Part A.3) ---
+  querySymptomBot: (message) => apiFetch("/symptom-bot/query", { method: "POST", ...jsonBody({ message }) }),
+ 
+  // --- Inter-Pharmacy Network (Pillar 5, Part B) ---
+  getNetworkNodes: () => apiFetch("/network/nodes"),
+  addNetworkNode: (payload) => apiFetch("/network/nodes", { method: "POST", ...jsonBody(payload) }),
+  getNetworkListings: (listingType = "", status = "open") => {
+    const params = new URLSearchParams({ status });
+    if (listingType) params.set("listing_type", listingType);
+    return apiFetch(`/network/listings?${params.toString()}`);
+  },
+  createNetworkListing: (payload) => apiFetch("/network/listings", { method: "POST", ...jsonBody(payload) }),
+  publishNearExpiryListings: (days = 60) => apiFetch(`/network/listings/publish-near-expiry?days=${days}`, { method: "POST" }),
+  claimNetworkListing: (listingId, claimingNodeId) =>
+    apiFetch(`/network/listings/${listingId}/claim`, { method: "POST", ...jsonBody({ claiming_node_id: claimingNodeId }) }),
+  fulfillNetworkListing: (listingId) => apiFetch(`/network/listings/${listingId}/fulfill`, { method: "POST" }),
+  withdrawNetworkListing: (listingId) => apiFetch(`/network/listings/${listingId}`, { method: "DELETE" }),
 };
+
+

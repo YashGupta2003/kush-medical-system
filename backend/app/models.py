@@ -162,13 +162,15 @@ class UserMapping(Base):
 
 class Sale(Base):
     __tablename__ = "sales"
-
+ 
     id = Column(Integer, primary_key=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     qty_sold = Column(Numeric(10, 2), nullable=False)
     sold_at = Column(DateTime, default=datetime.utcnow)
-
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)   # NEW (Pillar 5)
+ 
     medicine = relationship("Medicine")
+    customer = relationship("Customer", back_populates="sales") 
 
 
 class StockLedger(Base):
@@ -293,4 +295,100 @@ class AuditLedgerEntry(Base):
     entry_hash = Column(String(64), nullable=False, unique=True, index=True)  # SHA-256(payload_hash + previous_hash)
  
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+class Customer(Base):
+    """
+    Pillar 5, Part A — the single new model that powers three features:
+    the credit/udhaar ledger, adherence (refill-overdue) tracking, and the
+    symptom-to-stock bot's identity. Identified by phone number, the
+    natural ID a small shop already uses.
+ 
+    consent_given_at is deliberately separate from "customer exists" - a
+    customer can be in the credit ledger (a factual debt record) without
+    having opted into their purchase PATTERN being used for adherence
+    tracking. See app/services/customer_service.py's module docstring.
+    """
+    __tablename__ = "customers"
+ 
+    id = Column(Integer, primary_key=True, index=True)
+    phone = Column(String(15), nullable=False, unique=True, index=True)
+    name = Column(String(100), nullable=True)
+    consent_given_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+ 
+    credit_entries = relationship("CustomerCredit", back_populates="customer", cascade="all, delete-orphan")
+    sales = relationship("Sale", back_populates="customer")
+ 
+ 
+class CustomerCredit(Base):
+    """
+    The credit/udhaar running ledger - same "every change is one immutable
+    row, balance is derived by walking forward from the last row" design
+    already used by StockLedger (see stock_service.py's _add_ledger_entry).
+    Every charge/payment is ALSO logged to TrustChain (Pillar 4) via
+    audit_service.log_event - see customer_service.py's charge_credit()
+    and record_payment().
+    """
+    __tablename__ = "customer_credit_ledger"
+ 
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
+    change_amount = Column(Numeric(10, 2), nullable=False)   # positive = customer now owes more, negative = payment reduces balance
+    resulting_balance = Column(Numeric(10, 2), nullable=False)
+    reason = Column(Enum("credit_sale", "payment_received", "adjustment", name="credit_reason"), nullable=False)
+    reference_sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
+    note = Column(String(255), nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+ 
+    customer = relationship("Customer", back_populates="credit_entries")
+ 
+ 
+class PharmacyNode(Base):
+    """
+    Pillar 5, Part B — one participating pharmacy in the inter-pharmacy
+    network. is_self=True marks the row representing THIS shop's own
+    instance (auto-created on first use - see network_service.
+    get_or_create_self_node). Every other row represents a nearby
+    participating pharmacy - see network_service.py's module docstring
+    for the honest scoping note on how this models multi-shop
+    participation within a single project's single database.
+    """
+    __tablename__ = "pharmacy_nodes"
+ 
+    id = Column(Integer, primary_key=True, index=True)
+    shop_name = Column(String(150), nullable=False)
+    api_base_url = Column(String(255), nullable=True)   # where a real deployment would sync to
+    contact_phone = Column(String(50), nullable=True)
+    is_self = Column(Boolean, default=False)
+    opted_in = Column(Boolean, default=True)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+ 
+ 
+class NetworkListing(Base):
+    """
+    A near-expiry / excess-stock / shortage-request post on the network.
+    Claiming a listing posted by a DIFFERENT node, and fulfilling it, both
+    log tamper-evident entries to TrustChain (Pillar 4) - a transfer
+    between two independent pharmacy owners is exactly the multi-party
+    trust scenario that justifies TrustChain's framing (see
+    network_service.py's claim_listing / fulfill_listing).
+    """
+    __tablename__ = "network_listings"
+ 
+    id = Column(Integer, primary_key=True, index=True)
+    pharmacy_node_id = Column(Integer, ForeignKey("pharmacy_nodes.id"), nullable=False, index=True)
+    listing_type = Column(Enum("near_expiry", "excess_stock", "shortage_request", name="listing_type"), nullable=False, index=True)
+    medicine_name = Column(String(255), nullable=False)
+    composition = Column(String(500), nullable=True)
+    quantity = Column(Numeric(10, 2), nullable=True)
+    expiry_date = Column(Date, nullable=True)
+    note = Column(String(255), nullable=True)
+    status = Column(Enum("open", "claimed", "fulfilled", "withdrawn", name="listing_status"), nullable=False, default="open", index=True)
+    claimed_by_node_id = Column(Integer, ForeignKey("pharmacy_nodes.id"), nullable=True)
+    source_batch_id = Column(Integer, ForeignKey("medicine_batches.id"), nullable=True)   # links auto-published near_expiry listings back to their batch, for idempotent re-publishing
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+ 
+    pharmacy_node = relationship("PharmacyNode", foreign_keys=[pharmacy_node_id])
+    claimed_by_node = relationship("PharmacyNode", foreign_keys=[claimed_by_node_id])
  

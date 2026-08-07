@@ -77,12 +77,21 @@ def get_stock_snapshot(db: Session, medicine_id: int) -> Optional[dict]:
     }
 
 
-def record_sale(db: Session, medicine_id: int, qty_sold: float) -> dict:
+def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None) -> dict:
+    """
+    customer_id is optional (Pillar 5) - a walk-in cash sale with no
+    customer profile works exactly as before (defaults to None, fully
+    backward compatible with every existing caller). When provided, the
+    Sale row is linked to that Customer, which is what powers both the
+    credit ledger (via pos_service.record_cart_sale) and adherence
+    tracking (customer_service.compute_adherence_alerts reads this same
+    Sale table).
+    """
     medicine = db.query(models.Medicine).get(medicine_id)
     if not medicine:
         raise ValueError("Medicine not found")
 
-    sale = models.Sale(medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.utcnow())
+    sale = models.Sale(medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.utcnow(), customer_id=customer_id)
     db.add(sale)
     db.flush()
 

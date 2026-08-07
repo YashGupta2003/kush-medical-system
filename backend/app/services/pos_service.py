@@ -7,9 +7,20 @@ moment of sale, not something the Owner has to think to ask PharmaCopilot
 about.
 
 Design: a "cart" of {medicine_id, qty_sold} pairs is checked as a WHOLE
-before anything is recorded. If any two salts across the cart interact,
-recording is blocked with status="needs_confirmation" describing exactly
-what was flagged - the pharmacist must explicitly acknowledge
+before anything is recorded. Two kinds of flags are checked, both
+returned in the same `interactions` list so the frontend's warning
+banner shows them together:
+
+  1. Known INTERACTS_WITH pairs (curated seed data, e.g. Warfarin +
+     Aspirin) - see graph_service.check_interactions().
+  2. Duplicate active ingredients across DIFFERENT cart items (e.g.
+     Combiflam Syp + Aceclowal SP both containing Paracetamol) - an
+     overdose/double-dosing risk that (1) doesn't catch, since a salt
+     doesn't "interact" with itself in the curated dataset. See
+     _find_duplicate_salts() below.
+
+If either kind of flag is present, recording is blocked with
+status="needs_confirmation" - the pharmacist must explicitly acknowledge
 (confirm_override=true) to proceed. This mirrors the same "warn first,
 human confirms to override" pattern already used elsewhere in this app
 (duplicate-invoice detection on the bills side) - never a silent block,
@@ -20,16 +31,52 @@ This intentionally does NOT touch the bill-confirmation OCR pipeline at
 all - it only guards the "Record a Sale" flow (over-the-counter sales to
 walk-in customers), which is where drug combinations are actually decided
 in real time, unlike a purchase bill.
+
+Pillar 5 integration: a cart sale can optionally be linked to a Customer
+(customer_id) and recorded as "credit" (udhaar) instead of "cash" via
+payment_mode. When it is, the total cart value (sum of each item's MRP *
+qty) is charged to that customer's credit ledger via
+customer_service.charge_credit() AFTER every item's stock has already
+been successfully recorded - so this module's existing "never half-record
+a cart" guarantee now also covers the credit charge: if any item fails,
+the whole request's exception propagates and the caller's request-scoped
+session rolls back everything, credit charge included.
 """
+from typing import Optional
+
 from sqlalchemy.orm import Session
 
 from app import models
-from app.services import graph_service, stock_service
+from app.services import graph_service, stock_service, customer_service
 
 
 def _medicine_salts(db: Session, medicine_id: int) -> list[str]:
     edges = graph_service.get_neighbors(db, "medicine", medicine_id, edge_type="CONTAINS", direction="out")
     return [e.target_id for e in edges]
+
+
+def _find_duplicate_salts(item_details: list[dict]) -> list[dict]:
+    """
+    Flags a salt that appears in TWO OR MORE DIFFERENT medicines in the
+    cart - e.g. Combiflam Syp + Aceclowal SP both containing Paracetamol.
+    This is an overdose/duplication risk that curated INTERACTS_WITH pairs
+    don't catch (a salt doesn't "interact" with itself in that dataset).
+    """
+    salt_to_medicines: dict[str, list[str]] = {}
+    for item in item_details:
+        for salt in item["salts"]:
+            salt_to_medicines.setdefault(salt, []).append(item["particulars"])
+
+    flags = []
+    for salt, medicine_names in salt_to_medicines.items():
+        unique_names = sorted(set(medicine_names))
+        if len(unique_names) >= 2:
+            flags.append({
+                "salt_a": salt, "salt_b": salt, "severity": "medium",
+                "note": f"'{salt}' appears in multiple cart items ({', '.join(unique_names)}) "
+                        f"— check for unintentional double-dosing before selling together.",
+            })
+    return flags
 
 
 def check_cart_interactions(db: Session, items: list[dict]) -> dict:
@@ -44,6 +91,10 @@ def check_cart_interactions(db: Session, items: list[dict]) -> dict:
         "interactions": [{"salt_a", "salt_b", "severity", "note"}, ...],
         "items": [{"medicine_id", "particulars", "salts": [...]}, ...],
       }
+    `interactions` combines curated INTERACTS_WITH pairs AND
+    within-cart duplicate-salt flags (see _find_duplicate_salts) - the
+    frontend doesn't need to know the difference, both are "flag this
+    combination to the pharmacist before selling."
     """
     all_salts: set[str] = set()
     item_details = []
@@ -59,6 +110,7 @@ def check_cart_interactions(db: Session, items: list[dict]) -> dict:
         })
 
     interactions = graph_service.check_interactions(db, list(all_salts)) if len(all_salts) >= 2 else []
+    interactions += _find_duplicate_salts(item_details)
 
     return {
         "has_interactions": len(interactions) > 0,
@@ -67,74 +119,57 @@ def check_cart_interactions(db: Session, items: list[dict]) -> dict:
     }
 
 
-def record_cart_sale(db: Session, items: list[dict], confirm_override: bool = False) -> dict:
+def record_cart_sale(
+    db: Session,
+    items: list[dict],
+    confirm_override: bool = False,
+    customer_id: Optional[int] = None,
+    payment_mode: str = "cash",
+) -> dict:
     """
-    Checks the cart for interactions first. If interactions are found and
+    Checks the cart for interactions first (curated pairs + duplicate
+    salts - see check_cart_interactions). If any are found and
     confirm_override is not True, records NOTHING and returns
     status="needs_confirmation" with the check details, so the caller can
     surface a warning and ask the pharmacist to explicitly confirm before
     retrying with confirm_override=True. Only once confirmed (or if there
-    were never any interactions) does it call stock_service.record_sale
-    for every item in the cart.
+    were never any flags) does it call stock_service.record_sale for
+    every item in the cart.
 
     If any individual item fails partway through (e.g. a medicine_id that
     no longer exists), the exception propagates and the caller's request
     fails as a whole - the FastAPI request-scoped session then rolls back,
     so a cart is never left half-recorded.
+
+    Pillar 5: if payment_mode == "credit" and customer_id is given, the
+    total cart value is charged to that customer's udhaar ledger via
+    customer_service.charge_credit() once every item is successfully
+    recorded.
     """
     check = check_cart_interactions(db, items)
     if check["has_interactions"] and not confirm_override:
         return {"status": "needs_confirmation", **check, "results": []}
 
     results = []
+    total_value = 0.0
     for entry in items:
-        snapshot = stock_service.record_sale(db, entry["medicine_id"], entry["qty_sold"])
+        snapshot = stock_service.record_sale(db, entry["medicine_id"], entry["qty_sold"], customer_id=customer_id)
         results.append(snapshot)
 
-    return {"status": "recorded", **check, "results": results}
-
-def _find_duplicate_salts(item_details: list[dict]) -> list[dict]:
-    """
-    Flags a salt that appears in TWO OR MORE DIFFERENT medicines in the
-    cart — e.g. Combiflam Syp + Aceclowal SP both containing Paracetamol.
-    This is an overdose/duplication risk that curated INTERACTS_WITH pairs
-    don't catch (a salt doesn't "interact" with itself in that dataset).
-    """
-    salt_to_medicines: dict[str, list[str]] = {}
-    for item in item_details:
-        for salt in item["salts"]:
-            salt_to_medicines.setdefault(salt, []).append(item["particulars"])
-
-    flags = []
-    for salt, medicine_names in salt_to_medicines.items():
-        if len(set(medicine_names)) >= 2:
-            flags.append({
-                "salt_a": salt, "salt_b": salt, "severity": "medium",
-                "note": f"'{salt}' appears in multiple cart items ({', '.join(sorted(set(medicine_names)))}) "
-                        f"— check for unintentional double-dosing before selling together.",
-            })
-    return flags
-
-
-def check_cart_interactions(db: Session, items: list[dict]) -> dict:
-    all_salts: set[str] = set()
-    item_details = []
-
-    for entry in items:
         medicine = db.query(models.Medicine).get(entry["medicine_id"])
-        if not medicine:
-            continue
-        salts = _medicine_salts(db, medicine.id)
-        all_salts.update(salts)
-        item_details.append({
-            "medicine_id": medicine.id, "particulars": medicine.particulars, "salts": salts,
-        })
+        if medicine and medicine.mrp is not None:
+            total_value += float(medicine.mrp) * float(entry["qty_sold"])
 
-    interactions = graph_service.check_interactions(db, list(all_salts)) if len(all_salts) >= 2 else []
-    interactions += _find_duplicate_salts(item_details)   # 👈 add this line
+    credit_result = None
+    if payment_mode == "credit" and customer_id and total_value > 0:
+        item_names = ", ".join(r["medicine_name"] for r in results)
+        credit_result = customer_service.charge_credit(
+            db, customer_id, total_value, note=f"Cart sale: {item_names}",
+        )
 
     return {
-        "has_interactions": len(interactions) > 0,
-        "interactions": interactions,
-        "items": item_details,
+        "status": "recorded", **check, "results": results,
+        "total_value": round(total_value, 2),
+        "payment_mode": payment_mode,
+        "credit_balance_after": credit_result["resulting_balance"] if credit_result else None,
     }

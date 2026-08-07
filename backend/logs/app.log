@@ -501,3 +501,5 @@ ValueError: Simulated subscriber error
 [2026-08-06 17:52:05] [INFO] [event_subscribers] [subscribers.py:203]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
 [2026-08-06 17:52:25] [INFO] [event_subscribers] [subscribers.py:253]: All domain event subscribers successfully registered with EventBus.
 [2026-08-06 22:19:32] [INFO] [event_subscribers] [subscribers.py:253]: All domain event subscribers successfully registered with EventBus.
+[2026-08-07 17:57:45] [INFO] [event_subscribers] [subscribers.py:253]: All domain event subscribers successfully registered with EventBus.
+[2026-08-07 17:58:08] [INFO] [event_subscribers] [subscribers.py:253]: All domain event subscribers successfully registered with EventBus.

@@ -4,6 +4,11 @@ recording a sale of multiple medicines together. Kept in its own router,
 separate from routers/stock.py's existing single-item /stock/sales
 endpoint, so this addition never risks touching that file's existing
 behavior.
+
+Pillar 5: CartSaleRequest now optionally carries customer_id and
+payment_mode ("cash" | "credit") - passed straight through to
+pos_service.record_cart_sale, which handles linking the sale to a
+Customer and/or charging the credit ledger.
 """
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -36,5 +41,6 @@ def record_cart_sale(payload: schemas.CartSaleRequest, db: Session = Depends(get
     """
     result = pos_service.record_cart_sale(
         db, [i.model_dump() for i in payload.items], confirm_override=payload.confirm_override,
+        customer_id=payload.customer_id, payment_mode=payload.payment_mode,
     )
     return result

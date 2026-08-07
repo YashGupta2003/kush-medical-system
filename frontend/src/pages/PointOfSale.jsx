@@ -71,8 +71,7 @@ function MedicineSearch({ onAdd, excludeIds }) {
 }
 
 // ---------------------------------------------------------------------------
-// Quantity stepper — nicer than a bare number input for a POS screen where
-// staff are adjusting quantities quickly between customers.
+// Quantity stepper
 // ---------------------------------------------------------------------------
 function QtyStepper({ qty, onChange }) {
   const step = 1;
@@ -89,6 +88,73 @@ function QtyStepper({ qty, onChange }) {
         onChange={(e) => onChange(Number(e.target.value) || 0)}
       />
       <button type="button" className="pos-qty-btn" onClick={() => bump(step)}>+</button>
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Customer picker (Pillar 5) — optional, attaches this sale to a customer
+// profile and unlocks the "credit / udhaar" payment mode.
+// ---------------------------------------------------------------------------
+function CustomerPicker({ customer, onSelect, onClear }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [creating, setCreating] = useState(false);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setResults([]); return; }
+    const t = setTimeout(() => api.searchCustomers(query).then(setResults), 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  async function handleQuickAdd() {
+    if (query.trim().length < 6) return;
+    setCreating(true);
+    try {
+      const c = await api.createOrGetCustomer({ phone: query.trim() });
+      onSelect(c);
+      setQuery(""); setResults([]);
+    } finally { setCreating(false); }
+  }
+
+  if (customer) {
+    return (
+      <div className="pos-customer-chip">
+        <span className="pos-customer-chip-icon">👤</span>
+        <div>
+          <div className="pos-customer-chip-name">{customer.name || "Unnamed"}</div>
+          <div className="pos-customer-chip-phone">{customer.phone}{customer.current_balance > 0 ? ` · owes ${formatMoney(customer.current_balance)}` : ""}</div>
+        </div>
+        <button className="secondary pos-customer-chip-clear" onClick={onClear}>Change</button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="pos-customer-picker">
+      <input
+        placeholder="Customer phone or name (optional — for udhaar/credit)"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      {results.length > 0 && (
+        <div className="pos-search-results">
+          {results.map((c) => (
+            <div key={c.customer_id} className="pos-search-result-row" onClick={() => { onSelect(c); setQuery(""); setResults([]); }}>
+              <div className="pos-search-result-main">
+                <div className="pos-search-result-name">{c.name || "Unnamed"}</div>
+                <div className="pos-search-result-meta">{c.phone}</div>
+              </div>
+              {c.current_balance > 0 && <span className="pos-stock-pill out">{formatMoney(c.current_balance)} due</span>}
+            </div>
+          ))}
+        </div>
+      )}
+      {results.length === 0 && query.trim().length >= 6 && (
+        <button className="secondary pos-customer-quickadd" onClick={handleQuickAdd} disabled={creating}>
+          {creating ? "Adding..." : `+ Add "${query.trim()}" as new customer`}
+        </button>
+      )}
     </div>
   );
 }
@@ -154,11 +220,10 @@ export default function PointOfSale() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
+  const [customer, setCustomer] = useState(null);
+  const [paymentMode, setPaymentMode] = useState("cash");
   const topRef = useRef(null);
 
-  // Live-check the cart every time it changes (debounced), so the
-  // pharmacist sees the warning WHILE building the cart, not just at
-  // checkout.
   useEffect(() => {
     setCheckResult(null);
     if (cart.length < 2) return;
@@ -185,6 +250,11 @@ export default function PointOfSale() {
     setCart((prev) => prev.filter((c) => c.medicine.id !== medicineId));
   }
 
+  function handleClearCustomer() {
+    setCustomer(null);
+    setPaymentMode("cash");
+  }
+
   async function submitCart(confirmOverride = false) {
     setError(null);
     setSubmitting(true);
@@ -192,16 +262,20 @@ export default function PointOfSale() {
       const res = await api.recordCartSale(
         cart.map((c) => ({ medicine_id: c.medicine.id, qty_sold: c.qty })),
         confirmOverride,
+        customer ? customer.customer_id : null,
+        customer ? paymentMode : "cash",
       );
       if (res.status === "needs_confirmation") {
         setCheckResult(res);
       } else {
-        setSuccess(`Sale recorded — ${cart.length} item${cart.length === 1 ? "" : "s"} sold.`);
+        const creditNote = res.payment_mode === "credit" && res.credit_balance_after != null
+          ? ` Charged to ${customer.name || customer.phone}'s udhaar — new balance ${formatMoney(res.credit_balance_after)}.`
+          : "";
+        setSuccess(`Sale recorded — ${cart.length} item${cart.length === 1 ? "" : "s"} sold (${formatMoney(res.total_value)}).${creditNote}`);
         setCart([]);
         setCheckResult(null);
-        // Scroll the confirmation into view - without this, a success that
-        // happens while scrolled down the cart list can feel like nothing
-        // happened at all.
+        setCustomer(null);
+        setPaymentMode("cash");
         topRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       }
     } catch (err) {
@@ -237,9 +311,27 @@ export default function PointOfSale() {
         <p style={{ color: "#666", fontSize: 13, marginTop: 0 }}>
           Add every medicine a customer is buying in this visit to the cart — as soon as there are
           2 or more items, they're automatically checked against each other for known drug
-          interactions and duplicate active ingredients before the sale is recorded.
+          interactions before the sale is recorded. Attach a customer profile below to sell on
+          credit (udhaar) instead of cash.
         </p>
         <MedicineSearch onAdd={addToCart} excludeIds={cartIds} />
+      </div>
+
+      <div className="card">
+        <h3 style={{ marginTop: 0, marginBottom: 10, fontSize: 15 }}>👤 Customer (optional)</h3>
+        <CustomerPicker customer={customer} onSelect={setCustomer} onClear={handleClearCustomer} />
+        {customer && (
+          <div className="pos-payment-toggle">
+            <label className={paymentMode === "cash" ? "active" : ""}>
+              <input type="radio" name="payment-mode" checked={paymentMode === "cash"} onChange={() => setPaymentMode("cash")} />
+              💵 Cash
+            </label>
+            <label className={paymentMode === "credit" ? "active" : ""}>
+              <input type="radio" name="payment-mode" checked={paymentMode === "credit"} onChange={() => setPaymentMode("credit")} />
+              📒 Credit (udhaar)
+            </label>
+          </div>
+        )}
       </div>
 
       <div className="card pos-cart-card">
@@ -287,7 +379,7 @@ export default function PointOfSale() {
         {cart.length > 0 && !hasBlockingWarning && (
           <div className="pos-checkout-row">
             <div className="pos-checkout-summary">
-              <span className="pos-checkout-label">Total</span>
+              <span className="pos-checkout-label">Total {customer && paymentMode === "credit" ? "(on credit)" : ""}</span>
               <span className="pos-checkout-value">{formatMoney(cartTotal)}</span>
             </div>
             <button
@@ -310,17 +402,13 @@ export default function PointOfSale() {
 
         /* --- search --- */
         .pos-search-wrap { position: relative; }
-        .pos-search-input-wrap {
-          position: relative; display: flex; align-items: center;
-        }
+        .pos-search-input-wrap { position: relative; display: flex; align-items: center; }
         .pos-search-icon { position: absolute; left: 12px; font-size: 14px; opacity: 0.5; pointer-events: none; }
         .pos-search-input {
           width: 100%; padding-left: 34px !important; padding-top: 10px; padding-bottom: 10px;
           border: 1.5px solid #e2e2e5; transition: border-color 0.15s ease, box-shadow 0.15s ease;
         }
-        .pos-search-input:focus {
-          outline: none; border-color: #1c1c1e; box-shadow: 0 0 0 3px rgba(28,28,30,0.08);
-        }
+        .pos-search-input:focus { outline: none; border-color: #1c1c1e; box-shadow: 0 0 0 3px rgba(28,28,30,0.08); }
         .pos-search-spinner {
           position: absolute; right: 12px; width: 14px; height: 14px;
           border: 2px solid #e5e5e5; border-top-color: #1c1c1e; border-radius: 50%;
@@ -340,11 +428,29 @@ export default function PointOfSale() {
         .pos-search-result-row:hover { background: #f8f9fb; }
         .pos-search-result-name { font-weight: 600; font-size: 13.5px; }
         .pos-search-result-meta { font-size: 12px; color: #888; margin-top: 1px; }
-        .pos-stock-pill {
-          font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap;
-        }
+        .pos-stock-pill { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; white-space: nowrap; }
         .pos-stock-pill.in { background: #d1f5d3; color: #14532d; }
         .pos-stock-pill.out { background: #fee2e2; color: #7f1d1d; }
+
+        /* --- customer picker --- */
+        .pos-customer-picker { position: relative; }
+        .pos-customer-picker > input { width: 100%; }
+        .pos-customer-quickadd { width: 100%; margin-top: 8px; text-align: left; }
+        .pos-customer-chip {
+          display: flex; align-items: center; gap: 10px; background: #f8f9fb; border: 1px solid #eee;
+          border-radius: 10px; padding: 10px 12px;
+        }
+        .pos-customer-chip-icon { font-size: 20px; }
+        .pos-customer-chip-name { font-weight: 600; font-size: 13.5px; }
+        .pos-customer-chip-phone { font-size: 12px; color: #888; }
+        .pos-customer-chip-clear { margin-left: auto; font-size: 12px; padding: 6px 12px; }
+        .pos-payment-toggle { display: flex; gap: 8px; margin-top: 10px; }
+        .pos-payment-toggle label {
+          flex: 1; text-align: center; padding: 8px; border: 1.5px solid #e2e2e5; border-radius: 8px;
+          font-size: 13px; cursor: pointer; transition: all 0.15s ease; color: #555;
+        }
+        .pos-payment-toggle label.active { border-color: #1c1c1e; background: #1c1c1e; color: #fff; font-weight: 600; }
+        .pos-payment-toggle input { display: none; }
 
         /* --- cart --- */
         .pos-cart-card { min-height: 120px; }
@@ -352,62 +458,32 @@ export default function PointOfSale() {
           font-size: 12.5px; font-weight: 700; color: #1c1c1e; background: #f0fdf4;
           border: 1px solid #bbf7d0; padding: 4px 12px; border-radius: 20px;
         }
-
-        .pos-empty-state {
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          padding: 34px 10px; color: #999; text-align: center;
-        }
+        .pos-empty-state { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 34px 10px; color: #999; text-align: center; }
         .pos-empty-icon { font-size: 30px; margin-bottom: 8px; opacity: 0.6; }
         .pos-empty-title { font-weight: 600; font-size: 14px; color: #555; }
         .pos-empty-sub { font-size: 12.5px; margin-top: 2px; }
 
-        .pos-cart-row {
-          display: flex; align-items: center; gap: 14px; padding: 12px 4px;
-          border-bottom: 1px solid #f0f0f0;
-        }
+        .pos-cart-row { display: flex; align-items: center; gap: 14px; padding: 12px 4px; border-bottom: 1px solid #f0f0f0; }
         .pos-cart-row:last-of-type { border-bottom: none; }
         .pos-cart-row-main { flex: 1; min-width: 0; }
         .pos-cart-row-name { font-weight: 600; font-size: 14px; }
         .pos-cart-row-meta { font-size: 12px; color: #888; margin-top: 2px; }
         .pos-cart-row-mrp { color: #555; }
 
-        .pos-qty-stepper {
-          display: flex; align-items: center; border: 1px solid #ddd; border-radius: 8px;
-          overflow: hidden; flex-shrink: 0;
-        }
-        .pos-qty-stepper input {
-          width: 52px; text-align: center; border: none; border-radius: 0;
-          padding: 6px 2px; -moz-appearance: textfield;
-        }
-        .pos-qty-stepper input::-webkit-outer-spin-button,
-        .pos-qty-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-        .pos-qty-btn {
-          background: #f5f5f5; color: #1c1c1e; border: none; width: 28px; height: 34px;
-          font-size: 16px; font-weight: 700; cursor: pointer; padding: 0; border-radius: 0;
-          transition: background 0.12s ease;
-        }
+        .pos-qty-stepper { display: flex; align-items: center; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; flex-shrink: 0; }
+        .pos-qty-stepper input { width: 52px; text-align: center; border: none; border-radius: 0; padding: 6px 2px; -moz-appearance: textfield; }
+        .pos-qty-stepper input::-webkit-outer-spin-button, .pos-qty-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .pos-qty-btn { background: #f5f5f5; color: #1c1c1e; border: none; width: 28px; height: 34px; font-size: 16px; font-weight: 700; cursor: pointer; padding: 0; border-radius: 0; transition: background 0.12s ease; }
         .pos-qty-btn:hover { background: #e8e8e8; }
 
-        .pos-remove-btn {
-          width: 30px; height: 30px; padding: 0; border-radius: 8px; flex-shrink: 0;
-          font-size: 13px; color: #888;
-        }
+        .pos-remove-btn { width: 30px; height: 30px; padding: 0; border-radius: 8px; flex-shrink: 0; font-size: 13px; color: #888; }
         .pos-remove-btn:hover { background: #fee2e2; color: #b91c1c; }
 
-        .pos-checking-text {
-          display: flex; align-items: center; gap: 8px;
-          color: #888; font-size: 13px; margin: 10px 0 0;
-        }
-        .pos-checking-spinner {
-          width: 12px; height: 12px; border: 2px solid #e5e5e5; border-top-color: #999;
-          border-radius: 50%; animation: posSpin 0.7s linear infinite;
-        }
+        .pos-checking-text { display: flex; align-items: center; gap: 8px; color: #888; font-size: 13px; margin: 10px 0 0; }
+        .pos-checking-spinner { width: 12px; height: 12px; border: 2px solid #e5e5e5; border-top-color: #999; border-radius: 50%; animation: posSpin 0.7s linear infinite; }
         @keyframes posSpin { to { transform: rotate(360deg); } }
 
-        .pos-warning-banner {
-          border: 1px solid; border-radius: 12px; padding: 14px 16px; margin-top: 14px;
-          animation: posFadeIn 0.25s ease;
-        }
+        .pos-warning-banner { border: 1px solid; border-radius: 12px; padding: 14px 16px; margin-top: 14px; animation: posFadeIn 0.25s ease; }
         .pos-warning-header { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; font-size: 14px; }
         .pos-warning-icon { font-size: 16px; }
         .pos-warning-row { padding: 6px 0; border-top: 1px solid rgba(0,0,0,0.06); }
@@ -415,37 +491,23 @@ export default function PointOfSale() {
         .pos-warning-severity { font-size: 11px; font-weight: 700; margin-left: 8px; text-transform: uppercase; }
         .pos-warning-note { font-size: 12.5px; color: #555; margin-top: 3px; }
         .pos-warning-disclaimer { font-size: 12px; color: #666; margin: 10px 0 0; line-height: 1.5; }
-        .pos-override-btn {
-          margin-top: 10px; background: #fff; border: 1px solid #999; color: #333;
-        }
+        .pos-override-btn { margin-top: 10px; background: #fff; border: 1px solid #999; color: #333; }
 
-        .pos-checkout-row {
-          display: flex; justify-content: space-between; align-items: center;
-          margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f0f0;
-        }
+        .pos-checkout-row { display: flex; justify-content: space-between; align-items: center; margin-top: 16px; padding-top: 14px; border-top: 1px solid #f0f0f0; }
         .pos-checkout-summary { display: flex; flex-direction: column; }
         .pos-checkout-label { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; }
         .pos-checkout-value { font-size: 20px; font-weight: 700; color: #1c1c1e; }
         .pos-complete-btn {
           padding: 12px 22px; font-size: 14.5px; font-weight: 600; border-radius: 10px;
-          background: linear-gradient(135deg, #1c1c1e, #34343a);
-          box-shadow: 0 2px 8px rgba(0,0,0,0.18);
+          background: linear-gradient(135deg, #1c1c1e, #34343a); box-shadow: 0 2px 8px rgba(0,0,0,0.18);
           transition: transform 0.12s ease, box-shadow 0.12s ease;
         }
-        .pos-complete-btn:hover:not(:disabled) {
-          transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.24);
-        }
+        .pos-complete-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 4px 14px rgba(0,0,0,0.24); }
         .pos-complete-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
-        .pos-success-card {
-          display: flex; align-items: center; gap: 12px; border-left: 4px solid #16a34a;
-          color: #14532d; font-weight: 600; background: #f0fdf4;
-        }
+        .pos-success-card { display: flex; align-items: center; gap: 12px; border-left: 4px solid #16a34a; color: #14532d; font-weight: 600; background: #f0fdf4; }
         .pos-success-sub { font-size: 12px; font-weight: 400; color: #3f6212; margin-top: 2px; }
-        .pos-success-check {
-          width: 30px; height: 30px; border-radius: 50%; background: #16a34a; color: #fff;
-          display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0;
-        }
+        .pos-success-check { width: 30px; height: 30px; border-radius: 50%; background: #16a34a; color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; flex-shrink: 0; }
         .pos-success-dismiss { margin-left: auto; font-size: 12px; padding: 6px 12px; flex-shrink: 0; }
       `}</style>
     </div>

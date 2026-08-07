@@ -510,30 +510,36 @@ class CartItemInput(BaseModel):
     qty_sold: float = Field(gt=0)
 
 
+
 class CartSaleRequest(BaseModel):
     items: list[CartItemInput] = Field(min_length=1)
     confirm_override: bool = False
-
-
+    customer_id: Optional[int] = None                                   # NEW (Pillar 5)
+    payment_mode: str = Field(default="cash", pattern="^(cash|credit)$")  # NEW (Pillar 5)
+ 
+ 
 class CartInteractionFlag(BaseModel):
     salt_a: str
     salt_b: str
     severity: str
     note: str
-
-
+ 
+ 
 class CartItemDetail(BaseModel):
     medicine_id: int
     particulars: str
     salts: list[str]
-
-
+ 
+ 
 class CartSaleResponse(BaseModel):
     status: str
     has_interactions: bool
     interactions: list[CartInteractionFlag]
     items: list[CartItemDetail]
     results: list[dict] = Field(default_factory=list)
+    total_value: Optional[float] = None            # NEW (Pillar 5)
+    payment_mode: Optional[str] = None              # NEW (Pillar 5)
+    credit_balance_after: Optional[float] = None    # NEW (Pillar 5)
 
 # ---------------------------------------------------------------------------
 # TrustChain — Tamper-Evident Audit Trail (Pillar 4)
@@ -562,4 +568,128 @@ class AuditVerifyResult(BaseModel):
     is_valid: bool
     broken_entries: list[BrokenLedgerEntry]
     verified_at: str
+
+
+# ---------------------------------------------------------------------------
+# Customer Health Companion (Pillar 5, Part A)
+# ---------------------------------------------------------------------------
+class CustomerCreate(BaseModel):
+    phone: str = Field(min_length=6, max_length=15)
+    name: Optional[str] = None
+    consent_given: bool = False
  
+ 
+class CustomerOut(BaseModel):
+    customer_id: int
+    phone: str
+    name: Optional[str] = None
+    consent_given_at: Optional[datetime] = None
+    current_balance: float
+    total_purchases: int
+    last_visit: Optional[datetime] = None
+ 
+ 
+class CreditChargeRequest(BaseModel):
+    amount: float = Field(gt=0)
+    note: Optional[str] = None
+ 
+ 
+class CreditPaymentRequest(BaseModel):
+    amount: float = Field(gt=0)
+    note: Optional[str] = None
+ 
+ 
+class CustomerCreditEntryOut(BaseModel):
+    id: int
+    change_amount: float
+    resulting_balance: float
+    reason: str
+    note: Optional[str] = None
+    created_at: datetime
+ 
+    model_config = ConfigDict(from_attributes=True)
+ 
+ 
+class OutstandingBalanceItem(BaseModel):
+    customer_id: int
+    phone: str
+    name: Optional[str] = None
+    current_balance: float
+ 
+ 
+class AdherenceAlertOut(BaseModel):
+    customer_id: int
+    customer_name: Optional[str] = None
+    customer_phone: str
+    medicine_id: int
+    medicine_name: str
+    avg_gap_days: float
+    days_since_last_purchase: int
+    days_overdue: float
+    last_purchase_date: datetime
+    purchase_count: int
+ 
+ 
+# ---------------------------------------------------------------------------
+# Symptom-to-Stock Bot (Pillar 5, Part A.3)
+# ---------------------------------------------------------------------------
+class SymptomQueryRequest(BaseModel):
+    message: str = Field(min_length=2, max_length=500)
+ 
+ 
+class SymptomQueryResponse(BaseModel):
+    matched: bool
+    conditions: list[str]
+    suggestions: dict[str, list[ConditionMedicineItem]]   # reuses Pillar 1's existing schema
+    reply: str
+    disclaimer: str
+ 
+ 
+# ---------------------------------------------------------------------------
+# Inter-Pharmacy Network (Pillar 5, Part B)
+# ---------------------------------------------------------------------------
+class PharmacyNodeOut(BaseModel):
+    id: int
+    shop_name: str
+    api_base_url: Optional[str] = None
+    contact_phone: Optional[str] = None
+    is_self: bool
+    opted_in: bool
+    joined_at: Optional[datetime] = None
+ 
+    model_config = ConfigDict(from_attributes=True)
+ 
+ 
+class PharmacyNodeCreate(BaseModel):
+    shop_name: str = Field(min_length=2, max_length=150)
+    api_base_url: Optional[str] = None
+    contact_phone: Optional[str] = None
+ 
+ 
+class NetworkListingCreate(BaseModel):
+    listing_type: str = Field(pattern="^(excess_stock|shortage_request)$")
+    medicine_name: str = Field(min_length=1, max_length=255)
+    composition: Optional[str] = None
+    quantity: Optional[float] = Field(default=None, gt=0)
+    expiry_date: Optional[date] = None
+    note: Optional[str] = None
+ 
+ 
+class NetworkListingOut(BaseModel):
+    id: int
+    pharmacy_node_id: int
+    pharmacy_shop_name: str
+    listing_type: str
+    medicine_name: str
+    composition: Optional[str] = None
+    quantity: Optional[float] = None
+    expiry_date: Optional[date] = None
+    note: Optional[str] = None
+    status: str
+    claimed_by_node_id: Optional[int] = None
+    claimed_by_shop_name: Optional[str] = None
+    created_at: datetime
+ 
+ 
+class ClaimListingRequest(BaseModel):
+    claiming_node_id: int
