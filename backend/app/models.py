@@ -9,7 +9,7 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
 from datetime import datetime
 from sqlalchemy import (
-    Column, Integer, String, Numeric, DateTime,Date, ForeignKey, Text, Enum, Boolean
+    Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum, Boolean
 )
 from sqlalchemy.orm import relationship
 
@@ -36,7 +36,6 @@ class Medicine(Base):
 
     # --- Substitute Medicine Suggestion feature ---
     composition = Column(String(500), nullable=True)   # raw display text, e.g. "Paracetamol 650mg"
-
 
     lead_time_days = Column(Integer, nullable=True)
     suggested_low_stock_threshold = Column(Numeric(10, 2), nullable=True)
@@ -85,13 +84,6 @@ class Bill(Base):
     needs_attention_reason = Column(String(255), nullable=True)
     preprocessing_notes = Column(Text, nullable=True)
     checksum = Column(String(64), nullable=True, index=True)
-
-    # status = Column(
-    #     Enum("pending_review", "confirmed", "rejected", name="bill_status"),
-    #     default="pending_review",
-    # )
-    # uploaded_at = Column(DateTime, default=datetime.utcnow)
-    # raw_ocr_text = Column(Text)   # full raw OCR dump, kept for debugging / reprocessing
 
     distributor = relationship("Distributor", back_populates="bills")
     items = relationship("BillItem", back_populates="bill", cascade="all, delete-orphan")
@@ -162,20 +154,20 @@ class UserMapping(Base):
 
 class Sale(Base):
     __tablename__ = "sales"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     qty_sold = Column(Numeric(10, 2), nullable=False)
     sold_at = Column(DateTime, default=datetime.utcnow)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)   # NEW (Pillar 5)
- 
+
     medicine = relationship("Medicine")
-    customer = relationship("Customer", back_populates="sales") 
+    customer = relationship("Customer", back_populates="sales")
 
 
 class StockLedger(Base):
     __tablename__ = "stock_ledger"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     change_qty = Column(Numeric(10, 2), nullable=False)
@@ -186,9 +178,9 @@ class StockLedger(Base):
     note = Column(String(255), nullable=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)   # NEW (Pillar 6)
     created_at = Column(DateTime, default=datetime.utcnow)
- 
+
     medicine = relationship("Medicine")
-    created_by = relationship("User")    
+    created_by = relationship("User")
 
 
 class ReorderItem(Base):
@@ -222,6 +214,7 @@ class MedicineBatch(Base):
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -232,6 +225,38 @@ class User(Base):
     role = Column(Enum("owner", "staff", name="user_role"), nullable=False, default="staff")
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+    # Priority 1: WhatsApp delivery column (migration 0013)
+    whatsapp_number = Column(String(20), nullable=True)
+
+    refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
+    notifications = relationship("Notification", foreign_keys="[Notification.recipient_user_id]",
+                                 back_populates="recipient_user", cascade="all, delete-orphan")
+
+
+class RefreshToken(Base):
+    """
+    Priority 2a — Refresh token flow.
+
+    Stores the SHA-256 hash of the refresh token (never the raw token),
+    similar to how password hashes work. The raw UUID4 token is returned
+    to the client on login and never stored here.
+
+    Revocation is done by setting `revoked=True` — a hard delete would also
+    work, but soft-deletion gives an audit trail of "this token was revoked
+    at this time," which is useful if you ever investigate a session hijack
+    incident.
+    """
+    __tablename__ = "refresh_tokens"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, unique=True, index=True)
+    expires_at = Column(DateTime, nullable=False)
+    revoked = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    user = relationship("User", back_populates="refresh_tokens")
+
 
 class MedicineSalt(Base):
     """
@@ -270,7 +295,7 @@ class GraphEdge(Base):
 class AuditLedgerEntry(Base):
     """
     TrustChain — Pillar 4's tamper-evident audit trail.
- 
+
     This is a HASH CHAIN, not a blockchain, and that's a deliberate,
     documented engineering decision (see app/services/audit_service.py for
     the full reasoning): a single shop's database has ONE trust boundary
@@ -279,23 +304,23 @@ class AuditLedgerEntry(Base):
     you for 1% of the complexity is the property that actually matters —
     TAMPER-EVIDENCE: if anyone (even someone with direct DB access) edits
     a past entry, every entry chained after it visibly breaks.
- 
+
     Every other service/router that wants to write an audit entry goes
     through app/services/audit_service.py's log_event() — never inserts
     into this table directly, matching this codebase's existing
     single-writer convention (see graph_service.py for graph_edges).
     """
     __tablename__ = "audit_ledger"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     event_type = Column(String(50), nullable=False, index=True)   # "rate_change" | "batch_received" | "bill_confirmed" | "stock_adjustment"
     reference_id = Column(Integer, nullable=True, index=True)      # e.g. RateHistory.id, MedicineBatch.id, Bill.id, StockLedger.id
- 
+
     payload_json = Column(Text, nullable=False)     # canonical JSON of the event's actual data
     payload_hash = Column(String(64), nullable=False)   # SHA-256(payload_json)
     previous_hash = Column(String(64), nullable=False)  # chains to the prior ledger entry's entry_hash
     entry_hash = Column(String(64), nullable=False, unique=True, index=True)  # SHA-256(payload_hash + previous_hash)
- 
+
     created_at = Column(DateTime, default=datetime.utcnow, index=True)
 
 class Customer(Base):
@@ -304,24 +329,24 @@ class Customer(Base):
     the credit/udhaar ledger, adherence (refill-overdue) tracking, and the
     symptom-to-stock bot's identity. Identified by phone number, the
     natural ID a small shop already uses.
- 
+
     consent_given_at is deliberately separate from "customer exists" - a
     customer can be in the credit ledger (a factual debt record) without
     having opted into their purchase PATTERN being used for adherence
     tracking. See app/services/customer_service.py's module docstring.
     """
     __tablename__ = "customers"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     phone = Column(String(15), nullable=False, unique=True, index=True)
     name = Column(String(100), nullable=True)
     consent_given_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
- 
+
     credit_entries = relationship("CustomerCredit", back_populates="customer", cascade="all, delete-orphan")
     sales = relationship("Sale", back_populates="customer")
- 
- 
+
+
 class CustomerCredit(Base):
     """
     The credit/udhaar running ledger - same "every change is one immutable
@@ -332,7 +357,7 @@ class CustomerCredit(Base):
     and record_payment().
     """
     __tablename__ = "customer_credit_ledger"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
     change_amount = Column(Numeric(10, 2), nullable=False)   # positive = customer now owes more, negative = payment reduces balance
@@ -341,10 +366,10 @@ class CustomerCredit(Base):
     reference_sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
     note = Column(String(255), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
- 
+
     customer = relationship("Customer", back_populates="credit_entries")
- 
- 
+
+
 class PharmacyNode(Base):
     """
     Pillar 5, Part B — one participating pharmacy in the inter-pharmacy
@@ -356,7 +381,7 @@ class PharmacyNode(Base):
     participation within a single project's single database.
     """
     __tablename__ = "pharmacy_nodes"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     shop_name = Column(String(150), nullable=False)
     api_base_url = Column(String(255), nullable=True)   # where a real deployment would sync to
@@ -364,8 +389,8 @@ class PharmacyNode(Base):
     is_self = Column(Boolean, default=False)
     opted_in = Column(Boolean, default=True)
     joined_at = Column(DateTime, default=datetime.utcnow)
- 
- 
+
+
 class NetworkListing(Base):
     """
     A near-expiry / excess-stock / shortage-request post on the network.
@@ -376,7 +401,7 @@ class NetworkListing(Base):
     network_service.py's claim_listing / fulfill_listing).
     """
     __tablename__ = "network_listings"
- 
+
     id = Column(Integer, primary_key=True, index=True)
     pharmacy_node_id = Column(Integer, ForeignKey("pharmacy_nodes.id"), nullable=False, index=True)
     listing_type = Column(Enum("near_expiry", "excess_stock", "shortage_request", name="listing_type"), nullable=False, index=True)
@@ -390,7 +415,59 @@ class NetworkListing(Base):
     source_batch_id = Column(Integer, ForeignKey("medicine_batches.id"), nullable=True)   # links auto-published near_expiry listings back to their batch, for idempotent re-publishing
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
- 
+
     pharmacy_node = relationship("PharmacyNode", foreign_keys=[pharmacy_node_id])
     claimed_by_node = relationship("PharmacyNode", foreign_keys=[claimed_by_node_id])
- 
+
+
+class Notification(Base):
+    """
+    Priority 1 — Notification Engine.
+
+    The proactive alerting table — every pillar's signals (adherence
+    overdue, anomaly flags, low-stock crossings, credit overdue, near-expiry,
+    TrustChain tamper) land here as rows so the owner sees them without
+    opening six tabs.
+
+    Design decisions documented in app/services/notification_service.py.
+    Single write path: notification_service.create_notification() only.
+
+    related_entity_type / related_entity_id use the same "loose reference"
+    pattern as AuditLedgerEntry's event_type/reference_id — avoids N
+    foreign key constraints for a table that can reference a dozen different
+    entity types across all pillars.
+    """
+    __tablename__ = "notifications"
+
+    id = Column(Integer, primary_key=True, index=True)
+    recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    notification_type = Column(
+        Enum(
+            "adherence_overdue", "anomaly_flagged", "low_stock_crossed",
+            "credit_overdue", "trust_chain_tamper", "near_expiry",
+            "daily_digest", "system",
+            name="notification_type",
+        ),
+        nullable=False,
+        index=True,
+    )
+    title = Column(String(255), nullable=False)
+    body = Column(Text, nullable=False)
+    severity = Column(
+        Enum("info", "warning", "critical", name="notification_severity"),
+        nullable=False,
+        default="info",
+    )
+    related_entity_type = Column(String(50), nullable=True)
+    related_entity_id = Column(String(50), nullable=True)
+    channel = Column(
+        Enum("in_app", "whatsapp", "sms", "email", name="notification_channel"),
+        nullable=False,
+        default="in_app",
+    )
+    is_read = Column(Boolean, nullable=False, default=False)
+    sent_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    recipient_user = relationship("User", foreign_keys=[recipient_user_id],
+                                  back_populates="notifications")

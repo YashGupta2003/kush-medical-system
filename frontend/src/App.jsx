@@ -22,7 +22,8 @@ import AuditTrail from "./pages/AuditTrail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Network from "./pages/Network.jsx";
 import Predictive from "./pages/Predictive.jsx";
- 
+import { NotificationBell } from "./pages/NotificationCenter.jsx";
+
 
 const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
@@ -144,6 +145,7 @@ function NavBar() {
           <span className="user-profile-name">{user.full_name || user.username}</span>
           <span className="badge" style={{ marginLeft: 6, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '2px 8px', fontSize: 11 }}>{user.role}</span>
         </div>
+        <NotificationBell />
         <button className="user-profile-logout" onClick={logout}>Logout</button>
       </div>
     </nav>
@@ -181,6 +183,7 @@ export default function App() {
           <Route path="/network" element={<RequireAuth><Network isOwner={isOwner} /></RequireAuth>} />
            <Route path="/predictive" element={<RequireOwner><Predictive /></RequireOwner>} />
           <Route path="/audit" element={<RequireOwner><AuditTrail /></RequireOwner>} />
+          <Route path="/notifications" element={<RequireAuth><div /></RequireAuth>} />
         </Routes>
       </div>
     </div>

@@ -2,6 +2,12 @@
 Subscribers / Event Handlers for Domain Events.
 Decouples domain actions (stock update, rate history, batch creation, caching, learning,
 tamper-evident audit logging) from API controllers and background tasks.
+
+Priority 1 additions (Notification Engine):
+  - handle_low_stock_crossed    — creates an in-app notification when medicine crosses below threshold
+  - handle_adherence_alert      — creates an adherence overdue notification (with WhatsApp option)
+  - handle_anomaly_flagged      — creates an anomaly flag notification for owners
+  - handle_credit_overdue       — creates a credit overdue notification
 """
 from datetime import datetime
 from typing import List
@@ -13,6 +19,10 @@ from app.events.events import (
     BillProcessedEvent,
     StockUpdatedEvent,
     RateChangedEvent,
+    LowStockCrossedEvent,
+    AdherenceAlertRaisedEvent,
+    AnomalyFlaggedEvent,
+    CreditOverdueEvent,
 )
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
@@ -237,10 +247,137 @@ def handle_bill_processed_logging(event: BillProcessedEvent) -> None:
     )
 
 
+# ---------------------------------------------------------------------------
+# Priority 1 — Notification Engine subscribers
+# ---------------------------------------------------------------------------
+
+def handle_low_stock_crossed(event: LowStockCrossedEvent) -> None:
+    """
+    Subscriber: Creates an in-app (and optionally WhatsApp) notification when
+    a medicine's stock crosses below its low_stock_threshold.
+
+    Runs in the same transaction as the ledger entry that triggered the
+    crossing — same pattern as handle_bill_confirmed_audit_log writing
+    to the TrustChain in the same transaction as the bill confirmation.
+    The notification is committed when the enclosing stock_service transaction
+    commits (stock_service._add_ledger_entry calls db.flush() but not commit
+    for this path — the commit happens in record_sale or record_adjustment).
+    """
+    logger.info(
+        f"[SUBSCRIBER: LowStock] Medicine '{event.medicine_name}' crossed below "
+        f"threshold ({event.new_balance:.1f} < {event.threshold:.1f})"
+    )
+    from app.services import notification_service
+
+    notification_service.create_notification(
+        event.db,
+        notification_type="low_stock_crossed",
+        title=f"Low Stock Alert: {event.medicine_name}",
+        body=(
+            f"Stock has dropped to {event.new_balance:.0f} units "
+            f"(threshold: {event.threshold:.0f}). "
+            f"Consider placing a reorder."
+        ),
+        severity="warning",
+        recipient_user_id=None,   # broadcast to all owners
+        related_entity_type="medicine",
+        related_entity_id=str(event.medicine_id),
+        channel="in_app",
+    )
+
+
+def handle_adherence_alert(event: AdherenceAlertRaisedEvent) -> None:
+    """
+    Subscriber: Creates a notification for an overdue adherence alert.
+    The Celery task has already checked deduplication (7-day window) before
+    firing this event, so this subscriber always creates the notification
+    without a further dedup check.
+    """
+    logger.info(
+        f"[SUBSCRIBER: Adherence] Alert for customer #{event.customer_id} "
+        f"({event.customer_phone}) on {event.medicine_name}"
+    )
+    from app.services import notification_service
+
+    customer_label = event.customer_name or event.customer_phone
+    notification_service.create_notification(
+        event.db,
+        notification_type="adherence_overdue",
+        title=f"Refill Overdue: {customer_label}",
+        body=(
+            f"{customer_label} is {event.days_overdue:.0f} days overdue for "
+            f"{event.medicine_name} (typical gap: {event.avg_gap_days:.0f} days). "
+            f"Consider a follow-up call."
+        ),
+        severity="warning",
+        recipient_user_id=None,   # broadcast to owners
+        related_entity_type=f"customer:{event.customer_id}:medicine",
+        related_entity_id=str(event.medicine_id),
+        channel="in_app",
+    )
+
+
+def handle_anomaly_flagged(event: AnomalyFlaggedEvent) -> None:
+    """
+    Subscriber: Creates an owner-only notification for a newly flagged anomaly.
+    """
+    logger.info(
+        f"[SUBSCRIBER: Anomaly] {event.anomaly_type} anomaly on "
+        f"medicine #{event.medicine_id} ({event.medicine_name}), score={event.score:.2f}"
+    )
+    from app.services import notification_service
+
+    type_label = "price jump" if event.anomaly_type == "price_jump" else "stock adjustment"
+    notification_service.create_notification(
+        event.db,
+        notification_type="anomaly_flagged",
+        title=f"Anomaly Detected: {event.medicine_name}",
+        body=(
+            f"An unusual {type_label} was detected for {event.medicine_name} "
+            f"(anomaly score: {event.score:.2f}). "
+            f"Review in Predictive Intelligence → Anomalies."
+        ),
+        severity="critical",
+        recipient_user_id=None,   # owner broadcast
+        related_entity_type=f"anomaly:{event.anomaly_type}:medicine",
+        related_entity_id=str(event.medicine_id),
+        channel="in_app",
+    )
+
+
+def handle_credit_overdue(event: CreditOverdueEvent) -> None:
+    """
+    Subscriber: Creates a notification for a customer with a long-overdue
+    credit balance.
+    """
+    logger.info(
+        f"[SUBSCRIBER: Credit] Customer #{event.customer_id} "
+        f"({event.customer_phone}) has ₹{event.outstanding_amount:.0f} outstanding"
+    )
+    from app.services import notification_service
+
+    customer_label = event.customer_name or event.customer_phone
+    notification_service.create_notification(
+        event.db,
+        notification_type="credit_overdue",
+        title=f"Udhaar Outstanding: {customer_label}",
+        body=(
+            f"{customer_label} has ₹{event.outstanding_amount:.0f} outstanding credit. "
+            f"Check the Customers screen to follow up."
+        ),
+        severity="info",
+        recipient_user_id=None,
+        related_entity_type="customer",
+        related_entity_id=str(event.customer_id),
+        channel="in_app",
+    )
+
+
 def register_all_subscribers() -> None:
     """
     Registers all application domain subscribers with the global EventBus.
     """
+    # --- Existing BillConfirmed pipeline (7 subscribers, registered in order) ---
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_rate_history)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_learning)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_stock)
@@ -248,6 +385,15 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_graph_sync)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_cache_invalidation)
     event_bus.subscribe(BillConfirmedEvent, handle_bill_confirmed_audit_log)
+
+    # --- Logging subscribers ---
     event_bus.subscribe(BillUploadedEvent, handle_bill_uploaded_logging)
     event_bus.subscribe(BillProcessedEvent, handle_bill_processed_logging)
+
+    # --- Priority 1: Notification Engine subscribers ---
+    event_bus.subscribe(LowStockCrossedEvent, handle_low_stock_crossed)
+    event_bus.subscribe(AdherenceAlertRaisedEvent, handle_adherence_alert)
+    event_bus.subscribe(AnomalyFlaggedEvent, handle_anomaly_flagged)
+    event_bus.subscribe(CreditOverdueEvent, handle_credit_overdue)
+
     logger.info("All domain event subscribers successfully registered with EventBus.")

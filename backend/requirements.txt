@@ -28,3 +28,22 @@ httpx==0.27.2
 groq==0.11.0
 statsmodels==0.14.4
 scikit-learn==1.5.2
+
+# Priority 1: WhatsApp delivery via Twilio.
+# Justification for twilio==9.3.7: most recent stable release as of Aug 2026
+# with full support for the WhatsApp Business API messaging endpoint.
+# Using an exact pin (not >=) because Twilio has broken backward compat
+# in minor versions before (e.g. v8->v9 removed legacy Programmable SMS paths).
+twilio==9.3.7
+
+# Priority 2a: Login rate limiting — FastAPI-native wrapper around `limits`.
+# 0.1.9 is the latest stable release compatible with FastAPI 0.115.
+slowapi==0.1.9
+
+# Priority 2e: Sentry error tracking — fastapi + celery integrations.
+# Using 2.14.0 for compatibility with FastAPI 0.115 and SQLAlchemy 2.0.
+sentry-sdk[fastapi]==2.14.0
+
+# Priority 2e: Prometheus metrics endpoint.
+# prometheus-fastapi-instrumentator 7.0.0 supports FastAPI 0.115 / Pydantic v2.
+prometheus-fastapi-instrumentator==7.0.0

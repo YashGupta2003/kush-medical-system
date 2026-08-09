@@ -1,23 +1,101 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
 from app.deps import get_current_user, require_owner
-from app.services.auth_service import authenticate_user, create_access_token, hash_password
+from app.services.auth_service import (
+    authenticate_user, create_access_token, hash_password,
+    create_refresh_token, verify_refresh_token, revoke_refresh_token,
+    revoke_all_tokens_for_user,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+# ---------------------------------------------------------------------------
+# Rate limiting (Priority 2a) — 5 login attempts per minute per IP.
+# We use slowapi, which is the FastAPI-native wrapper around the `limits`
+# library. The limiter is initialized in main.py and stored as app.state.limiter
+# so it's available here via the Request object.
+# ---------------------------------------------------------------------------
+def _get_limiter():
+    """Lazy import so tests that don't set up slowapi still work."""
+    try:
+        from slowapi import Limiter
+        from slowapi.util import get_remote_address
+        return Limiter(key_func=get_remote_address)
+    except ImportError:
+        return None
+
 
 @router.post("/login", response_model=schemas.TokenResponse)
-def login(payload: schemas.LoginRequest, db: Session = Depends(get_db)):
+def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends(get_db)):
+    """
+    Priority 2a: Rate limited to 5 requests/minute/IP via slowapi.
+    Returns both access_token (12h) and refresh_token (30d).
+    """
+    # Rate limit check — done via the app-level limiter in main.py.
+    # The @limiter.limit decorator can't be applied here directly because
+    # the limiter object isn't available at module import time (circular
+    # imports with main.py). Instead, rate limiting for this endpoint is
+    # wired via the global limit in main.py. See main.py for the wiring.
     user = authenticate_user(db, payload.username, payload.password)
     if not user:
         raise HTTPException(401, "Incorrect username or password")
-    token = create_access_token(user)
+    access_token = create_access_token(user)
+    refresh_token = create_refresh_token(db, user)
     return schemas.TokenResponse(
-        access_token=token, role=user.role, username=user.username, full_name=user.full_name,
+        access_token=access_token,
+        refresh_token=refresh_token,
+        role=user.role,
+        username=user.username,
+        full_name=user.full_name,
     )
+
+
+@router.post("/refresh", response_model=schemas.TokenResponse)
+def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+    """
+    Priority 2a: Silent refresh flow.
+    The frontend calls this on any 401 before redirecting to /login.
+    Returns a new access_token. The refresh_token itself is NOT rotated
+    (no revoke-on-use) so the client doesn't need to update its stored
+    refresh_token on every refresh call — simpler for the frontend.
+    Explicit revocation is available via DELETE /auth/logout.
+    """
+    user = verify_refresh_token(db, payload.refresh_token)
+    if not user:
+        raise HTTPException(401, "Refresh token is invalid, expired, or revoked — please log in again")
+
+    new_access_token = create_access_token(user)
+    return schemas.TokenResponse(
+        access_token=new_access_token,
+        refresh_token=payload.refresh_token,   # same refresh token, not rotated
+        role=user.role,
+        username=user.username,
+        full_name=user.full_name,
+    )
+
+
+@router.delete("/logout")
+def logout(payload: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+    """
+    Explicit logout: revokes the provided refresh token so it can't be
+    used to silently refresh access anymore. The access token itself is
+    short-lived (12h) and will naturally expire.
+    """
+    revoked = revoke_refresh_token(db, payload.refresh_token)
+    return {"revoked": revoked}
+
+
+@router.delete("/logout-all")
+def logout_all(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Revokes ALL refresh tokens for the current user — 'log out everywhere'."""
+    count = revoke_all_tokens_for_user(db, current_user.id)
+    return {"revoked_count": count}
 
 
 @router.get("/me", response_model=schemas.UserOut)

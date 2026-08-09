@@ -1,5 +1,11 @@
 """
 Everything to do with stock quantity, sales, and the reorder list.
+
+Priority 1 addition: _add_ledger_entry now fires LowStockCrossedEvent
+when a medicine's stock crosses below its low_stock_threshold. The crossing
+detection (old_balance >= threshold AND new_balance < threshold) ensures
+the event fires exactly once at the moment of crossing, not on every
+subsequent sale while already below threshold — preventing notification spam.
 """
 from datetime import datetime
 from decimal import Decimal
@@ -16,7 +22,20 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
                        reason: str, bill_item_id: Optional[int] = None,
                        sale_id: Optional[int] = None, note: Optional[str] = None,
                        created_by_user_id: Optional[int] = None) -> models.StockLedger:
-    new_balance = Decimal(str(medicine.current_stock or 0)) + change_qty
+    """
+    Core stock ledger write — single path for all stock changes.
+
+    Priority 1: After writing the ledger entry, checks whether this change
+    caused the medicine to cross below its low_stock_threshold. If it did,
+    fires LowStockCrossedEvent via the event bus. The event subscriber
+    (handle_low_stock_crossed in subscribers.py) writes the Notification row.
+
+    The crossing check is: old_balance >= threshold AND new_balance < threshold.
+    This fires only on the crossing, not on every sale while already below
+    threshold (which would spam an alert for every single tablet sold).
+    """
+    old_balance = Decimal(str(medicine.current_stock or 0))
+    new_balance = old_balance + change_qty
     medicine.current_stock = new_balance
     entry = models.StockLedger(
         medicine_id=medicine.id, change_qty=change_qty, resulting_balance=new_balance,
@@ -25,6 +44,32 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
     )
     db.add(entry)
     db.flush()   # assigns entry.id, needed by callers that reference it (e.g. TrustChain audit logging)
+
+    # --- Priority 1: Low-stock crossing detection ---
+    threshold = medicine.low_stock_threshold
+    if threshold is not None:
+        threshold_d = Decimal(str(threshold))
+        crossed_below = old_balance >= threshold_d and new_balance < threshold_d
+        if crossed_below:
+            try:
+                from app.events.bus import event_bus
+                from app.events.events import LowStockCrossedEvent
+                event_bus.publish(LowStockCrossedEvent(
+                    medicine_id=medicine.id,
+                    medicine_name=medicine.particulars,
+                    old_balance=float(old_balance),
+                    new_balance=float(new_balance),
+                    threshold=float(threshold_d),
+                    db=db,
+                ))
+            except Exception as exc:
+                # Never crash the core stock write because of a notification failure.
+                # Log and continue — the ledger entry is always written regardless.
+                from app.core.logging import get_logger
+                get_logger("stock_service").warning(
+                    f"LowStockCrossedEvent publish failed for medicine #{medicine.id}: {exc}"
+                )
+
     return entry
 
 
@@ -256,10 +301,14 @@ def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, not
     }
 
 
-def get_stock_ledger(db: Session, limit: int = 50) -> list[dict]:
+def get_stock_ledger(db: Session, limit: int = 50, offset: int = 0) -> list[dict]:
+    """
+    Priority 2b: offset added for pagination. limit preserved for backward compat.
+    """
     rows = (
         db.query(models.StockLedger)
         .order_by(desc(models.StockLedger.created_at))
+        .offset(offset)
         .limit(limit)
         .all()
     )
@@ -276,3 +325,8 @@ def get_stock_ledger(db: Session, limit: int = 50) -> list[dict]:
         }
         for r in rows
     ]
+
+
+def get_stock_ledger_count(db: Session) -> int:
+    """Total row count for pagination metadata."""
+    return db.query(models.StockLedger).count()

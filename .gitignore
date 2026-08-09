@@ -1,5 +1,10 @@
 backend/venv/
 backend/.env
+# SECURITY: GCP service account keys must NEVER be committed.
+# If gcp-vision-key.json was previously committed or pasted in plaintext,
+# you MUST revoke and regenerate it in Google Cloud Console:
+#   console.cloud.google.com → IAM → Service Accounts → Keys → Delete key
+# Generate a new key and replace the file locally.
 backend/gcp-vision-key.json
 backend/uploads/
 __pycache__/
@@ -7,3 +12,21 @@ __pycache__/
 frontend/node_modules/
 frontend/dist/
 .DS_Store
+
+# Test/coverage artifacts
+backend/.coverage
+backend/.pytest_cache/
+backend/htmlcov/
+
+# Celery beat schedule database (auto-generated, not source code)
+celerybeat-schedule
+celerybeat-schedule.db
+
+# Redis dump (auto-generated)
+backend/dump.rdb
+
+# Any other credential/secret files
+*.pem
+*.key
+*-key.json
+*.p12

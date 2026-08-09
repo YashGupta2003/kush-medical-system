@@ -1,6 +1,8 @@
 from datetime import datetime, date
-from typing import Optional, List
+from typing import Optional, List, Generic, TypeVar
 from pydantic import BaseModel, Field, field_validator, ConfigDict
+
+T = TypeVar("T")
 
 
 class MedicineOut(BaseModel):
@@ -322,6 +324,7 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None   # Priority 2a: long-lived refresh token
     token_type: str = "bearer"
     role: str
     username: str
@@ -768,4 +771,68 @@ class AnomalyExplainRequest(BaseModel):
  
 class AnomalyExplainResponse(BaseModel):
     explanation: str
- 
+
+
+# ---------------------------------------------------------------------------
+# Priority 2a: Refresh token schemas
+# ---------------------------------------------------------------------------
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str
+
+
+# ---------------------------------------------------------------------------
+# Priority 2b: Generic pagination
+# PaginatedResponse[T] is used for all paginated list endpoints.
+# PageParams is the common query-param dependency pattern.
+# ---------------------------------------------------------------------------
+class PageParams(BaseModel):
+    """Common pagination query parameters. Use as a Depends() in router functions."""
+    limit: int = Field(default=50, ge=1, le=500)
+    offset: int = Field(default=0, ge=0)
+
+    @property
+    def page(self) -> int:
+        """1-indexed page number derived from offset/limit, for display purposes."""
+        return (self.offset // self.limit) + 1
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """
+    Standard paginated response wrapper.
+    Usage: PaginatedResponse[SomeSchema] as the response_model.
+    """
+    items: List[T]
+    total: int
+    limit: int
+    offset: int
+    page: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ---------------------------------------------------------------------------
+# Priority 1: Notification Engine schemas
+# ---------------------------------------------------------------------------
+class NotificationOut(BaseModel):
+    id: int
+    recipient_user_id: Optional[int] = None
+    notification_type: str
+    title: str
+    body: str
+    severity: str
+    related_entity_type: Optional[str] = None
+    related_entity_id: Optional[str] = None
+    channel: str
+    is_read: bool
+    sent_at: Optional[datetime] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UnreadCountOut(BaseModel):
+    count: int
+
+
+class MarkAllReadOut(BaseModel):
+    marked_read: int

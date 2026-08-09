@@ -1,5 +1,6 @@
 const BASE = "/api";
 const TOKEN_KEY = "kush_medical_token";
+const REFRESH_TOKEN_KEY = "kush_medical_refresh_token";
 
 
 // ---------------------------------------------------------------------------
@@ -15,6 +16,13 @@ export function setToken(token) {
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+}
+export function getRefreshToken() {
+  return localStorage.getItem(REFRESH_TOKEN_KEY);
+}
+export function setRefreshToken(token) {
+  if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token);
 }
 
 // Fired whenever a request comes back 401 (expired/invalid session) so the
@@ -25,15 +33,57 @@ export function setUnauthorizedHandler(fn) {
   onUnauthorized = fn;
 }
 
+let _refreshing = null;  // singleton refresh promise — prevents race of multiple 401s
+
+async function attemptSilentRefresh() {
+  const refreshToken = getRefreshToken();
+  if (!refreshToken) return false;
+
+  if (!_refreshing) {
+    _refreshing = fetch(`${BASE}/auth/refresh`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ refresh_token: refreshToken }),
+    }).then(async (res) => {
+      if (!res.ok) return false;
+      const data = await res.json();
+      setToken(data.access_token);
+      return true;
+    }).catch(() => false).finally(() => { _refreshing = null; });
+  }
+  return _refreshing;
+}
+
 async function apiFetch(path, options = {}) {
   const token = getToken();
   const headers = { ...(options.headers || {}) };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
-  
 
   if (res.status === 401) {
+    // Priority 2a: Try silent refresh before giving up
+    const refreshed = await attemptSilentRefresh();
+    if (refreshed) {
+      // Retry the original request with the new token
+      const newToken = getToken();
+      const retryHeaders = { ...(options.headers || {}) };
+      if (newToken) retryHeaders["Authorization"] = `Bearer ${newToken}`;
+      const retryRes = await fetch(`${BASE}${path}`, { ...options, headers: retryHeaders });
+      if (retryRes.status === 401) {
+        clearToken();
+        onUnauthorized();
+        throw new Error("Session expired — please log in again.");
+      }
+      if (!retryRes.ok) {
+        const body = await retryRes.json().catch(() => ({}));
+        throw new Error(body.detail || `Request failed (${retryRes.status})`);
+      }
+      if (retryRes.status === 204) return null;
+      const ct = retryRes.headers.get("content-type") || "";
+      if (ct.includes("application/pdf")) return retryRes.blob();
+      return retryRes.json();
+    }
     clearToken();
     onUnauthorized();
     throw new Error("Session expired — please log in again.");
@@ -56,6 +106,10 @@ export const api = {
   // --- Auth ---
   login: (username, password) =>
     apiFetch("/auth/login", { method: "POST", ...jsonBody({ username, password }) }),
+  refresh: (refresh_token) =>
+    apiFetch("/auth/refresh", { method: "POST", ...jsonBody({ refresh_token }) }),
+  logout: (refresh_token) =>
+    apiFetch("/auth/logout", { method: "DELETE", ...jsonBody({ refresh_token }) }),
   me: () => apiFetch("/auth/me"),
   listUsers: () => apiFetch("/auth/users"),
   createUser: (payload) => apiFetch("/auth/users", { method: "POST", ...jsonBody(payload) }),
@@ -220,4 +274,15 @@ export const api = {
   getPriceJumpAnomalies: (days = 180) => apiFetch(`/anomalies/price-jumps?days=${days}`),
   getStockAdjustmentAnomalies: (days = 90) => apiFetch(`/anomalies/stock-adjustments?days=${days}`),
   explainAnomaly: (anomaly) => apiFetch("/anomalies/explain", { method: "POST", ...jsonBody({ anomaly }) }),
+
+  // --- Notification Engine (Priority 1) ---
+  getNotifications: ({ unread_only = false, limit = 20, offset = 0 } = {}) => {
+    const params = new URLSearchParams({ limit, offset });
+    if (unread_only) params.set("unread_only", "true");
+    return apiFetch(`/notifications?${params.toString()}`);
+  },
+  getUnreadCount: () => apiFetch("/notifications/unread-count"),
+  markNotificationRead: (id) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
+  markAllNotificationsRead: () => apiFetch("/notifications/read-all", { method: "POST" }),
+  sendDigestNow: () => apiFetch("/notifications/digest/send-now", { method: "POST" }),
 };

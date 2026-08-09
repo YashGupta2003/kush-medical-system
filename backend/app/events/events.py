@@ -1,6 +1,12 @@
 """
 Domain Events definition for Event-Driven Architecture.
 All events are immutable data structures describing significant business domain actions.
+
+Priority 1 additions (Notification Engine):
+  - AdherenceAlertRaisedEvent  — fired by Celery adherence scan task
+  - AnomalyFlaggedEvent        — fired by Celery anomaly scan task
+  - LowStockCrossedEvent       — fired from stock_service._add_ledger_entry
+  - CreditOverdueEvent         — fired by Celery credit overdue scan task
 """
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -64,3 +70,74 @@ class RateChangedEvent(DomainEvent):
     old_mrp: Optional[float]
     new_mrp: Optional[float]
     bill_item_id: Optional[int] = None
+
+
+# ---------------------------------------------------------------------------
+# Priority 1 — Notification Engine events
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True, kw_only=True)
+class LowStockCrossedEvent(DomainEvent):
+    """
+    Fired by stock_service._add_ledger_entry ONLY when a medicine's stock
+    crosses BELOW its low_stock_threshold as a result of that ledger entry.
+
+    The "crossing" logic (old_balance >= threshold AND new_balance < threshold)
+    means this fires exactly once at the moment of crossing, not on every
+    subsequent sale while already below threshold — preventing alert spam.
+
+    db is included so the subscriber can write the Notification row in the
+    same transaction as the ledger entry, matching the BillConfirmedEvent
+    pattern where db is passed through to avoid a new session per event.
+    """
+    medicine_id: int
+    medicine_name: str
+    old_balance: float
+    new_balance: float
+    threshold: float
+    db: Session
+
+
+@dataclass(frozen=True, kw_only=True)
+class AdherenceAlertRaisedEvent(DomainEvent):
+    """
+    Fired by the Celery adherence scan task for each overdue
+    (customer, medicine) pair that hasn't been notified in the last 7 days.
+    db is included for the subscriber to write the Notification row.
+    """
+    customer_id: int
+    customer_name: Optional[str]
+    customer_phone: str
+    medicine_id: int
+    medicine_name: str
+    days_overdue: float
+    avg_gap_days: float
+    db: Session
+
+
+@dataclass(frozen=True, kw_only=True)
+class AnomalyFlaggedEvent(DomainEvent):
+    """
+    Fired by the Celery anomaly scan task when a price jump or stock
+    adjustment anomaly is newly detected (not already notified today).
+    """
+    anomaly_type: str      # "price_jump" | "stock_adjustment"
+    medicine_id: int
+    medicine_name: str
+    score: float
+    detail: Dict[str, Any]
+    db: Session
+
+
+@dataclass(frozen=True, kw_only=True)
+class CreditOverdueEvent(DomainEvent):
+    """
+    Fired by the Celery daily digest task for customers with a positive
+    outstanding credit balance that hasn't been paid in a configurable
+    number of days (currently: any outstanding balance, checked weekly).
+    """
+    customer_id: int
+    customer_name: Optional[str]
+    customer_phone: str
+    outstanding_amount: float
+    db: Session
