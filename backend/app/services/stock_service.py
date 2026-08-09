@@ -14,12 +14,14 @@ from app.services import audit_service
 
 def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decimal,
                        reason: str, bill_item_id: Optional[int] = None,
-                       sale_id: Optional[int] = None, note: Optional[str] = None) -> models.StockLedger:
+                       sale_id: Optional[int] = None, note: Optional[str] = None,
+                       created_by_user_id: Optional[int] = None) -> models.StockLedger:
     new_balance = Decimal(str(medicine.current_stock or 0)) + change_qty
     medicine.current_stock = new_balance
     entry = models.StockLedger(
         medicine_id=medicine.id, change_qty=change_qty, resulting_balance=new_balance,
-        reason=reason, reference_bill_item_id=bill_item_id, reference_sale_id=sale_id, note=note,
+        reason=reason, reference_bill_item_id=bill_item_id, reference_sale_id=sale_id,
+        note=note, created_by_user_id=created_by_user_id,
     )
     db.add(entry)
     db.flush()   # assigns entry.id, needed by callers that reference it (e.g. TrustChain audit logging)
@@ -77,15 +79,13 @@ def get_stock_snapshot(db: Session, medicine_id: int) -> Optional[dict]:
     }
 
 
-def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None) -> dict:
+def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None,
+                 created_by_user_id: Optional[int] = None) -> dict:
     """
-    customer_id is optional (Pillar 5) - a walk-in cash sale with no
-    customer profile works exactly as before (defaults to None, fully
-    backward compatible with every existing caller). When provided, the
-    Sale row is linked to that Customer, which is what powers both the
-    credit ledger (via pos_service.record_cart_sale) and adherence
-    tracking (customer_service.compute_adherence_alerts reads this same
-    Sale table).
+    customer_id (Pillar 5) and created_by_user_id (Pillar 6) are both
+    optional and default to None - a walk-in cash sale with no customer
+    profile and no captured staff identity works exactly as before, fully
+    backward compatible with every existing caller.
     """
     medicine = db.query(models.Medicine).get(medicine_id)
     if not medicine:
@@ -97,7 +97,7 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
 
     _add_ledger_entry(
         db, medicine, -Decimal(str(qty_sold)), reason="sale",
-        sale_id=sale.id, note=f"Sold {qty_sold} units",
+        sale_id=sale.id, note=f"Sold {qty_sold} units", created_by_user_id=created_by_user_id,
     )
     db.commit()
 
@@ -209,15 +209,19 @@ def mark_reorder_item_fulfilled(db: Session, reorder_item_id: int) -> bool:
     return True
 
 
-def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None) -> dict:
+def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None,
+                       created_by_user_id: Optional[int] = None) -> dict:
     """
     Manual inventory correction (e.g. a physical stock count didn't match
     the system). This is the single most fraud/error-prone stock event in
     the whole system - it's the one path that lets a number be overridden
-    with no upstream bill or sale to cross-check it against - so it's also
-    logged to TrustChain's tamper-evident ledger (Pillar 4): if a
+    with no upstream bill or sale to cross-check it against - so it's
+    logged BOTH to TrustChain's tamper-evident ledger (Pillar 4: if a
     'previous_stock'/'new_stock' pair is ever quietly edited after the
-    fact to cover up a discrepancy, verify_chain() will detect it.
+    fact, verify_chain() will detect it) AND, via created_by_user_id, made
+    attributable to a specific staff account (Pillar 6: anomaly_service.py's
+    detect_stock_adjustment_anomalies reads this exact field to flag a
+    disproportionate share of adjustments coming from one account).
     """
     medicine = db.query(models.Medicine).get(medicine_id)
     if not medicine:
@@ -226,10 +230,12 @@ def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, not
     target = Decimal(str(new_total_stock))
     diff = target - current
     ledger_entry = _add_ledger_entry(
-        db, medicine, diff, reason="manual_adjustment", note=note or "Manual inventory adjustment"
+        db, medicine, diff, reason="manual_adjustment",
+        note=note or "Manual inventory adjustment", created_by_user_id=created_by_user_id,
     )
 
     # --- TrustChain (Pillar 4) ---
+    performer = db.query(models.User).get(created_by_user_id) if created_by_user_id else None
     audit_service.log_event(db, "stock_adjustment", ledger_entry.id, {
         "medicine_id": medicine.id,
         "medicine_name": medicine.particulars,
@@ -237,6 +243,8 @@ def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, not
         "new_stock": float(target),
         "change_qty": float(diff),
         "note": note,
+        "performed_by_user_id": created_by_user_id,
+        "performed_by_username": performer.username if performer else None,
     })
 
     db.commit()

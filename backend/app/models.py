@@ -175,7 +175,7 @@ class Sale(Base):
 
 class StockLedger(Base):
     __tablename__ = "stock_ledger"
-
+ 
     id = Column(Integer, primary_key=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     change_qty = Column(Numeric(10, 2), nullable=False)
@@ -184,9 +184,11 @@ class StockLedger(Base):
     reference_bill_item_id = Column(Integer, ForeignKey("bill_items.id"), nullable=True)
     reference_sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
     note = Column(String(255), nullable=True)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)   # NEW (Pillar 6)
     created_at = Column(DateTime, default=datetime.utcnow)
-
+ 
     medicine = relationship("Medicine")
+    created_by = relationship("User")    
 
 
 class ReorderItem(Base):

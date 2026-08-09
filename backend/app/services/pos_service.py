@@ -37,10 +37,16 @@ Pillar 5 integration: a cart sale can optionally be linked to a Customer
 payment_mode. When it is, the total cart value (sum of each item's MRP *
 qty) is charged to that customer's credit ledger via
 customer_service.charge_credit() AFTER every item's stock has already
-been successfully recorded - so this module's existing "never half-record
-a cart" guarantee now also covers the credit charge: if any item fails,
-the whole request's exception propagates and the caller's request-scoped
-session rolls back everything, credit charge included.
+been successfully recorded.
+
+Pillar 6 integration: created_by_user_id (the logged-in staff member
+recording the sale, passed by routers/pos.py) is threaded through to
+every stock_service.record_sale() call, so sales - like manual stock
+adjustments - are attributable to a staff account for later analysis.
+
+If any item fails, the whole request's exception propagates and the
+caller's request-scoped session rolls back everything - a cart is never
+half-recorded, and neither is its credit charge.
 """
 from typing import Optional
 
@@ -125,26 +131,19 @@ def record_cart_sale(
     confirm_override: bool = False,
     customer_id: Optional[int] = None,
     payment_mode: str = "cash",
+    created_by_user_id: Optional[int] = None,
 ) -> dict:
     """
     Checks the cart for interactions first (curated pairs + duplicate
     salts - see check_cart_interactions). If any are found and
     confirm_override is not True, records NOTHING and returns
-    status="needs_confirmation" with the check details, so the caller can
-    surface a warning and ask the pharmacist to explicitly confirm before
-    retrying with confirm_override=True. Only once confirmed (or if there
-    were never any flags) does it call stock_service.record_sale for
-    every item in the cart.
+    status="needs_confirmation" with the check details. Only once
+    confirmed (or if there were never any flags) does it call
+    stock_service.record_sale for every item in the cart.
 
-    If any individual item fails partway through (e.g. a medicine_id that
-    no longer exists), the exception propagates and the caller's request
-    fails as a whole - the FastAPI request-scoped session then rolls back,
-    so a cart is never left half-recorded.
-
-    Pillar 5: if payment_mode == "credit" and customer_id is given, the
-    total cart value is charged to that customer's udhaar ledger via
-    customer_service.charge_credit() once every item is successfully
-    recorded.
+    customer_id/payment_mode (Pillar 5) and created_by_user_id (Pillar 6)
+    are all optional - a plain walk-in cash sale with none of them set
+    works exactly as it always has.
     """
     check = check_cart_interactions(db, items)
     if check["has_interactions"] and not confirm_override:
@@ -153,7 +152,10 @@ def record_cart_sale(
     results = []
     total_value = 0.0
     for entry in items:
-        snapshot = stock_service.record_sale(db, entry["medicine_id"], entry["qty_sold"], customer_id=customer_id)
+        snapshot = stock_service.record_sale(
+            db, entry["medicine_id"], entry["qty_sold"],
+            customer_id=customer_id, created_by_user_id=created_by_user_id,
+        )
         results.append(snapshot)
 
         medicine = db.query(models.Medicine).get(entry["medicine_id"])

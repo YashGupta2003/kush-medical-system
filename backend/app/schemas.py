@@ -693,3 +693,79 @@ class NetworkListingOut(BaseModel):
  
 class ClaimListingRequest(BaseModel):
     claiming_node_id: int
+
+# ---------------------------------------------------------------------------
+# Predictive Intelligence (Pillar 6)
+# ---------------------------------------------------------------------------
+class ForecastPoint(BaseModel):
+    date: str
+    predicted_qty: float
+ 
+ 
+class DemandForecastOut(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    method: str                      # "holt_winters" | "flat_average" | "flat_average_fallback"
+    has_sufficient_data: bool
+    history_days_used: int
+    forecast: list[ForecastPoint]
+    reason: Optional[str] = None
+ 
+ 
+class PriceJumpAnomalyItem(BaseModel):
+    rate_history_id: int
+    medicine_id: int
+    medicine_name: str
+    old_rate: float
+    new_rate: float
+    pct_change: float
+    changed_at: datetime
+    score: float
+ 
+ 
+class PriceJumpAnomalyResult(BaseModel):
+    method: str                      # "isolation_forest" | "zscore_fallback" | "none"
+    has_sufficient_data: bool
+    sample_size: int = 0
+    anomalies: list[PriceJumpAnomalyItem]
+    reason: Optional[str] = None
+ 
+ 
+class StockAdjustmentAnomalyItem(BaseModel):
+    stock_ledger_id: int
+    medicine_id: int
+    medicine_name: str
+    change_qty: float
+    resulting_balance: float
+    note: Optional[str] = None
+    created_by_user_id: Optional[int] = None
+    created_by_username: Optional[str] = None
+    created_at: datetime
+    score: float
+ 
+ 
+class StaffAdjustmentSummary(BaseModel):
+    user_id: int
+    username: str
+    adjustment_count: int
+    share_pct: float
+    is_over_represented: bool
+ 
+ 
+class StockAdjustmentAnomalyResult(BaseModel):
+    method: str
+    has_sufficient_data: bool
+    sample_size: int = 0
+    flagged_adjustments: list[StockAdjustmentAnomalyItem]
+    staff_summary: list[StaffAdjustmentSummary]
+    unattributed_count: int = 0
+    reason: Optional[str] = None
+ 
+ 
+class AnomalyExplainRequest(BaseModel):
+    anomaly: dict
+ 
+ 
+class AnomalyExplainResponse(BaseModel):
+    explanation: str
+ 

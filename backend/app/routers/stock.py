@@ -52,12 +52,18 @@ def get_snapshot(medicine_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/sales", response_model=schemas.StockSnapshot)
-def record_sale(payload: schemas.SaleCreate, db: Session = Depends(get_db)):
+def record_sale(
+    payload: schemas.SaleCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     medicine = db.query(models.Medicine).get(payload.medicine_id)
     if not medicine:
         raise HTTPException(404, "Medicine not found")
     try:
-        return stock_service.record_sale(db, payload.medicine_id, payload.qty_sold)
+        return stock_service.record_sale(
+            db, payload.medicine_id, payload.qty_sold, created_by_user_id=current_user.id,
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -114,14 +120,20 @@ def get_ledger(limit: int = 50, db: Session = Depends(get_db)):
 
 
 @router.post("/adjustments")
-def record_adjustment(payload: dict, db: Session = Depends(get_db)):
+def record_adjustment(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     med_id = payload.get("medicine_id")
     target = payload.get("new_total_stock")
     note = payload.get("note")
     if not med_id or target is None:
         raise HTTPException(422, "Missing medicine_id or new_total_stock")
     try:
-        return stock_service.record_adjustment(db, med_id, float(target), note)
+        return stock_service.record_adjustment(
+            db, med_id, float(target), note, created_by_user_id=current_user.id,
+        )
     except ValueError as e:
         raise HTTPException(400, str(e))
 

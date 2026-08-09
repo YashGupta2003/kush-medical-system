@@ -21,6 +21,8 @@ import PointOfSale from "./pages/PointOfSale.jsx";
 import AuditTrail from "./pages/AuditTrail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Network from "./pages/Network.jsx";
+import Predictive from "./pages/Predictive.jsx";
+ 
 
 const NAV_ITEMS = [
   { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
@@ -38,6 +40,7 @@ const NAV_ITEMS = [
   { to: "/pos", label: "Point of Sale", icon: "🛒" },
   { to: "/customers", label: "Customers", icon: "👤" },
   { to: "/network", label: "Pharma Network", icon: "🌐" },
+  { to: "/predictive", label: "Predictive Intel", icon: "🔮", ownerOnly: true },
   { to: "/audit", label: "TrustChain", icon: "🔗", ownerOnly: true },
 ];
 
@@ -176,6 +179,7 @@ export default function App() {
           <Route path="/pos" element={<RequireAuth><PointOfSale /></RequireAuth>} />
           <Route path="/customers" element={<RequireAuth><Customers /></RequireAuth>} />
           <Route path="/network" element={<RequireAuth><Network isOwner={isOwner} /></RequireAuth>} />
+           <Route path="/predictive" element={<RequireOwner><Predictive /></RequireOwner>} />
           <Route path="/audit" element={<RequireOwner><AuditTrail /></RequireOwner>} />
         </Routes>
       </div>
