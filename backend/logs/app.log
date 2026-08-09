@@ -636,3 +636,44 @@ ValueError: Simulated subscriber error
 [2026-08-09 22:12:54] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
 [2026-08-09 22:14:13] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
 [2026-08-09 22:17:35] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
+[2026-08-09 22:26:09] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #19, status: needs_attention)
+[2026-08-09 22:26:09] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #19, status: needs_attention)
+[2026-08-09 22:26:09] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s)
+[2026-08-09 22:26:09] [INFO] [event_subscribers] [subscribers.py:234]: [EVENT: BillUploaded] Bill #20 (WhatsApp Image 2026-07-26 at 12.43.46.jpeg) distributor=None checksum=690061a9df88142b81f5f1e97bd898539bcef81630e3879fb4abbaf48162a824
+[2026-08-09 22:26:09] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #20
+[2026-08-09 22:26:09] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #20 (./uploads/a4f87f6ae1164ce6a1411b72329d324d.jpeg)
+[2026-08-09 22:26:09] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #20
+[2026-08-09 22:26:11] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-09 22:26:13] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=9651.0)
+[2026-08-09 22:26:13] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=68.94%
+[2026-08-09 22:26:13] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-09 22:26:13] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 140
+[2026-08-09 22:26:13] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 21 rows
+[2026-08-09 22:26:13] [INFO] [bill_parser] [bill_parser.py:156]: final result: 0 usable line items out of 13 candidate rows
+[2026-08-09 22:26:13] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 0 line item rows from OCR text
+[2026-08-09 22:26:13] [INFO] [event_bus] [bus.py:36]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s)
+[2026-08-09 22:48:02] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
