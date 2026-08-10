@@ -40,24 +40,56 @@ function computeCostPerUnit(row) {
 // list update, stock increment, AND expiry batch creation for that item
 // (all three require a non-null medicine_id on the backend).
 // ---------------------------------------------------------------------------
+// BUG FIX #6: MedicineLinkPicker now supports paginated search.
+// Previously page=1, page_size=8 was hardcoded with no "Load More" option,
+// so medicines beyond the first 8 results were permanently inaccessible.
+// Fix: tracks current page in state, renders a "Load more" button when the
+// last fetch returned a full page (meaning there are likely more results),
+// and appends results on subsequent pages instead of replacing them.
+const PICKER_PAGE_SIZE = 8;
+
 function MedicineLinkPicker({ onLink }) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
   const [searching, setSearching] = useState(false);
 
+  // Reset page and results when query changes
+  useEffect(() => {
+    setPage(1);
+    setResults([]);
+    setHasMore(false);
+  }, [query]);
+
+  // Fetch whenever query or page changes
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
+      setHasMore(false);
       return;
     }
     setSearching(true);
     const t = setTimeout(() => {
-      api.browseMedicines({ q: query, page: 1, page_size: 8 })
-        .then((d) => setResults(d.items))
+      api.browseMedicines({ q: query, page, page_size: PICKER_PAGE_SIZE })
+        .then((d) => {
+          if (page === 1) {
+            setResults(d.items);
+          } else {
+            // Append new page results to existing list
+            setResults((prev) => [...prev, ...d.items]);
+          }
+          // If the API returned a full page, there might be more
+          setHasMore(d.items.length === PICKER_PAGE_SIZE);
+        })
         .finally(() => setSearching(false));
     }, 250);
     return () => clearTimeout(t);
-  }, [query]);
+  }, [query, page]);
+
+  function handleLoadMore() {
+    setPage((p) => p + 1);
+  }
 
   return (
     <div style={{ marginTop: 6 }}>
@@ -69,21 +101,34 @@ function MedicineLinkPicker({ onLink }) {
       />
       {searching && <p style={{ fontSize: 12, color: "#888", margin: "4px 0 0" }}>Searching...</p>}
       {results.length > 0 && (
-        <table style={{ marginTop: 6 }}>
-          <tbody>
-            {results.map((m) => (
-              <tr
-                key={m.id}
-                style={{ cursor: "pointer" }}
-                onClick={() => { onLink(m); setQuery(""); setResults([]); }}
-              >
-                <td>{m.particulars}</td>
-                <td style={{ color: "#888" }}>{m.unit}</td>
-                <td><button className="secondary">Link this</button></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <>
+          <table style={{ marginTop: 6 }}>
+            <tbody>
+              {results.map((m) => (
+                <tr
+                  key={m.id}
+                  style={{ cursor: "pointer" }}
+                  onClick={() => { onLink(m); setQuery(""); setResults([]); setPage(1); }}
+                >
+                  <td>{m.particulars}</td>
+                  <td style={{ color: "#888" }}>{m.unit}</td>
+                  <td><button className="secondary">Link this</button></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {/* BUG FIX #6: Load More button — visible when there may be more results */}
+          {hasMore && (
+            <button
+              className="secondary"
+              style={{ marginTop: 6, fontSize: 12 }}
+              onClick={handleLoadMore}
+              disabled={searching}
+            >
+              {searching ? "Loading..." : `Load more results (showing ${results.length})`}
+            </button>
+          )}
+        </>
       )}
     </div>
   );

@@ -340,3 +340,158 @@ def compute_smart_thresholds_bulk_task() -> dict:
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+
+
+# ---------------------------------------------------------------------------
+# BUG FIX #3 — Zombie Bill Cleanup (runs every 10 minutes via beat_schedule)
+# ---------------------------------------------------------------------------
+# If a Celery worker crashes (OOM, Redis outage, oversized OCR image), the
+# bill stays in 'queued' or 'processing' forever — the frontend shows
+# 'Processing...' for eternity. This task marks those stale bills as 'failed'
+# after ZOMBIE_BILL_TIMEOUT_MINUTES so the user knows to re-upload.
+
+ZOMBIE_BILL_TIMEOUT_MINUTES = 10  # bills older than this are considered zombie
+
+
+@celery_app.task(name="cleanup_zombie_bills")
+def cleanup_zombie_bills_task() -> dict:
+    """
+    BUG FIX #3: Zombie Bill Cleanup.
+    Runs every 10 minutes (via Celery Beat). Finds all bills stuck in
+    'queued' or 'processing' state for longer than ZOMBIE_BILL_TIMEOUT_MINUTES
+    and marks them as 'failed' with a descriptive processing_error.
+
+    Root cause this fixes: if a Celery worker running process_bill_task is
+    killed mid-execution (OOM, Redis crash, SIGKILL), the bill.status is never
+    updated from 'processing' and stays frozen in that state permanently.
+    """
+    from datetime import timedelta, datetime
+    from app.core.logging import get_logger
+    log = get_logger("cleanup_zombie_bills")
+
+    db = SessionLocal()
+    killed = 0
+    errors = 0
+
+    try:
+        cutoff = datetime.utcnow() - timedelta(minutes=ZOMBIE_BILL_TIMEOUT_MINUTES)
+
+        zombie_bills = (
+            db.query(models.Bill)
+            .filter(
+                models.Bill.status.in_(["queued", "processing"]),
+                models.Bill.uploaded_at <= cutoff,
+            )
+            .all()
+        )
+
+        for bill in zombie_bills:
+            try:
+                bill.status = "failed"
+                bill.processing_error = (
+                    f"Bill processing timed out after {ZOMBIE_BILL_TIMEOUT_MINUTES} minutes. "
+                    f"The OCR worker may have crashed (e.g. OOM or Redis failure). "
+                    f"Please re-upload the bill."
+                )
+                db.commit()
+                killed += 1
+                log.warning(
+                    f"[ZOMBIE CLEANUP] Bill #{bill.id} was stuck in 'queued/processing' since "
+                    f"{bill.uploaded_at} — marked as failed."
+                )
+            except Exception as exc:
+                db.rollback()
+                errors += 1
+                log.error(f"[ZOMBIE CLEANUP] Failed to mark bill #{bill.id} as failed: {exc}")
+
+        return {
+            "status": "ok",
+            "zombie_bills_found": len(zombie_bills),
+            "marked_failed": killed,
+            "errors": errors,
+        }
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()
+
+
+# ---------------------------------------------------------------------------
+# BUG FIX #4 — Old Upload File Cleanup (nightly at 3am via beat_schedule)
+# ---------------------------------------------------------------------------
+# bill photos accumulate in backend/uploads/ forever. Without cleanup, the
+# server disk fills up in ~1-2 years. This task deletes image files that are
+# older than UPLOAD_RETENTION_DAYS. The Bill DB row is preserved for history.
+
+UPLOAD_RETENTION_DAYS = 90  # delete image files older than this many days
+
+
+@celery_app.task(name="cleanup_old_upload_files")
+def cleanup_old_upload_files_task() -> dict:
+    """
+    BUG FIX #4: Disk Space Exhaustion Prevention.
+    Runs nightly at 3am (via Celery Beat). Deletes bill image files from disk
+    that are older than UPLOAD_RETENTION_DAYS (default: 90 days).
+
+    - The Bill DB row is preserved (invoice history, status, amounts, etc.).
+    - Only the raw image file (bill.image_path) is deleted from disk.
+    - After deletion, bill.image_path is set to None so the image endpoint
+      returns 404 gracefully instead of a broken file path.
+
+    Root cause this fixes: uploaded photos accumulate forever in backend/uploads/
+    with no cleanup mechanism. A pharmacy processing 10 bills/day will exhaust
+    a typical 256GB server disk in under 2 years.
+    """
+    import os
+    from datetime import timedelta, datetime
+    from app.core.logging import get_logger
+    log = get_logger("cleanup_old_upload_files")
+
+    db = SessionLocal()
+    deleted = 0
+    missing = 0
+    errors = 0
+
+    try:
+        cutoff = datetime.utcnow() - timedelta(days=UPLOAD_RETENTION_DAYS)
+
+        old_bills = (
+            db.query(models.Bill)
+            .filter(
+                models.Bill.uploaded_at <= cutoff,
+                models.Bill.image_path.isnot(None),
+            )
+            .all()
+        )
+
+        for bill in old_bills:
+            try:
+                path = bill.image_path
+                if path and os.path.exists(path):
+                    os.remove(path)
+                    deleted += 1
+                    log.info(f"[UPLOAD CLEANUP] Deleted {path} (Bill #{bill.id}, uploaded {bill.uploaded_at})")
+                else:
+                    missing += 1  # file already gone — just clear the DB path
+
+                # Clear the path so the image endpoint returns 404, not an error
+                bill.image_path = None
+            except Exception as exc:
+                errors += 1
+                log.error(f"[UPLOAD CLEANUP] Failed to delete file for Bill #{bill.id}: {exc}")
+
+        db.commit()
+        return {
+            "status": "ok",
+            "retention_days": UPLOAD_RETENTION_DAYS,
+            "old_bills_found": len(old_bills),
+            "files_deleted": deleted,
+            "files_already_missing": missing,
+            "errors": errors,
+        }
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()

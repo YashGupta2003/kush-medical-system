@@ -61,6 +61,19 @@ def compute_smart_threshold(
         lead_time_demand = avg_daily_sales * lead_time_days
         safety_stock     = z_score * std_dev_of_daily_sales * sqrt(lead_time_days)
         reorder_point    = ceil(lead_time_demand + safety_stock)
+
+    BUG FIX #7 — Seasonal Medicine Penalization:
+    The original variance formula divided by `window_days` (the full 30-day
+    window including zero-sales days), severely inflating std_dev for medicines
+    that don't sell every day. A drug sold only on 3 days/week but consistently
+    had its safety stock over-estimated because 4/7 zero-days were treated as
+    "high variance" data points rather than expected silence.
+
+    Fix: variance is computed over `active_sale_days` (days with qty > 0) only.
+    This means a slow-moving medicine that sells 5 units on exactly the same
+    3 days each week gets std_dev=0 (perfectly consistent), not a large number.
+    avg_daily_sales still uses `window_days` as the denominator (correct, for
+    overall demand rate), but variability is measured among active selling days.
     """
     medicine = db.query(models.Medicine).get(medicine_id)
     if not medicine:
@@ -72,9 +85,20 @@ def compute_smart_threshold(
     total_units_sold = sum(series)
     sale_days = sum(1 for qty in series if qty > 0)
 
+    # avg_daily_sales uses window_days (correct: measures overall demand rate)
     avg_daily_sales = total_units_sold / window_days
 
-    variance = sum((x - avg_daily_sales) ** 2 for x in series) / window_days
+    # BUG FIX #7: Compute variance ONLY over active sale days to avoid
+    # penalizing seasonal/slow-moving medicines with artificially high std_dev.
+    # Filter to days where sales actually occurred, then measure dispersion
+    # among those active days only.
+    active_sales = [qty for qty in series if qty > 0]
+    if len(active_sales) > 1:
+        active_mean = sum(active_sales) / len(active_sales)
+        variance = sum((x - active_mean) ** 2 for x in active_sales) / len(active_sales)
+    else:
+        # 0 or 1 active days: no meaningful variance can be computed
+        variance = 0.0
     std_dev_daily_sales = math.sqrt(variance)
 
     has_sufficient_data = (sale_days >= min_sale_days) and (total_units_sold >= min_total_units)
@@ -173,7 +197,14 @@ def compute_smart_thresholds_bulk(
         total_units_sold = sum(series)
         sale_days = sum(1 for q in series if q > 0)
         avg_daily_sales = total_units_sold / window_days
-        variance = sum((x - avg_daily_sales) ** 2 for x in series) / window_days
+        # BUG FIX #7: Use active-sale-days variance to avoid penalizing seasonal medicines.
+        # See compute_smart_threshold() for detailed explanation.
+        active_sales = [q for q in series if q > 0]
+        if len(active_sales) > 1:
+            active_mean = sum(active_sales) / len(active_sales)
+            variance = sum((x - active_mean) ** 2 for x in active_sales) / len(active_sales)
+        else:
+            variance = 0.0
         std_dev = math.sqrt(variance)
 
         has_sufficient_data = (sale_days >= min_sale_days) and (total_units_sold >= min_total_units)

@@ -11,6 +11,8 @@ const STATUS_META = {
   failed: { label: "Failed", badge: "unmatched" },
 };
 
+const PAGE_SIZE = 50;
+
 function ProgressBar({ counts }) {
   const total = Object.values(counts).reduce((a, b) => a + b, 0) || 1;
   const segments = [
@@ -43,21 +45,47 @@ function ProgressBar({ counts }) {
 }
 
 export default function BillHistory() {
+  // BUG FIX #2 (frontend): Use paginated state instead of a flat bills array.
+  // The old code fetched ALL bills in one API call which would cause OOM on the
+  // server once production data accumulated. Now we fetch in pages of PAGE_SIZE.
   const [bills, setBills] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(1);
   const [summary, setSummary] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
 
+  const offset = (page - 1) * PAGE_SIZE;
+  const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
+
   function refresh() {
     api.dashboardSummary().then(setSummary);
-    api.listBills(filterStatus ? { status: filterStatus } : {}).then(setBills);
+    const params = { limit: PAGE_SIZE, offset };
+    if (filterStatus) params.status = filterStatus;
+    api.listBills(params).then((data) => {
+      // Handle paginated response: { items, total, limit, offset }
+      if (data && Array.isArray(data.items)) {
+        setBills(data.items);
+        setTotal(data.total);
+      } else if (Array.isArray(data)) {
+        // Fallback: handle legacy non-paginated response gracefully
+        setBills(data);
+        setTotal(data.length);
+      }
+    });
   }
+
+  // Reset to page 1 when filter changes
+  useEffect(() => {
+    setPage(1);
+  }, [filterStatus]);
 
   useEffect(() => {
     refresh();
+    // Only auto-refresh if there are bills in non-terminal states
     const interval = setInterval(refresh, 4000);
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterStatus]);
+  }, [filterStatus, page]);
 
   return (
     <div>
@@ -68,7 +96,7 @@ export default function BillHistory() {
 
       <div className="card">
         <div className="flex-between">
-          <h3 style={{ margin: 0 }}>All bills</h3>
+          <h3 style={{ margin: 0 }}>All bills <span style={{ fontWeight: 400, fontSize: 13, color: "#666" }}>({total} total)</span></h3>
           <select value={filterStatus || ""} onChange={(e) => setFilterStatus(e.target.value || null)}>
             <option value="">All statuses</option>
             {Object.entries(STATUS_META).map(([key, meta]) => (
@@ -100,6 +128,29 @@ export default function BillHistory() {
             })}
           </tbody>
         </table>
+
+        {/* BUG FIX #2: Pagination controls */}
+        {totalPages > 1 && (
+          <div style={{ display: "flex", gap: 8, marginTop: 12, alignItems: "center" }}>
+            <button
+              className="secondary"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              ← Previous
+            </button>
+            <span style={{ fontSize: 13, color: "#666" }}>
+              Page {page} of {totalPages}
+            </span>
+            <button
+              className="secondary"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

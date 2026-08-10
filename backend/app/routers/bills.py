@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
+from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.config import settings
@@ -235,16 +235,32 @@ def remove_bill_item(bill_id: int, item_id: int, db: Session = Depends(get_db), 
     return {"status": "ok"}
 
 
-@router.get("", response_model=List[schemas.BillOut])
+@router.get("", response_model=schemas.PaginatedBills)
 def list_bills(
     year: Optional[int] = None,
     month: Optional[int] = None,
     status: Optional[str] = None,
     distributor_name: Optional[str] = None,
+    limit: int = Query(default=50, ge=1, le=200, description="Number of bills per page"),
+    offset: int = Query(default=0, ge=0, description="Number of bills to skip"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    q = db.query(models.Bill)
+    """
+    Paginated bill listing. Use limit/offset for pagination.
+    Defaults: limit=50, offset=0. Max limit=200 to prevent OOM crashes.
+    BUG FIX #1: Uses joinedload(Bill.items) to eliminate N+1 query trap.
+    BUG FIX #2: Pagination prevents loading all bills into RAM at once.
+    """
+    # BUG FIX #1: eager-load items + distributor in ONE query — eliminates
+    # the 1+N SQL queries that were fired per bill in _bill_to_out()
+    q = (
+        db.query(models.Bill)
+        .options(
+            joinedload(models.Bill.items).joinedload(models.BillItem.medicine),
+            joinedload(models.Bill.distributor),
+        )
+    )
     if year:
         q = q.filter(models.Bill.year == year)
     if month:
@@ -253,8 +269,17 @@ def list_bills(
         q = q.filter(models.Bill.status == status)
     if distributor_name:
         q = q.join(models.Distributor).filter(models.Distributor.name == distributor_name.upper())
-    bills = q.order_by(models.Bill.uploaded_at.desc()).all()
-    return [_bill_to_out(db, b) for b in bills]
+
+    # BUG FIX #2: get total count before applying pagination
+    total = q.count()
+
+    bills = q.order_by(models.Bill.uploaded_at.desc()).offset(offset).limit(limit).all()
+    return schemas.PaginatedBills(
+        items=[_bill_to_out(db, b) for b in bills],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
 
 
 @router.post("/{bill_id}/reprocess-region", response_model=schemas.RegionOcrResponse)
@@ -328,21 +353,42 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
     # Attach changes output collector
     object.__setattr__(event, "changes_output", changes)
 
-    # Publish event to pipeline subscribers
-    event_bus.publish(event)
-
-    bill.status = "confirmed"
-    db.commit()
+    # BUG FIX #5: Publish event TRANSACTIONALLY.
+    # transactional=True means: if ANY subscriber raises an exception, the
+    # EventBus re-raises after all subscribers have been attempted. We then
+    # rollback the DB session here, preventing partial state (e.g. stock
+    # incremented but expiry entry never created). This is the "poor-man's
+    # Outbox Pattern" — all side-effects commit atomically or not at all.
+    try:
+        event_bus.publish(event, transactional=True)
+        bill.status = "confirmed"
+        db.commit()
+    except Exception as exc:
+        db.rollback()
+        logger.error(f"[CONFIRM BILL] Atomic event pipeline failed for Bill #{bill.id}: {exc}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=(
+                f"Bill confirmation failed: one or more processing steps errored. "
+                f"All changes have been rolled back — no partial state was committed. "
+                f"Please retry. Details: {exc}"
+            ),
+        )
     return changes
 
 
 def _bill_to_out(db: Session, bill: models.Bill) -> schemas.BillOut:
+    """
+    BUG FIX #1: Uses the already-loaded item.medicine relationship (set by joinedload
+    in list_bills) instead of issuing a db.query(Medicine).get() call per item.
+    This eliminates the N+1 query trap: 50 bills = 1 query, not 51.
+    For single-bill fetches (get_bill), also loads medicine via relationship to
+    avoid an extra query per item.
+    """
     items_out = []
     for item in bill.items:
-        suggested_name = None
-        if item.medicine_id:
-            med = db.query(models.Medicine).get(item.medicine_id)
-            suggested_name = med.particulars if med else None
+        # Use already-loaded relationship (medicine was joinedloaded) — no extra DB hit
+        suggested_name = item.medicine.particulars if item.medicine else None
         io = schemas.BillItemOut.model_validate(item)
         io.suggested_medicine_name = suggested_name
         items_out.append(io)

@@ -98,6 +98,24 @@ celery_app.conf.update(
             "task": "compute_smart_thresholds_bulk",
             "schedule": crontab(hour=5, minute=0),
         },
+
+        # BUG FIX #3: Zombie Bill Cleanup — every 10 minutes.
+        # Marks any bill stuck in 'queued' or 'processing' state for more
+        # than ZOMBIE_BILL_TIMEOUT_MINUTES (default: 10) as 'failed' so
+        # the frontend doesn't show 'Processing...' forever.
+        "cleanup-zombie-bills": {
+            "task": "cleanup_zombie_bills",
+            "schedule": crontab(minute="*/10"),  # every 10 minutes
+        },
+
+        # BUG FIX #4: Disk Space Exhaustion — nightly at 3am IST.
+        # Deletes uploaded bill image files from disk that are older than
+        # UPLOAD_RETENTION_DAYS (default: 90 days). DB rows are preserved;
+        # only the disk files are removed to prevent hard-drive exhaustion.
+        "cleanup-old-uploads-nightly": {
+            "task": "cleanup_old_upload_files",
+            "schedule": crontab(hour=3, minute=0),  # 3am IST nightly
+        },
     },
 )
 

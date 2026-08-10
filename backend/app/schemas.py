@@ -107,6 +107,18 @@ class BillOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class PaginatedBills(BaseModel):
+    """
+    Paginated response for the GET /bills endpoint.
+    BUG FIX #2: Replaces the previous un-paginated List[BillOut] response,
+    which would load ALL bills into RAM and cause OOM crashes in production.
+    """
+    items: List[BillOut] = []
+    total: int
+    limit: int
+    offset: int
+
+
 class BillStatusOut(BaseModel):
     id: int
     status: str
