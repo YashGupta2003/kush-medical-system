@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { motion } from "framer-motion";
-import { ShoppingCart, Search, User, UserPlus, AlertTriangle, AlertCircle, Info, CheckCircle, X, Trash2 } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { ShoppingCart, Search, User, UserPlus, AlertTriangle, AlertCircle, Info, CheckCircle, X, Trash2, Maximize, Minimize } from "lucide-react";
 import { api } from "../api/client.js";
 
 const SEVERITY_META = {
@@ -228,6 +228,7 @@ export default function PointOfSale() {
   const [success, setSuccess] = useState(null);
   const [customer, setCustomer] = useState(null);
   const [paymentMode, setPaymentMode] = useState("cash");
+  const [focusMode, setFocusMode] = useState(false);
   const topRef = useRef(null);
 
   useEffect(() => {
@@ -297,13 +298,21 @@ export default function PointOfSale() {
   const totalUnits = cart.reduce((sum, c) => sum + (Number(c.qty) || 0), 0);
   const canSubmit = !submitting && !checking && cart.length > 0 && cart.every((c) => c.qty > 0);
 
+  const focusStyles = focusMode ? {
+    position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+    zIndex: 9999, background: "var(--bg-app)", overflowY: "auto",
+    padding: "32px 10%", 
+    boxShadow: "0 0 100px rgba(0,0,0,0.5)"
+  } : {};
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
+      animate={{ opacity: 1, y: 0, ...focusStyles }}
       exit={{ opacity: 0, y: -10 }}
-      transition={{ duration: 0.2 }}
+      transition={{ duration: 0.4, ease: "easeInOut" }}
       className="page-content"
+      style={focusMode ? { height: "100vh" } : {}}
     >
       <div ref={topRef} />
 
@@ -318,7 +327,14 @@ export default function PointOfSale() {
         </div>
       )}
 
-      <div className="card pos-header-card" style={{ background: "var(--bg-card)" }}>
+      <div className="card pos-header-card" style={{ background: "var(--bg-card)", position: "relative" }}>
+        <button 
+          onClick={() => setFocusMode(!focusMode)} 
+          className="btn btn-secondary" 
+          style={{ position: "absolute", top: 16, right: 16, padding: "8px 12px" }}
+        >
+          {focusMode ? <><Minimize size={16} /> Exit Focus Mode</> : <><Maximize size={16} /> Focus Mode</>}
+        </button>
         <h2 style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 8, color: "var(--text-main)" }}>
           <ShoppingCart size={24} color="var(--primary-500)" /> Point of Sale
         </h2>

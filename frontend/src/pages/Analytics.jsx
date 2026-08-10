@@ -7,6 +7,7 @@ import {
 import { Activity, TrendingUp, Flame } from "lucide-react";
 import { api } from "../api/client.js";
 import AnimatedNumber from "../components/AnimatedNumber.jsx";
+import ActivityRings from "../components/ActivityRings.jsx";
 
 const PIE_COLORS = ["var(--primary-500)", "var(--success)", "var(--warning)", "var(--purple)", "var(--info)", "var(--pink)", "var(--lime)", "var(--orange)"];
 
@@ -67,33 +68,60 @@ export default function Analytics() {
       transition={{ duration: 0.2 }}
       className="page-content"
     >
-      <div className="card">
-        <h2 style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
-          <Activity size={24} color="var(--primary-500)" /> Analytics Dashboard
-        </h2>
-        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 0 }}>
-          Live business intelligence, pulled from your bills, stock, sales, and price history.
-        </p>
+      <div className="card" style={{ display: "flex", gap: "24px", alignItems: "flex-start", flexWrap: "wrap" }}>
+        <div style={{ flex: 1, minWidth: 300 }}>
+          <h2 style={{ marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+            <Activity size={24} color="var(--primary-500)" /> Analytics Dashboard
+          </h2>
+          <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 0 }}>
+            Live business intelligence, pulled from your bills, stock, sales, and price history.
+          </p>
 
-        {overview && (
-          <div className="stat-row">
-            <StatCard
-              label="This month's spend"
-              value={overview.this_month_spend}
-              isMoney
-              sub={
-                overview.spend_change_pct == null ? "no data for last month"
-                : `${overview.spend_change_pct >= 0 ? "▲" : "▼"} ${Math.abs(overview.spend_change_pct)}% vs last month`
-              }
-              warn={overview.spend_change_pct > 15}
-            />
-            <StatCard label="Stock value on hand" value={overview.stock_value} isMoney />
-            <StatCard label="Low stock items" value={overview.low_stock_count} warn={overview.low_stock_count > 0} />
-            <StatCard label="Expiring soon / expired" value={overview.expiring_critical} warn={overview.expiring_critical > 0} />
-            <StatCard label="Bills awaiting review" value={overview.pending_review_count} warn={overview.pending_review_count > 0} />
-            <StatCard label="Avg. bill value (this month)" value={overview.avg_bill_value} isMoney />
+          {overview && (
+            <div className="stat-row" style={{ marginTop: 24 }}>
+              <StatCard
+                label="This month's spend"
+                value={overview.this_month_spend}
+                isMoney
+                sub={
+                  overview.spend_change_pct == null ? "no data for last month"
+                  : `${overview.spend_change_pct >= 0 ? "▲" : "▼"} ${Math.abs(overview.spend_change_pct)}% vs last month`
+                }
+                warn={overview.spend_change_pct > 15}
+              />
+              <StatCard label="Stock value on hand" value={overview.stock_value} isMoney />
+              <StatCard label="Low stock items" value={overview.low_stock_count} warn={overview.low_stock_count > 0} />
+              <StatCard label="Expiring soon / expired" value={overview.expiring_critical} warn={overview.expiring_critical > 0} />
+              <StatCard label="Bills awaiting review" value={overview.pending_review_count} warn={overview.pending_review_count > 0} />
+              <StatCard label="Avg. bill value (this month)" value={overview.avg_bill_value} isMoney />
+            </div>
+          )}
+        </div>
+        
+        {/* Daily Pulse Rings */}
+        <div style={{ 
+          background: "var(--bg-surface-hover)", 
+          padding: "24px", 
+          borderRadius: "16px", 
+          display: "flex", 
+          flexDirection: "column", 
+          alignItems: "center", 
+          gap: 16,
+          boxShadow: "inset 0 2px 10px rgba(0,0,0,0.02)"
+        }}>
+          <ActivityRings 
+            rings={[
+              { color: "var(--success-500)", percentage: 85, label: "Revenue Goal" },
+              { color: "var(--primary-500)", percentage: 60, label: "Pending Bills" },
+              { color: "var(--warning-500)", percentage: 30, label: "Low Stock" }
+            ]} 
+          />
+          <div style={{ display: "flex", gap: 12, fontSize: 11, fontWeight: 600, color: "var(--text-muted)" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--success-500)" }} /> Revenue Goal</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--primary-500)" }} /> Pending Bills</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 4 }}><span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--warning-500)" }} /> Low Stock</div>
           </div>
-        )}
+        </div>
       </div>
 
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading analytics...</p>}
