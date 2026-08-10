@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app import models
-from app.services import audit_service
+from app.services import audit_service, surveillance_service
 
 
 def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decimal,

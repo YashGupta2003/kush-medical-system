@@ -16,6 +16,7 @@ Integration with existing Pillars:
     statistical method that detects unusual price jumps and stock
     adjustments, applied here to daily condition counts.
 """
+import math
 from datetime import date, datetime, timedelta
 from typing import List, Dict, Any
 from sqlalchemy.orm import Session
@@ -104,11 +105,17 @@ def detect_spikes(db: Session, days: int = 14, z_threshold: float = 2.0) -> List
         
         if sum(counts) == 0 or len(counts) < 3:
             continue
+
+        # Skip conditions with zero variance — all identical counts
+        # can't have a meaningful spike (_leave_one_out_zscores returns
+        # inf when std=0, which would false-positive every condition).
+        if max(counts) == min(counts):
+            continue
             
         z_scores = anomaly_service._leave_one_out_zscores(counts)
         
         for i, z in enumerate(z_scores):
-            if z >= z_threshold and counts[i] > 0:
+            if math.isfinite(z) and z >= z_threshold and counts[i] > 0:
                 is_recent = (i >= len(counts) - 2)
                 if is_recent:
                     avg = (sum(counts) - counts[i]) / max(1, (len(counts) - 1))
@@ -153,11 +160,12 @@ def get_all_conditions_summary(db: Session, days: int = 7) -> List[Dict[str, Any
         z_scores = anomaly_service._leave_one_out_zscores(counts)
         has_spike = False
         latest_z = None
-        if len(z_scores) >= 1:
+        # Guard against inf/NaN from zero-variance data (std=0)
+        if len(z_scores) >= 1 and math.isfinite(z_scores[-1]):
             latest_z = float(z_scores[-1])
             if latest_z >= 2.0 and counts[-1] > 0:
                 has_spike = True
-            elif len(z_scores) >= 2 and z_scores[-2] >= 2.0 and counts[-2] > 0:
+            elif len(z_scores) >= 2 and math.isfinite(z_scores[-2]) and z_scores[-2] >= 2.0 and counts[-2] > 0:
                 has_spike = True
                 latest_z = float(z_scores[-2])
                 

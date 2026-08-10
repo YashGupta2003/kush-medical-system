@@ -84,7 +84,7 @@ def toggle_batch_cold_chain(batch_id: int, payload: ToggleBatchColdChain, db: Se
     return {
         "batch_id": batch.id,
         "medicine_id": batch.medicine_id,
-        "medicine_name": batch.medicine.name,
+        "medicine_name": batch.medicine.particulars,
         "batch_no": batch.batch_no,
         "expiry_date": batch.expiry_date,
         "qty_received": float(batch.qty_received),

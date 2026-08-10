@@ -393,6 +393,27 @@ def handle_cold_chain_excursion(event: ColdChainExcursionEvent) -> None:
         channel="in_app",
     )
 
+
+def handle_surveillance_spike(event: SurveillanceSpikeDetectedEvent) -> None:
+    """Creates an owner notification when a syndromic surveillance spike is detected."""
+    from app.services import notification_service
+    notification_service.create_notification(
+        event.db,
+        notification_type="system",
+        title=f"Health Spike: {event.condition_name}",
+        body=(
+            f"{event.condition_name} sales spiked to {event.count} units on {event.spike_date} "
+            f"(z-score: {event.z_score:.1f}, avg: {event.avg_count:.1f}). "
+            f"Check the Surveillance dashboard."
+        ),
+        severity="warning",
+        recipient_user_id=None,
+        related_entity_type="surveillance:condition",
+        related_entity_id=event.condition_name,
+        channel="in_app",
+    )
+
+
 def register_all_subscribers() -> None:
     """
     Registers all application domain subscribers with the global EventBus.
@@ -416,5 +437,6 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(AnomalyFlaggedEvent, handle_anomaly_flagged)
     event_bus.subscribe(CreditOverdueEvent, handle_credit_overdue)
     event_bus.subscribe(ColdChainExcursionEvent, handle_cold_chain_excursion)
+    event_bus.subscribe(SurveillanceSpikeDetectedEvent, handle_surveillance_spike)
 
     logger.info("All domain event subscribers successfully registered with EventBus.")

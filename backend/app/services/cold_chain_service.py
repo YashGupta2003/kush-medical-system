@@ -195,7 +195,7 @@ def get_compliance_report(db: Session, unit_id: Optional[int] = None, days: int 
 
 def get_compromised_batches(db: Session, unit_id: int) -> List[Dict[str, Any]]:
     # Simply returning all MedicineBatch rows with is_cold_chain=True
-    batches = db.query(MedicineBatch, Medicine.name).join(
+    batches = db.query(MedicineBatch, Medicine.particulars).join(
         Medicine, MedicineBatch.medicine_id == Medicine.id
     ).filter(
         MedicineBatch.is_cold_chain == True
