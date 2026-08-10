@@ -2,6 +2,9 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Package, AlertTriangle, Building, Search, Plus, Edit3, ClipboardList, Lightbulb, TrendingUp } from "lucide-react";
 import { api, getToken } from "../api/client.js";
+import MagneticButton from "../components/MagneticButton.jsx";
+import TableSkeleton from "../components/TableSkeleton.jsx";
+import ConfettiExplosion from "../components/ConfettiExplosion.jsx";
 
 // ---------------------------------------------------------------------------
 // TAB 1: Record a Sale
@@ -125,7 +128,7 @@ function RecordSaleTab() {
             <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "16px" }}>No purchase history found yet for this medicine.</p>
           )}
 
-          <form onSubmit={handleRecordSale} style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginTop: "20px" }}>
+          <form onSubmit={handleRecordSale} style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginTop: "20px", position: "relative" }}>
             <div style={{ flex: 1 }}>
               <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Quantity Sold</label>
               <input
@@ -135,7 +138,10 @@ function RecordSaleTab() {
                 onChange={(e) => setQtySold(e.target.value)}
               />
             </div>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Saving..." : "Record sale"}</button>
+            <MagneticButton type="submit" disabled={saving}>
+              {saving ? "Saving..." : "Record sale"}
+            </MagneticButton>
+            <ConfettiExplosion show={!!confirmation} onComplete={() => {}} />
           </form>
 
           {confirmation && <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--success-600)", background: "var(--success-100)", padding: "10px", borderRadius: "8px", marginTop: "16px", fontSize: "14px" }}><CheckCircle size={18} /> {confirmation}</div>}
@@ -279,7 +285,7 @@ function StockLedgerTab() {
         Immutable history of every inventory change across bills, sales, and adjustments.
       </p>
       {loading ? (
-        <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Loading ledger entries...</p>
+        <TableSkeleton rows={8} columns={6} />
       ) : ledger.length === 0 ? (
         <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>No ledger movements recorded yet.</p>
       ) : (
@@ -439,7 +445,7 @@ function AddReorderItemModal({ onClose, onAdded }) {
 
           <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
             <button type="button" className="btn secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Adding..." : "Add to list"}</button>
+            <MagneticButton type="submit" disabled={saving}>{saving ? "Adding..." : "Add to list"}</MagneticButton>
           </div>
         </form>
       </motion.div>
@@ -491,7 +497,7 @@ function ReorderListTab() {
         </div>
       </div>
 
-      {loading && <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Loading...</p>}
+      {loading && <TableSkeleton rows={4} columns={4} />}
       {!loading && groups.length === 0 && (
         <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
           <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>Nothing to reorder right now — stock levels look healthy.</p>
@@ -633,7 +639,7 @@ function SmartReorderTab() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Calculating data-driven reorder thresholds...</p>
+        <TableSkeleton rows={6} columns={6} />
       ) : items.length === 0 ? (
         <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}><p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>No sales history recorded yet across medicines.</p></div>
       ) : (

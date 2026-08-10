@@ -2,7 +2,8 @@ import React, { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { api } from "../api/client.js";
 import { motion, AnimatePresence } from "framer-motion";
-import { Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, AlertOctagon, TrendingDown, Users } from "lucide-react";
+import { Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, AlertOctagon, TrendingDown, Users, BotMessageSquare, X } from "lucide-react";
+import { Link } from "react-router-dom";
 
 function formatMoney(n) {
   if (n == null) return "—";
@@ -237,6 +238,14 @@ function BatchCollisionsTab() {
 
 export default function TrustScore() {
   const [tab, setTab] = useState("scores");
+  const [showCopilot, setShowCopilot] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowCopilot(true);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <motion.div 
@@ -283,6 +292,56 @@ export default function TrustScore() {
             {tab === "scores" && <TrustScoresTab />}
             {tab === "collisions" && <BatchCollisionsTab />}
         </motion.div>
+      </AnimatePresence>
+
+      {/* Proactive Copilot Bubble */}
+      <AnimatePresence>
+        {showCopilot && (
+          <motion.div
+            initial={{ opacity: 0, y: 50, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 50, scale: 0.9 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25 }}
+            style={{
+              position: "fixed", bottom: 40, right: 40, zIndex: 9999,
+              display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 12
+            }}
+          >
+            <div style={{
+              background: "var(--bg-surface)", padding: "16px 20px", borderRadius: "16px 16px 4px 16px",
+              boxShadow: "0 20px 40px rgba(0,0,0,0.2)", border: "1px solid var(--border-subtle)",
+              maxWidth: 250, position: "relative"
+            }}>
+              <button 
+                onClick={() => setShowCopilot(false)} 
+                style={{ position: "absolute", top: 8, right: 8, background: "transparent", border: "none", cursor: "pointer", color: "var(--text-muted)" }}
+              >
+                <X size={14} />
+              </button>
+              <p style={{ margin: "0 0 12px 0", fontSize: "14px", color: "var(--text-main)", fontWeight: 500, paddingRight: 16 }}>
+                Need help understanding these trust scores and anomalies?
+              </p>
+              <Link to="/copilot" style={{ textDecoration: "none" }}>
+                <button className="btn btn-primary" style={{ width: "100%", padding: "6px 12px", fontSize: "13px" }}>
+                  Ask Copilot
+                </button>
+              </Link>
+            </div>
+            <Link to="/copilot" style={{ textDecoration: "none" }}>
+              <motion.div 
+                whileHover={{ scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                style={{
+                  width: 56, height: 56, borderRadius: "50%", background: "var(--primary-600)",
+                  display: "flex", alignItems: "center", justifyContent: "center", color: "white",
+                  boxShadow: "0 10px 20px rgba(20, 184, 166, 0.3)", cursor: "pointer"
+                }}
+              >
+                <BotMessageSquare size={28} />
+              </motion.div>
+            </Link>
+          </motion.div>
+        )}
       </AnimatePresence>
 
       <style>{`
