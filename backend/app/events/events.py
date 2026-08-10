@@ -141,3 +141,24 @@ class CreditOverdueEvent(DomainEvent):
     customer_phone: str
     outstanding_amount: float
     db: Session
+
+@dataclass(frozen=True, kw_only=True)
+class ColdChainExcursionEvent(DomainEvent):
+    """Fired when a cold-chain reading falls outside the unit's safe range."""
+    unit_id: int
+    unit_label: str
+    recorded_temp_c: float
+    min_temp_c: float
+    max_temp_c: float
+    reading_id: int
+    db: Session
+
+@dataclass(frozen=True, kw_only=True)
+class SurveillanceSpikeDetectedEvent(DomainEvent):
+    """Fired when the daily surveillance scan detects a condition spike."""
+    condition_name: str
+    spike_date: str  # ISO date string
+    count: int
+    z_score: float
+    avg_count: float
+    db: Session

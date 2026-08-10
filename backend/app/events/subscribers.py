@@ -23,6 +23,8 @@ from app.events.events import (
     AdherenceAlertRaisedEvent,
     AnomalyFlaggedEvent,
     CreditOverdueEvent,
+    ColdChainExcursionEvent,
+    SurveillanceSpikeDetectedEvent,
 )
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
@@ -372,6 +374,24 @@ def handle_credit_overdue(event: CreditOverdueEvent) -> None:
         channel="in_app",
     )
 
+def handle_cold_chain_excursion(event: ColdChainExcursionEvent) -> None:
+    from app.services import notification_service
+    direction = "above" if event.recorded_temp_c > event.max_temp_c else "below"
+    notification_service.create_notification(
+        event.db,
+        notification_type="system",
+        title=f"⚠️ Cold Chain Excursion: {event.unit_label}",
+        body=(
+            f"Temperature reading of {event.recorded_temp_c}°C is {direction} "
+            f"the safe range ({event.min_temp_c}–{event.max_temp_c}°C). "
+            f"Check the unit immediately and review stored medicines."
+        ),
+        severity="critical",
+        recipient_user_id=None,
+        related_entity_type="cold_chain_unit",
+        related_entity_id=str(event.unit_id),
+        channel="in_app",
+    )
 
 def register_all_subscribers() -> None:
     """
@@ -395,5 +415,6 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(AdherenceAlertRaisedEvent, handle_adherence_alert)
     event_bus.subscribe(AnomalyFlaggedEvent, handle_anomaly_flagged)
     event_bus.subscribe(CreditOverdueEvent, handle_credit_overdue)
+    event_bus.subscribe(ColdChainExcursionEvent, handle_cold_chain_excursion)
 
     logger.info("All domain event subscribers successfully registered with EventBus.")

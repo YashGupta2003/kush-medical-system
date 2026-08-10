@@ -22,6 +22,9 @@ import AuditTrail from "./pages/AuditTrail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Network from "./pages/Network.jsx";
 import Predictive from "./pages/Predictive.jsx";
+import ColdChain from "./pages/ColdChain.jsx";
+import Surveillance from "./pages/Surveillance.jsx";
+
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 
 
@@ -41,7 +44,10 @@ const NAV_ITEMS = [
   { to: "/pos", label: "Point of Sale", icon: "🛒" },
   { to: "/customers", label: "Customers", icon: "👤" },
   { to: "/network", label: "Pharma Network", icon: "🌐" },
+  { to: "/cold-chain", label: "Cold Chain", icon: "🧊" },
+
   { to: "/predictive", label: "Predictive Intel", icon: "🔮", ownerOnly: true },
+  { to: "/surveillance", label: "Health Surveillance", icon: "📈", ownerOnly: true },
   { to: "/audit", label: "TrustChain", icon: "🔗", ownerOnly: true },
 ];
 
@@ -183,6 +189,9 @@ export default function App() {
           <Route path="/network" element={<RequireAuth><Network isOwner={isOwner} /></RequireAuth>} />
            <Route path="/predictive" element={<RequireOwner><Predictive /></RequireOwner>} />
           <Route path="/audit" element={<RequireOwner><AuditTrail /></RequireOwner>} />
+          <Route path="/cold-chain" element={<RequireAuth><ColdChain isOwner={isOwner} /></RequireAuth>} />
+          <Route path="/surveillance" element={<RequireOwner><Surveillance /></RequireOwner>} />
+
           <Route path="/notifications" element={<RequireAuth><div /></RequireAuth>} />
         </Routes>
       </div>

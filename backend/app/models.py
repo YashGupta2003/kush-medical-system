@@ -9,6 +9,7 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
 from datetime import datetime
 from sqlalchemy import (
+    UniqueConstraint,
     Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum, Boolean
 )
 from sqlalchemy.orm import relationship
@@ -209,6 +210,7 @@ class MedicineBatch(Base):
     qty_received = Column(Numeric(10, 2), nullable=False, default=0)
     bill_item_id = Column(Integer, ForeignKey("bill_items.id"), nullable=True, unique=True)
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True)
+    is_cold_chain = Column(Boolean, nullable=True, default=False)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     medicine = relationship("Medicine")
@@ -471,3 +473,83 @@ class Notification(Base):
 
     recipient_user = relationship("User", foreign_keys=[recipient_user_id],
                                   back_populates="notifications")
+class SurveillanceDailyCount(Base):
+    """
+    Syndromic Surveillance — privacy-safe daily aggregated counts.
+
+    Records HOW MANY OTC units were sold for each health condition on each
+    date — never which customer, which specific medicine, or which sale.
+    This is the Privacy-by-Construction guarantee: row-level patient/sale
+    data never crosses the network boundary; only pre-aggregated daily
+    counts per condition exist in this table.
+
+    Integrates with Pillar 1 (PharmaGraph's TREATS edges map medicines
+    to conditions) and Pillar 6 (anomaly_service._leave_one_out_zscores
+    detects spikes in the daily count time series).
+    """
+    __tablename__ = "surveillance_daily_counts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    condition_name = Column(String(150), nullable=False, index=True)
+    count_date = Column(Date, nullable=False, index=True)
+    otc_units = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint('condition_name', 'count_date', name='uq_surveillance_daily_counts_cond_date'),
+    )
+
+class ColdChainUnit(Base):
+    """
+    Cold-Chain Compliance Ledger — a single refrigeration/cold-storage unit.
+
+    Each pharmacy may have 1-3 fridges storing temperature-sensitive items
+    (vaccines, insulin, certain eye drops). The min_temp_c/max_temp_c range
+    defines the acceptable operating window — readings outside this range
+    are flagged as excursions.
+
+    Design decision: temperature ranges are per-unit, not per-medicine,
+    because in practice a small shop puts all cold-chain items in the same
+    fridge and the compliance question is "was the fridge in range" not
+    "was each individual medicine at the right temp."
+    """
+    __tablename__ = "cold_chain_units"
+
+    id = Column(Integer, primary_key=True, index=True)
+    unit_label = Column(String(100), nullable=False, unique=True)
+    location_note = Column(String(255), nullable=True)
+    min_temp_c = Column(Numeric(5, 2), nullable=False, default=2.0)
+    max_temp_c = Column(Numeric(5, 2), nullable=False, default=8.0)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+    readings = relationship("ColdChainReading", back_populates="unit", cascade="all, delete-orphan")
+
+
+class ColdChainReading(Base):
+    """
+    Cold-Chain Compliance Ledger — one temperature reading for a unit.
+
+    Logged by staff (recorded_by_user_id) at regular intervals. The
+    is_excursion flag is computed at write time based on whether
+    recorded_temp_c falls outside the unit's [min_temp_c, max_temp_c] range.
+
+    Every reading is ALSO logged to TrustChain (Pillar 4) via
+    audit_service.log_event — temperature compliance is a regulatory
+    requirement where tamper-evidence matters (an inspector asking "were
+    your vaccines stored correctly" needs an audit trail that can't be
+    quietly edited after the fact).
+    """
+    __tablename__ = "cold_chain_readings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    unit_id = Column(Integer, ForeignKey("cold_chain_units.id"), nullable=False, index=True)
+    recorded_temp_c = Column(Numeric(5, 2), nullable=False)
+    recorded_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    note = Column(String(255), nullable=True)
+    is_excursion = Column(Boolean, nullable=False, default=False)
+
+    unit = relationship("ColdChainUnit", back_populates="readings")
+    recorded_by = relationship("User")

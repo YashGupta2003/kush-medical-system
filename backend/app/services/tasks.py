@@ -495,3 +495,18 @@ def cleanup_old_upload_files_task() -> dict:
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+
+@celery_app.task(name="run_surveillance_scan")
+def run_surveillance_scan_task() -> dict:
+    """Daily surveillance spike detection (runs after sales close)."""
+    from app.database import SessionLocal
+    from app.services import surveillance_service
+    db = SessionLocal()
+    try:
+        spikes = surveillance_service.detect_spikes(db)
+        # Event is fired inside detect_spikes
+        return {"status": "ok", "spikes_detected": len(spikes)}
+    except Exception as e:
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()

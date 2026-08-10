@@ -848,3 +848,77 @@ class UnreadCountOut(BaseModel):
 
 class MarkAllReadOut(BaseModel):
     marked_read: int
+# --- Cold-Chain Compliance ---
+class ColdChainUnitCreate(BaseModel):
+    unit_label: str = Field(min_length=1, max_length=100)
+    location_note: Optional[str] = None
+    min_temp_c: float = 2.0
+    max_temp_c: float = 8.0
+
+class ColdChainUnitOut(BaseModel):
+    id: int
+    unit_label: str
+    location_note: Optional[str] = None
+    min_temp_c: float
+    max_temp_c: float
+    is_active: bool
+    created_at: datetime
+    model_config = ConfigDict(from_attributes=True)
+
+class ColdChainUnitUpdate(BaseModel):
+    unit_label: Optional[str] = None
+    location_note: Optional[str] = None
+    min_temp_c: Optional[float] = None
+    max_temp_c: Optional[float] = None
+    is_active: Optional[bool] = None
+
+class ColdChainReadingCreate(BaseModel):
+    unit_id: int
+    recorded_temp_c: float
+    note: Optional[str] = None
+
+class ColdChainReadingOut(BaseModel):
+    id: int
+    unit_id: int
+    unit_label: str
+    recorded_temp_c: float
+    recorded_by_username: Optional[str] = None
+    recorded_at: datetime
+    note: Optional[str] = None
+    is_excursion: bool
+
+class ColdChainComplianceReport(BaseModel):
+    days: int
+    total_readings: int
+    excursion_count: int
+    compliance_pct: float
+    units: list[dict]
+    daily_trend: list[dict]
+
+class ColdChainBatchOut(BaseModel):
+    batch_id: int
+    medicine_id: int
+    medicine_name: str
+    batch_no: Optional[str] = None
+    expiry_date: Optional[date] = None
+    qty_received: float
+    is_cold_chain: bool
+
+# --- Syndromic Surveillance ---
+class SurveillanceConditionSummary(BaseModel):
+    condition_name: str
+    total_units_7d: int
+    avg_daily: float
+    has_spike: bool
+    latest_z_score: Optional[float] = None
+
+class SurveillanceTrendPoint(BaseModel):
+    date: str
+    otc_units: int
+
+class SurveillanceSpikeAlert(BaseModel):
+    condition_name: str
+    spike_date: str
+    count: int
+    z_score: float
+    avg_count: float

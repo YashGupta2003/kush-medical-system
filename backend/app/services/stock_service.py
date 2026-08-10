@@ -146,6 +146,14 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
     )
     db.commit()
 
+    # --- Feature 1: Syndromic Surveillance Hook ---
+    try:
+        surveillance_service.record_sale_signal(db, medicine_id, int(qty_sold))
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Surveillance hook failed: {e}")
+        # Never crash the sale
+
     snapshot = get_stock_snapshot(db, medicine_id)
     snapshot["sale_id"] = sale.id
     return snapshot

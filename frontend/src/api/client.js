@@ -287,4 +287,25 @@ export const api = {
   markNotificationRead: (id) => apiFetch(`/notifications/${id}/read`, { method: "PATCH" }),
   markAllNotificationsRead: () => apiFetch("/notifications/read-all", { method: "POST" }),
   sendDigestNow: () => apiFetch("/notifications/digest/send-now", { method: "POST" }),
+  // --- Cold-Chain Compliance ---
+  getColdChainUnits: () => apiFetch("/cold-chain/units"),
+  createColdChainUnit: (payload) => apiFetch("/cold-chain/units", { method: "POST", ...jsonBody(payload) }),
+  updateColdChainUnit: (unitId, payload) => apiFetch(`/cold-chain/units/${unitId}`, { method: "PUT", ...jsonBody(payload) }),
+  recordColdChainReading: (payload) => apiFetch("/cold-chain/readings", { method: "POST", ...jsonBody(payload) }),
+  getColdChainReadings: (unitId, hours = 24) => apiFetch(`/cold-chain/readings/${unitId}?hours=${hours}`),
+  getColdChainCompliance: (days = 30, unitId = null) => {
+      const params = new URLSearchParams({ days });
+      if (unitId) params.set("unit_id", unitId);
+      return apiFetch(`/cold-chain/compliance?${params.toString()}`);
+  },
+  getCompromisedBatches: (unitId) => apiFetch(`/cold-chain/compromised/${unitId}`),
+  toggleBatchColdChain: (batchId, isColdChain) => apiFetch(`/cold-chain/batches/${batchId}/cold-chain`, { method: "PATCH", ...jsonBody({ is_cold_chain: isColdChain }) }),
+
+  // --- Syndromic Surveillance (owner only) ---
+  getSurveillanceConditions: () => apiFetch("/surveillance/conditions"),
+  getSurveillanceTrend: (condition, days = 30) =>
+      apiFetch(`/surveillance/trend/${encodeURIComponent(condition)}?days=${days}`),
+  getSurveillanceSpikes: (days = 14, zThreshold = 2.0) =>
+      apiFetch(`/surveillance/spikes?days=${days}&z_threshold=${zThreshold}`),
+  triggerSurveillanceScan: () => apiFetch("/surveillance/scan-now", { method: "POST" }),
 };

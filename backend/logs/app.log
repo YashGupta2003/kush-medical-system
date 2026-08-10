@@ -679,3 +679,10 @@ message: "This API method requires billing to be enabled. Please enable billing 
 [2026-08-09 22:48:02] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
 [2026-08-09 23:02:14] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
 [2026-08-09 23:04:44] [INFO] [event_subscribers] [subscribers.py:399]: All domain event subscribers successfully registered with EventBus.
+[2026-08-10 12:09:07] [INFO] [event_subscribers] [subscribers.py:420]: All domain event subscribers successfully registered with EventBus.
+[2026-08-10 12:09:07] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-10 12:09:08] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-10 12:10:21] [INFO] [event_subscribers] [subscribers.py:420]: All domain event subscribers successfully registered with EventBus.
+[2026-08-10 12:10:22] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-10 12:10:22] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-10 12:13:23] [INFO] [event_subscribers] [subscribers.py:420]: All domain event subscribers successfully registered with EventBus.
