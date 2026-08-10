@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { AlertTriangle, Clock, Calendar, AlertOctagon, CheckCircle, Save } from "lucide-react";
 import { api } from "../api/client.js";
+import EmptyState from "../components/EmptyState.jsx";
 
 const URGENCY_META = {
   expired: { label: "Expired", color: "var(--danger-600)", bg: "var(--danger-100)", icon: <AlertOctagon size={18} /> },
@@ -146,12 +147,12 @@ export default function Expiry() {
 
       {loading && <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Loading...</p>}
 
-      {!loading && batches.length === 0 && (
-        <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
-          <CheckCircle size={48} color="var(--success-500)" style={{ margin: "0 auto 16px auto", display: "block" }} />
-          <p style={{ color: "var(--text-main)", fontSize: "16px", fontWeight: 500, margin: "0 0 8px 0" }}>Nothing expiring in this window!</p>
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", margin: 0 }}>Your stock looks healthy.</p>
-        </div>
+      {!loading && Object.keys(grouped).every(k => grouped[k].length === 0) && (
+        <EmptyState 
+          icon={CheckCircle}
+          title="All clear! No medicines are expiring soon."
+          message="Your inventory is perfectly healthy. No batches are nearing expiration in this window."
+        />
       )}
 
       {["expired", "critical", "warning", "upcoming"].map((urgencyKey) => {

@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../api/client.js";
-import { Search, Save, RefreshCw, Activity, ArrowRight, TrendingUp, TrendingDown, Box, PackageOpen } from "lucide-react";
+import { Search, Save, RefreshCw, Activity, ArrowRight, TrendingUp, TrendingDown, Box, PackageOpen, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import StockSparkline from "../components/StockSparkline.jsx";
 
 const PAGE_SIZE = 50;
 
@@ -78,7 +79,7 @@ export default function SearchDashboard() {
         </p>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 400px" : "1fr", gap: "var(--space-6)", transition: "all var(--duration-base) var(--ease-in-out)" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-6)" }}>
         
         {/* Left Panel: Search & Directory */}
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-4)" }}>
@@ -138,15 +139,18 @@ export default function SearchDashboard() {
                         <td>₹{m.mrp}</td>
                         <td>₹{m.net_rate}</td>
                         <td>
-                          {isLow ? (
-                            <span className="badge unmatched" style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content" }}>
-                              <TrendingDown size={12} /> {m.current_stock} Low
-                            </span>
-                          ) : (
-                            <span style={{ color: m.current_stock ? "var(--text-main)" : "var(--text-muted)" }}>
-                              {m.current_stock ?? "—"}
-                            </span>
-                          )}
+                          <div style={{ display: "flex", alignItems: "center" }}>
+                            {isLow ? (
+                              <span className="badge unmatched" style={{ display: "flex", alignItems: "center", gap: 4, width: "fit-content" }}>
+                                <TrendingDown size={12} /> {m.current_stock} Low
+                              </span>
+                            ) : (
+                              <span style={{ color: m.current_stock ? "var(--text-main)" : "var(--text-muted)" }}>
+                                {m.current_stock ?? "—"}
+                              </span>
+                            )}
+                            <StockSparkline baseValue={m.current_stock} seed={m.id} color={isLow ? "var(--danger-500)" : "var(--primary-500)"} />
+                          </div>
                         </td>
                         <td style={{ color: "var(--text-muted)", fontSize: "var(--text-xs)" }}>{m.company || "—"}</td>
                         <td>
@@ -177,28 +181,45 @@ export default function SearchDashboard() {
           </div>
         </div>
 
-        {/* Right Panel: Contextual Intel */}
+        {/* Right Panel: Contextual Intel Drawer */}
         <AnimatePresence>
           {selected && (
-            <motion.div 
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              transition={{ duration: 0.2, ease: "easeOut" }}
-              className="card card-raised" 
-              style={{ position: "sticky", top: 100, height: "fit-content" }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
-                <div>
-                  <h3 style={{ fontSize: "var(--text-xl)", marginBottom: "var(--space-1)" }}>{selected.particulars}</h3>
-                  <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0 }}>
-                    {selected.company || "Unknown Company"} • {selected.unit}
-                  </p>
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                onClick={() => setSelected(null)}
+                style={{
+                  position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh",
+                  background: "rgba(0,0,0,0.4)", backdropFilter: "blur(2px)",
+                  zIndex: 99998
+                }}
+              />
+              <motion.div 
+                initial={{ opacity: 0, x: "100%" }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: "100%" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                className="card card-raised" 
+                style={{ 
+                  position: "fixed", top: 0, right: 0, width: "100%", maxWidth: "450px", height: "100vh",
+                  zIndex: 99999, borderRadius: 0, overflowY: "auto", borderLeft: "1px solid var(--border-subtle)",
+                  padding: "var(--space-6)", margin: 0, background: "var(--bg-surface)"
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "var(--space-4)" }}>
+                  <div>
+                    <h3 style={{ fontSize: "var(--text-xl)", marginBottom: "var(--space-1)" }}>{selected.particulars}</h3>
+                    <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0 }}>
+                      {selected.company || "Unknown Company"} • {selected.unit}
+                    </p>
+                  </div>
+                  <button onClick={() => setSelected(null)} style={{ background: "var(--bg-app)", border: "1px solid var(--border-subtle)", cursor: "pointer", color: "var(--text-muted)", width: 36, height: 36, display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "var(--radius-full)" }}>
+                    <X size={18} />
+                  </button>
                 </div>
-                <div style={{ width: 40, height: 40, background: "var(--primary-50)", borderRadius: "var(--radius-lg)", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--primary-600)" }}>
-                  <Box size={20} />
-                </div>
-              </div>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--space-3)", marginBottom: "var(--space-6)" }}>
                 <div className="stat-card" style={{ padding: "var(--space-3)" }}>
@@ -260,7 +281,8 @@ export default function SearchDashboard() {
                   <ArrowRight size={16} />
                 </button>
               </Link>
-            </motion.div>
+              </motion.div>
+            </>
           )}
         </AnimatePresence>
       </div>

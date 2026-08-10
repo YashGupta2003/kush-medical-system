@@ -6,13 +6,16 @@ import {
 } from "recharts";
 import { Activity, TrendingUp, Flame } from "lucide-react";
 import { api } from "../api/client.js";
+import AnimatedNumber from "../components/AnimatedNumber.jsx";
 
 const PIE_COLORS = ["var(--primary-500)", "var(--success)", "var(--warning)", "var(--purple)", "var(--info)", "var(--pink)", "var(--lime)", "var(--orange)"];
 
-function StatCard({ label, value, sub, warn }) {
+function StatCard({ label, value, sub, warn, isMoney }) {
   return (
     <div className={`stat-box ${warn ? "warn" : ""}`}>
-      <div className="value">{value}</div>
+      <div className="value">
+        <AnimatedNumber value={value || 0} prefix={isMoney ? "₹" : ""} />
+      </div>
       <div className="label">{label}</div>
       {sub && <div style={{ fontSize: 11, color: "var(--text-muted)", marginTop: 2 }}>{sub}</div>}
     </div>
@@ -76,18 +79,19 @@ export default function Analytics() {
           <div className="stat-row">
             <StatCard
               label="This month's spend"
-              value={formatMoney(overview.this_month_spend)}
+              value={overview.this_month_spend}
+              isMoney
               sub={
                 overview.spend_change_pct == null ? "no data for last month"
                 : `${overview.spend_change_pct >= 0 ? "▲" : "▼"} ${Math.abs(overview.spend_change_pct)}% vs last month`
               }
               warn={overview.spend_change_pct > 15}
             />
-            <StatCard label="Stock value on hand" value={formatMoney(overview.stock_value)} />
+            <StatCard label="Stock value on hand" value={overview.stock_value} isMoney />
             <StatCard label="Low stock items" value={overview.low_stock_count} warn={overview.low_stock_count > 0} />
             <StatCard label="Expiring soon / expired" value={overview.expiring_critical} warn={overview.expiring_critical > 0} />
             <StatCard label="Bills awaiting review" value={overview.pending_review_count} warn={overview.pending_review_count > 0} />
-            <StatCard label="Avg. bill value (this month)" value={formatMoney(overview.avg_bill_value)} />
+            <StatCard label="Avg. bill value (this month)" value={overview.avg_bill_value} isMoney />
           </div>
         )}
       </div>
