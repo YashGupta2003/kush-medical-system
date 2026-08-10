@@ -1,23 +1,29 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Network, FlaskConical, AlertTriangle, Pill, Repeat, Building, Search, RefreshCw } from "lucide-react";
 import { api } from "../api/client.js";
 
 const SEVERITY_META = {
-  high: { color: "#dc2626", bg: "#fee2e2", label: "High risk" },
-  medium: { color: "#ca8a04", bg: "#fef3c7", label: "Medium risk" },
-  low: { color: "#0284c7", bg: "#e0f2fe", label: "Low risk" },
-  unknown: { color: "#666", bg: "#eee", label: "Flagged" },
+  high: { color: "var(--danger-700)", bg: "var(--danger-100)", label: "High risk" },
+  medium: { color: "var(--warning-700)", bg: "var(--warning-100)", label: "Medium risk" },
+  low: { color: "var(--info-700)", bg: "var(--info-100)", label: "Low risk" },
+  unknown: { color: "var(--text-secondary)", bg: "var(--bg-muted)", label: "Flagged" },
 };
 
 function Section({ icon, title, count, children, emptyText }) {
   return (
-    <div className="card graph-section">
-      <div className="flex-between" style={{ marginBottom: 10 }}>
-        <h3 style={{ margin: 0, fontSize: 15 }}>{icon} {title}</h3>
-        <span style={{ fontSize: 12, color: "#888" }}>{count}</span>
+    <div className="card graph-section" style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div className="flex-between" style={{ marginBottom: "16px", paddingBottom: "12px", borderBottom: "1px solid var(--border-color)" }}>
+        <h3 style={{ margin: 0, fontSize: "15px", display: "flex", alignItems: "center", gap: "8px", color: "var(--text-main)" }}>
+          {icon} {title}
+        </h3>
+        <span style={{ fontSize: "12px", color: "var(--text-muted)", background: "var(--bg-muted)", padding: "2px 8px", borderRadius: "12px", fontWeight: 600 }}>{count}</span>
       </div>
-      {count === 0 ? (
-        <p style={{ color: "#999", fontSize: 13, margin: 0 }}>{emptyText}</p>
-      ) : children}
+      <div style={{ flex: 1 }}>
+        {count === 0 ? (
+          <p style={{ color: "var(--text-muted)", fontSize: "13px", margin: 0, fontStyle: "italic" }}>{emptyText}</p>
+        ) : children}
+      </div>
     </div>
   );
 }
@@ -38,32 +44,44 @@ function MedicinePicker({ onSelect }) {
   }, [query]);
 
   return (
-    <div className="card">
-      <h2 style={{ marginBottom: 4 }}>🕸️ PharmaGraph Explorer</h2>
-      <p style={{ color: "#666", fontSize: 13, marginTop: 0 }}>
-        Search any medicine to see its full relationship graph — what salts it contains, what
-        those salts interact with, what conditions they treat, which medicines can substitute
-        for it, and which distributors have supplied it.
-      </p>
-      <input
-        style={{ width: "100%" }}
-        placeholder="Search a medicine to explore its graph..."
-        value={query}
-        onChange={(e) => setQuery(e.target.value)}
-        autoFocus
-      />
-      {results.length > 0 && (
-        <table style={{ marginTop: 10 }}>
-          <tbody>
-            {results.map((m) => (
-              <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => { onSelect(m.id); setQuery(""); setResults([]); }}>
-                <td>{m.particulars}</td>
-                <td style={{ color: "#888" }}>{m.unit}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <div className="card" style={{ display: "flex", gap: "16px", alignItems: "flex-start" }}>
+      <div style={{ background: "var(--primary-100)", padding: "12px", borderRadius: "12px" }}>
+        <Network size={28} color="var(--primary-600)" />
+      </div>
+      <div style={{ flex: 1 }}>
+        <h2 style={{ margin: "0 0 4px 0", color: "var(--text-main)" }}>PharmaGraph Explorer</h2>
+        <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: "0 0 16px 0", lineHeight: 1.5 }}>
+          Search any medicine to see its full relationship graph — what salts it contains, what
+          those salts interact with, what conditions they treat, which medicines can substitute
+          for it, and which distributors have supplied it.
+        </p>
+        <div style={{ position: "relative" }}>
+          <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input
+            style={{ width: "100%", paddingLeft: "36px" }}
+            placeholder="Search a medicine to explore its graph..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            autoFocus
+          />
+        </div>
+        {results.length > 0 && (
+          <div style={{ marginTop: "8px", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
+            <table className="table" style={{ margin: 0, width: "100%" }}>
+              <tbody>
+                {results.map((m) => (
+                  <tr key={m.id} style={{ cursor: "pointer", transition: "background 0.2s ease" }} onClick={() => { onSelect(m.id); setQuery(""); setResults([]); }} className="hover-row">
+                    <td style={{ padding: "10px 16px", borderBottom: "1px solid var(--border-color)" }}>
+                      <div style={{ fontWeight: 600, color: "var(--text-main)" }}>{m.particulars}</div>
+                    </td>
+                    <td style={{ padding: "10px 16px", color: "var(--text-muted)", textAlign: "right", borderBottom: "1px solid var(--border-color)" }}>{m.unit}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -82,70 +100,75 @@ function GraphView({ medicineId, onSelectMedicine }) {
       .finally(() => setLoading(false));
   }, [medicineId]);
 
-  if (loading) return <p style={{ color: "#888" }}>Loading graph...</p>;
-  if (error) return <p style={{ color: "#b91c1c" }}>{error}</p>;
+  if (loading) return <p style={{ color: "var(--text-muted)", textAlign: "center", padding: "20px" }}>Loading graph...</p>;
+  if (error) return <p style={{ color: "var(--danger-600)", padding: "20px" }}>{error}</p>;
   if (!graph) return null;
 
   return (
-    <div className="graph-fade-in">
-      <div className="card" style={{ borderLeft: "4px solid #1c1c1e" }}>
-        <h3 style={{ marginTop: 0, marginBottom: 4 }}>{graph.particulars}</h3>
-        <p style={{ color: "#666", fontSize: 13, margin: 0 }}>{graph.composition || "No composition data set"}</p>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="card" style={{ borderLeft: "4px solid var(--primary-500)", background: "var(--bg-surface)", padding: "20px" }}>
+        <h3 style={{ marginTop: 0, marginBottom: "8px", color: "var(--text-main)", fontSize: "20px" }}>{graph.particulars}</h3>
+        <p style={{ color: "var(--text-secondary)", fontSize: "14px", margin: 0 }}>{graph.composition || "No composition data set"}</p>
       </div>
 
       <div className="graph-grid">
-        <Section icon="🧪" title="Contains" count={graph.contains.length} emptyText="No composition data set for this medicine yet.">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <Section icon={<FlaskConical size={18} color="var(--primary-500)" />} title="Contains" count={graph.contains.length} emptyText="No composition data set for this medicine yet.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {graph.contains.map((c, i) => <span key={i} className="badge auto">{c.salt}</span>)}
           </div>
         </Section>
 
-        <Section icon="⚠️" title="Interacts with" count={graph.interacts_with.length} emptyText="No known interactions flagged for these salts.">
+        <Section icon={<AlertTriangle size={18} color="var(--warning-500)" />} title="Interacts with" count={graph.interacts_with.length} emptyText="No known interactions flagged for these salts.">
           {graph.interacts_with.map((it, i) => {
             const meta = SEVERITY_META[it.severity] || SEVERITY_META.unknown;
             return (
-              <div key={i} style={{ padding: "8px 0", borderBottom: i < graph.interacts_with.length - 1 ? "1px solid #f0f0f0" : "none" }}>
-                <div className="flex-between">
-                  <strong style={{ fontSize: 13 }}>{it.salt} + {it.interacts_with}</strong>
-                  <span style={{ background: meta.bg, color: meta.color, fontSize: 11, padding: "2px 8px", borderRadius: 10, fontWeight: 600 }}>
+              <div key={i} style={{ padding: "12px 0", borderBottom: i < graph.interacts_with.length - 1 ? "1px solid var(--border-color)" : "none" }}>
+                <div className="flex-between" style={{ alignItems: "flex-start", marginBottom: "4px" }}>
+                  <strong style={{ fontSize: "13px", color: "var(--text-main)", lineHeight: 1.4 }}>{it.salt} + {it.interacts_with}</strong>
+                  <span style={{ background: meta.bg, color: meta.color, fontSize: "11px", padding: "2px 8px", borderRadius: "10px", fontWeight: 600, whiteSpace: "nowrap", marginLeft: "8px" }}>
                     {meta.label}
                   </span>
                 </div>
-                {it.note && <div style={{ fontSize: 12, color: "#666", marginTop: 2 }}>{it.note}</div>}
+                {it.note && <div style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "4px", lineHeight: 1.4 }}>{it.note}</div>}
               </div>
             );
           })}
         </Section>
 
-        <Section icon="💊" title="Treats" count={graph.treats.length} emptyText="No condition mapping found for these salts.">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <Section icon={<Pill size={18} color="var(--success-500)" />} title="Treats" count={graph.treats.length} emptyText="No condition mapping found for these salts.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {graph.treats.map((t, i) => <span key={i} className="badge learned">{t.condition}</span>)}
           </div>
         </Section>
 
-        <Section icon="🔄" title="Substitutes" count={graph.substitutes.length} emptyText="No substitute medicines found in the graph yet — try running a graph rebuild.">
-          {graph.substitutes.map((s) => (
+        <Section icon={<Repeat size={18} color="var(--info-500)" />} title="Substitutes" count={graph.substitutes.length} emptyText="No substitute medicines found in the graph yet — try running a graph rebuild.">
+          {graph.substitutes.map((s, i) => (
             <div
               key={s.medicine_id}
               className="graph-substitute-row"
+              style={{ borderBottom: i < graph.substitutes.length - 1 ? "1px solid var(--border-color)" : "none" }}
               onClick={() => onSelectMedicine(s.medicine_id)}
             >
               <div>
-                <div style={{ fontWeight: 600, fontSize: 13 }}>{s.particulars}</div>
-                <div style={{ fontSize: 11, color: "#888" }}>{s.company || "—"} · Stock: {s.current_stock}</div>
+                <div style={{ fontWeight: 600, fontSize: "13px", color: "var(--text-main)" }}>{s.particulars}</div>
+                <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "2px" }}>{s.company || "—"} · Stock: {s.current_stock}</div>
               </div>
               {s.weight != null && <span className="badge auto">{s.weight}%</span>}
             </div>
           ))}
         </Section>
 
-        <Section icon="🏢" title="Supplied by" count={graph.supplied_by.length} emptyText="No confirmed bill has this medicine linked to a distributor yet.">
-          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+        <Section icon={<Building size={18} color="var(--text-main)" />} title="Supplied by" count={graph.supplied_by.length} emptyText="No confirmed bill has this medicine linked to a distributor yet.">
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "8px" }}>
             {graph.supplied_by.map((d) => <span key={d.distributor_id} className="badge manual">{d.name}</span>)}
           </div>
         </Section>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
@@ -182,25 +205,30 @@ function RebuildPanel({ isOwner }) {
   if (!isOwner) return null;
 
   return (
-    <div className="card">
+    <div className="card" style={{ border: "1px solid var(--border-color)", background: "var(--bg-muted)" }}>
       <div className="flex-between">
         <div>
-          <h3 style={{ margin: 0 }}>Graph maintenance</h3>
-          <p style={{ color: "#666", fontSize: 13, margin: "4px 0 0" }}>
+          <h3 style={{ margin: 0, color: "var(--text-main)", display: "flex", alignItems: "center", gap: "8px" }}>
+            <RefreshCw size={16} /> Graph maintenance
+          </h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: "6px 0 0", lineHeight: 1.4 }}>
             Recomputes substitute/supply edges and reloads interaction/condition data. Run this
             after a bulk composition import.
           </p>
         </div>
-        <button onClick={handleTrigger} disabled={triggering}>
+        <button className="btn btn-primary" onClick={handleTrigger} disabled={triggering} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {triggering ? <RefreshCw size={16} className="spin" /> : <RefreshCw size={16} />}
           {triggering ? "Starting..." : "Rebuild graph"}
         </button>
       </div>
       {status && (
-        <p style={{ fontSize: 13, marginTop: 10, color: status.status === "failed" ? "#b91c1c" : "#16a34a" }}>
-          {status.status === "pending" && "Rebuild running in the background..."}
-          {status.status === "ok" && `Done — ${JSON.stringify(status.stats)}`}
-          {status.status === "failed" && `Failed: ${status.error}`}
-        </p>
+        <div style={{ marginTop: "16px", padding: "12px", borderRadius: "8px", background: status.status === "failed" ? "var(--danger-100)" : "var(--success-100)", border: `1px solid ${status.status === "failed" ? "var(--danger-200)" : "var(--success-200)"}` }}>
+          <p style={{ margin: 0, fontSize: "13px", color: status.status === "failed" ? "var(--danger-700)" : "var(--success-700)" }}>
+            {status.status === "pending" && "Rebuild running in the background..."}
+            {status.status === "ok" && `Done — ${JSON.stringify(status.stats)}`}
+            {status.status === "failed" && `Failed: ${status.error}`}
+          </p>
+        </div>
       )}
     </div>
   );
@@ -210,27 +238,35 @@ export default function GraphExplorer({ isOwner = false }) {
   const [medicineId, setMedicineId] = useState(null);
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="page-content"
+    >
       <MedicinePicker onSelect={setMedicineId} />
       {medicineId && <GraphView medicineId={medicineId} onSelectMedicine={setMedicineId} />}
       <RebuildPanel isOwner={isOwner} />
 
       <style>{`
-        @keyframes graphFadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-        .graph-fade-in { animation: graphFadeIn 0.3s ease; }
         .graph-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-          gap: 12px;
+          grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+          gap: 16px;
+          margin-bottom: 24px;
         }
-        .graph-section { margin-bottom: 0; }
+        .graph-section { margin-bottom: 0; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
         .graph-substitute-row {
           display: flex; justify-content: space-between; align-items: center;
-          padding: 8px 0; border-bottom: 1px solid #f0f0f0; cursor: pointer;
+          padding: 12px 8px; cursor: pointer; transition: background 0.2s ease;
+          border-radius: 8px;
         }
-        .graph-substitute-row:last-child { border-bottom: none; }
-        .graph-substitute-row:hover { background: #fafafa; }
+        .graph-substitute-row:hover { background: var(--bg-muted); }
+        .hover-row:hover { background: var(--bg-muted); }
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

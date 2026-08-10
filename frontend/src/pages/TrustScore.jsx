@@ -1,8 +1,8 @@
-
-
 import React, { useEffect, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { api } from "../api/client.js";
+import { motion, AnimatePresence } from "framer-motion";
+import { Shield, ShieldAlert, ShieldCheck, ChevronDown, ChevronUp, AlertOctagon, TrendingDown, Users } from "lucide-react";
 
 function formatMoney(n) {
   if (n == null) return "—";
@@ -10,16 +10,16 @@ function formatMoney(n) {
 }
 
 function getScoreColor(score) {
-  if (score >= 70) return "#16a34a"; // green
-  if (score >= 40) return "#ca8a04"; // amber
-  return "#dc2626"; // red
+  if (score >= 70) return "var(--success-500, #10b981)"; // green
+  if (score >= 40) return "var(--warning-500, #f59e0b)"; // amber
+  return "var(--danger-500, #ef4444)"; // red
 }
 
-function getConfidenceBadge(conf) {
-  if (conf === "high") return "auto"; // green
-  if (conf === "medium") return "manual"; // yellow
-  if (conf === "low") return "unmatched"; // red
-  return "manual";
+function getConfidenceBadgeClass(conf) {
+  if (conf === "high") return "badge-success";
+  if (conf === "medium") return "badge-warning";
+  if (conf === "low") return "badge-danger";
+  return "badge-neutral";
 }
 
 // ---------------------------------------------------------------------------
@@ -35,43 +35,57 @@ function DistributorDetail({ id }) {
       .finally(() => setLoading(false));
   }, [id]);
 
-  if (loading) return <div style={{ padding: 12, color: "#888", fontSize: 13 }}>Loading details...</div>;
-  if (!detail) return <div style={{ padding: 12, color: "#888", fontSize: 13 }}>Failed to load details.</div>;
+  if (loading) return <div style={{ padding: 16, color: "var(--text-muted)", fontSize: 14, display: "flex", justifyContent: "center" }}>Loading details...</div>;
+  if (!detail) return <div style={{ padding: 16, color: "var(--danger-500)", fontSize: 14, display: "flex", justifyContent: "center" }}>Failed to load details.</div>;
 
   return (
-    <div className="trust-detail-pane">
-      <h4>Contributing Factors</h4>
-      <ul style={{ margin: "4px 0 16px", paddingLeft: 20, fontSize: 13, color: "#444" }}>
-        {detail.contributing_factors?.map((f, i) => <li key={i}>{f}</li>) || <li>No specific factors listed.</li>}
+    <motion.div 
+      className="trust-detail-pane"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <h4 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><ShieldCheck size={16} /> Contributing Factors</h4>
+      <ul style={{ margin: "8px 0 20px", paddingLeft: 24, fontSize: 14, color: "var(--text-main)" }}>
+        {detail.contributing_factors?.map((f, i) => <li key={i} style={{ marginBottom: 4 }}>{f}</li>) || <li>No specific factors listed.</li>}
       </ul>
 
       {detail.batch_collisions?.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <h4>Batch Collisions</h4>
-          {detail.batch_collisions.map((c, i) => (
-            <div key={i} style={{ fontSize: 13, color: "#555", marginBottom: 4 }}>
-              <strong>{c.medicine_name}</strong> (Batch: {c.normalized_batch_number}) shared with {c.other_distributor_names?.join(", ")}
-            </div>
-          ))}
+        <div style={{ marginBottom: 20 }}>
+          <h4 style={{ display: 'flex', alignItems: 'center', gap: 6, color: 'var(--danger-600)' }}><AlertOctagon size={16} /> Batch Collisions</h4>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
+            {detail.batch_collisions.map((c, i) => (
+              <div key={i} style={{ fontSize: 13, color: "var(--text-main)", background: "var(--bg-surface)", padding: "10px 12px", borderRadius: 6, border: "1px solid var(--border-color)", display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Users size={14} style={{ color: 'var(--text-muted)' }} />
+                <span><strong>{c.medicine_name}</strong> (Batch: {c.normalized_batch_number}) shared with {c.other_distributor_names?.join(", ")}</span>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
       {detail.rate_outlier_summary && detail.rate_outlier_summary.length > 0 && (
         <div>
-          <h4>Rate Comparison (vs Market Average)</h4>
-          <ResponsiveContainer width="100%" height={200}>
-            <BarChart data={detail.rate_outlier_summary} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-              <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-              <XAxis type="number" fontSize={11} tickFormatter={(val) => "₹" + val} />
-              <YAxis dataKey="medicine_name" type="category" fontSize={11} width={150} />
-              <Tooltip formatter={(val) => "₹" + val} />
-              <Bar dataKey="avg_rate" fill="#8884d8" name="This Distributor" />
-              <Bar dataKey="market_avg_rate" fill="#82ca9d" name="Market Avg" />
-            </BarChart>
-          </ResponsiveContainer>
+          <h4 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><TrendingDown size={16} /> Rate Comparison (vs Market Average)</h4>
+          <div style={{ background: "var(--bg-surface)", padding: 16, borderRadius: 8, border: "1px solid var(--border-color)", marginTop: 8 }}>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={detail.rate_outlier_summary} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="var(--border-color)" />
+                  <XAxis type="number" fontSize={12} tickFormatter={(val) => "₹" + val} stroke="var(--text-muted)" />
+                  <YAxis dataKey="medicine_name" type="category" fontSize={12} width={150} stroke="var(--text-muted)" />
+                  <Tooltip 
+                    formatter={(val) => "₹" + val} 
+                    contentStyle={{ backgroundColor: 'var(--bg-surface)', borderColor: 'var(--border-color)', color: 'var(--text-main)', borderRadius: 8 }}
+                  />
+                  <Bar dataKey="avg_rate" fill="var(--primary-500)" name="This Distributor" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="market_avg_rate" fill="var(--success-400)" name="Market Avg" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+          </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -93,57 +107,70 @@ function TrustScoresTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p style={{ color: "#888", fontSize: 13 }}>Loading trust scores...</p>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading trust scores...</div>;
 
   return (
     <div className="card">
-      <table className="trust-table">
-        <thead>
-          <tr>
-            <th>Distributor Name</th>
-            <th>Score</th>
-            <th>Confidence</th>
-            <th>Factors Count</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {distributors.map((d) => (
-            <React.Fragment key={d.distributor_id}>
-              <tr>
-                <td style={{ fontWeight: 600 }}>{d.distributor_name}</td>
-                <td>
-                  <span style={{ color: getScoreColor(d.score), fontWeight: "bold", fontSize: 16 }}>
-                    {d.score}
-                  </span>
-                  <span style={{ fontSize: 12, color: "#888" }}>/100</span>
-                </td>
-                <td>
-                  <span className={`badge ${getConfidenceBadge(d.confidence)}`}>{d.confidence}</span>
-                </td>
-                <td style={{ color: "#666" }}>{d.contributing_factors?.length || 0}</td>
-                <td>
-                  <button className="secondary" style={{ fontSize: 12, padding: "4px 8px" }} onClick={() => setExpandedId(expandedId === d.distributor_id ? null : d.distributor_id)}>
-                    {expandedId === d.distributor_id ? "Hide Details" : "View Details"}
-                  </button>
-                </td>
-              </tr>
-              {expandedId === d.distributor_id && (
-                <tr>
-                  <td colSpan={5} style={{ padding: 0, borderBottom: "1px solid #eee" }}>
-                    <DistributorDetail id={d.distributor_id} />
+      <div style={{ overflowX: "auto" }}>
+        <table className="trust-table">
+          <thead>
+            <tr>
+              <th>Distributor Name</th>
+              <th>Score</th>
+              <th>Confidence</th>
+              <th>Factors Count</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {distributors.map((d) => (
+              <React.Fragment key={d.distributor_id}>
+                <tr className={expandedId === d.distributor_id ? "expanded-row-parent" : ""} onClick={() => setExpandedId(expandedId === d.distributor_id ? null : d.distributor_id)} style={{ cursor: "pointer" }}>
+                  <td style={{ fontWeight: 600, color: "var(--text-main)" }}>{d.distributor_name}</td>
+                  <td>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 2 }}>
+                        <span style={{ color: getScoreColor(d.score), fontWeight: "bold", fontSize: 18 }}>
+                        {d.score}
+                        </span>
+                        <span style={{ fontSize: 12, color: "var(--text-muted)" }}>/100</span>
+                    </div>
+                  </td>
+                  <td>
+                    <span className={`badge ${getConfidenceBadgeClass(d.confidence)}`}>{d.confidence}</span>
+                  </td>
+                  <td style={{ color: "var(--text-muted)" }}>{d.contributing_factors?.length || 0} factors</td>
+                  <td>
+                    <button 
+                        className="btn btn-secondary btn-sm" 
+                        style={{ display: 'flex', alignItems: 'center', gap: 4, padding: "6px 10px" }} 
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            setExpandedId(expandedId === d.distributor_id ? null : d.distributor_id);
+                        }}
+                    >
+                      {expandedId === d.distributor_id ? <><ChevronUp size={14}/> Hide Details</> : <><ChevronDown size={14}/> View Details</>}
+                    </button>
                   </td>
                 </tr>
-              )}
-            </React.Fragment>
-          ))}
-          {distributors.length === 0 && (
-            <tr>
-              <td colSpan={5} style={{ textAlign: "center", color: "#888", padding: 20 }}>No distributors found.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+                <AnimatePresence>
+                    {expandedId === d.distributor_id && (
+                    <tr>
+                        <td colSpan={5} style={{ padding: 0, borderBottom: "1px solid var(--border-color)", background: "var(--bg-hover)" }}>
+                        <DistributorDetail id={d.distributor_id} />
+                        </td>
+                    </tr>
+                    )}
+                </AnimatePresence>
+              </React.Fragment>
+            ))}
+            {distributors.length === 0 && (
+              <tr>
+                <td colSpan={5} style={{ textAlign: "center", color: "var(--text-muted)", padding: 40 }}>No distributors found.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -161,23 +188,46 @@ function BatchCollisionsTab() {
       .finally(() => setLoading(false));
   }, []);
 
-  if (loading) return <p style={{ color: "#888", fontSize: 13 }}>Loading batch collisions...</p>;
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-muted)' }}>Loading batch collisions...</div>;
 
-  if (collisions.length === 0) return <p style={{ color: "#888", fontSize: 13 }}>No batch collisions found in the last 365 days.</p>;
+  if (collisions.length === 0) return (
+      <div style={{ textAlign: "center", padding: "40px 20px", background: "var(--bg-surface)", borderRadius: 8, border: "1px dashed var(--border-color)" }}>
+          <ShieldCheck size={40} style={{ color: "var(--success-500)", marginBottom: 12, opacity: 0.8 }} />
+          <p style={{ margin: 0, color: "var(--text-muted)", fontSize: 16 }}>No batch collisions found in the last 365 days.</p>
+      </div>
+  );
 
   return (
-    <div style={{ display: "grid", gap: 12 }}>
+    <div style={{ display: "grid", gap: 16 }}>
       {collisions.map((c, i) => (
-        <div key={i} className="card" style={{ marginBottom: 0 }}>
-          <div className="flex-between">
-            <h4 style={{ margin: 0 }}>{c.medicine_name}</h4>
-            <span className="badge unmatched">Collision Detected</span>
+        <div key={i} className="card" style={{ marginBottom: 0, borderLeft: "4px solid var(--danger-500)" }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+            <h4 style={{ margin: 0, color: "var(--text-main)", fontSize: 18, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {c.medicine_name}
+            </h4>
+            <span className="badge badge-danger" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ShieldAlert size={14} /> Collision Detected
+            </span>
           </div>
-          <div style={{ marginTop: 8, fontSize: 13, color: "#555" }}>
-            <div><strong>Normalized Batch:</strong> {c.normalized_batch_number}</div>
-            <div><strong>Distributors Involved:</strong> {c.distributor_names?.join(" & ") || "Unknown"}</div>
-            <div><strong>Occurrences:</strong> {c.occurrence_count} times</div>
-            {c.date_range && <div><strong>Date Range:</strong> {c.date_range.start} to {c.date_range.end}</div>}
+          <div style={{ marginTop: 16, fontSize: 14, color: "var(--text-main)", display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
+            <div style={{ background: 'var(--bg-hover)', padding: '10px 12px', borderRadius: 6 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>Normalized Batch</div>
+                <div style={{ fontWeight: 600 }}>{c.normalized_batch_number}</div>
+            </div>
+            <div style={{ background: 'var(--bg-hover)', padding: '10px 12px', borderRadius: 6 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>Distributors Involved</div>
+                <div style={{ fontWeight: 600 }}>{c.distributor_names?.join(" & ") || "Unknown"}</div>
+            </div>
+            <div style={{ background: 'var(--bg-hover)', padding: '10px 12px', borderRadius: 6 }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>Occurrences</div>
+                <div style={{ fontWeight: 600 }}>{c.occurrence_count} times</div>
+            </div>
+            {c.date_range && (
+                <div style={{ background: 'var(--bg-hover)', padding: '10px 12px', borderRadius: 6 }}>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 2 }}>Date Range</div>
+                    <div style={{ fontWeight: 600 }}>{c.date_range.start} to {c.date_range.end}</div>
+                </div>
+            )}
           </div>
         </div>
       ))}
@@ -189,29 +239,63 @@ export default function TrustScore() {
   const [tab, setTab] = useState("scores");
 
   return (
-    <div>
-      <div className="card">
-        <h2 style={{ marginBottom: 4 }}>🛡️ Supply Chain Trust Score</h2>
-        <p style={{ color: "#666", fontSize: 13, marginTop: 0 }}>
+    <motion.div 
+      className="page-content"
+      initial={{ opacity: 0, y: 10 }} 
+      animate={{ opacity: 1, y: 0 }} 
+      exit={{ opacity: 0, y: -10 }} 
+      transition={{ duration: 0.2 }}
+    >
+      <div className="card" style={{ marginBottom: 24 }}>
+        <h2 style={{ margin: "0 0 8px 0", color: "var(--text-main)", display: "flex", alignItems: "center", gap: 10 }}>
+            <Shield size={28} style={{ color: "var(--primary-500)" }} /> Supply Chain Trust Score
+        </h2>
+        <p style={{ color: "var(--text-muted)", fontSize: 14, margin: "0 0 20px 0", lineHeight: 1.5, maxWidth: "800px" }}>
           Composite trust scoring based on historical purchasing patterns, rate consistency, and batch collisions. 
           Use this to evaluate the reliability and integrity of your supply chain partners.
         </p>
-        <div className="tabs" style={{ marginBottom: 0 }}>
-          <button className={`tab-button ${tab === "scores" ? "active" : ""}`} onClick={() => setTab("scores")}>Trust Scores</button>
-          <button className={`tab-button ${tab === "collisions" ? "active" : ""}`} onClick={() => setTab("collisions")}>Batch Collisions</button>
+        <div style={{ display: "flex", gap: 8, borderBottom: "1px solid var(--border-color)", paddingBottom: 12 }}>
+          <button 
+            className="btn" 
+            style={{ background: tab === "scores" ? "var(--primary-50)" : "transparent", color: tab === "scores" ? "var(--primary-500)" : "var(--text-muted)", border: "none", padding: "8px 16px", fontWeight: 500 }} 
+            onClick={() => setTab("scores")}
+          >
+            Trust Scores
+          </button>
+          <button 
+            className="btn" 
+            style={{ background: tab === "collisions" ? "var(--primary-50)" : "transparent", color: tab === "collisions" ? "var(--primary-500)" : "var(--text-muted)", border: "none", padding: "8px 16px", fontWeight: 500 }} 
+            onClick={() => setTab("collisions")}
+          >
+            Batch Collisions
+          </button>
         </div>
       </div>
 
-      {tab === "scores" && <TrustScoresTab />}
-      {tab === "collisions" && <BatchCollisionsTab />}
+      <AnimatePresence mode="wait">
+        <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.15 }}
+        >
+            {tab === "scores" && <TrustScoresTab />}
+            {tab === "collisions" && <BatchCollisionsTab />}
+        </motion.div>
+      </AnimatePresence>
 
       <style>{`
         .trust-table { width: 100%; border-collapse: collapse; }
-        .trust-table th, .trust-table td { text-align: left; padding: 10px; border-bottom: 1px solid #f0f0f0; }
-        .trust-table th { color: #555; font-size: 13px; font-weight: 600; background: #fdfdfd; }
-        .trust-detail-pane { background: #fafafa; padding: 16px; border-radius: 8px; margin: 8px; border: 1px solid #e5e5e5; }
-        .trust-detail-pane h4 { margin: 0 0 8px 0; color: #333; font-size: 14px; }
+        .trust-table th, .trust-table td { text-align: left; padding: 14px 12px; border-bottom: 1px solid var(--border-color); }
+        .trust-table th { color: var(--text-muted); font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; background: var(--bg-surface); }
+        .trust-table tr { transition: background 0.2s; }
+        .trust-table tr:hover:not(.expanded-row-parent) { background: var(--bg-hover); }
+        .trust-table tr.expanded-row-parent { background: var(--bg-hover); }
+        
+        .trust-detail-pane { padding: 20px; margin: 0; background: var(--bg-hover); overflow: hidden; }
+        .trust-detail-pane h4 { margin: 0 0 12px 0; color: var(--text-main); font-size: 15px; font-weight: 600; }
       `}</style>
-    </div>
+    </motion.div>
   );
 }

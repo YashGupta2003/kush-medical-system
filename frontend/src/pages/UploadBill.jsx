@@ -1,5 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { AlertTriangle, UploadCloud, FileText, ArrowRight, Loader } from "lucide-react";
 import { api } from "../api/client.js";
 
 function usePolledStatus(billId) {
@@ -55,24 +57,30 @@ function BillProgressRow({ billId, filename, duplicateWarning }) {
   }[status] || "manual";
 
   return (
-    <div className="card" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ display: "flex", flexDirection: "column", gap: "12px", borderLeft: status === "failed" ? "4px solid var(--danger-500)" : status === "pending_review" ? "4px solid var(--success-500)" : status === "needs_attention" ? "4px solid var(--warning-500)" : "4px solid var(--primary-500)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <strong>{filename}</strong>
-          <div style={{ fontSize: 13, color: "#666" }}>
-            <span className={`badge ${badgeClass}`}>{statusLabel}</span>
+        <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+          <FileText size={24} color="var(--text-muted)" />
+          <div>
+            <strong style={{ color: "var(--text-main)", fontSize: "15px" }}>{filename}</strong>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>
+              <span className={`badge ${badgeClass}`}>{statusLabel}</span>
+            </div>
           </div>
         </div>
         {(status === "pending_review" || status === "needs_attention") && (
-          <button onClick={() => navigate(`/review/${billId}`)}>Review</button>
+          <button className="btn btn-primary" onClick={() => navigate(`/review/${billId}`)} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            Review <ArrowRight size={16} />
+          </button>
         )}
       </div>
       {duplicateWarning && (
-        <div style={{ background: "#fff7ed", border: "1px solid #fdba74", color: "#c2410c", padding: "8px 12px", borderRadius: "6px", fontSize: 13 }}>
-          ⚠️ {duplicateWarning}
+        <div style={{ background: "var(--warning-100)", border: "1px solid var(--warning-300)", color: "var(--warning-700)", padding: "10px 14px", borderRadius: "8px", fontSize: "13px", display: "flex", gap: "8px", alignItems: "center" }}>
+          <AlertTriangle size={16} color="var(--warning-600)" style={{ flexShrink: 0 }} />
+          <span>{duplicateWarning}</span>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }
 
@@ -100,15 +108,19 @@ export default function UploadBill() {
         if (invoiceNo) formData.append("invoice_no", invoiceNo);
         if (invoiceDate) formData.append("invoice_date", invoiceDate);
         const res = await api.uploadBill(formData);
-        setUploadedBills([{ bill_id: res.bill_id, filename: files[0].name, duplicate_warning: res.duplicate_warning }]);
+        setUploadedBills(prev => [{ bill_id: res.bill_id, filename: files[0].name, duplicate_warning: res.duplicate_warning }, ...prev]);
       } else {
         const formData = new FormData();
         files.forEach((f) => formData.append("files", f));
         if (distributorName) formData.append("distributor_name", distributorName);
         const res = await api.uploadBillsBatch(formData);
-        setUploadedBills(res.map((r, i) => ({ bill_id: r.bill_id, filename: files[i]?.name || `bill ${i + 1}`, duplicate_warning: r.duplicate_warning })));
+        const newBills = res.map((r, i) => ({ bill_id: r.bill_id, filename: files[i]?.name || `bill ${i + 1}`, duplicate_warning: r.duplicate_warning }));
+        setUploadedBills(prev => [...newBills, ...prev]);
       }
       setFiles([]);
+      setDistributorName("");
+      setInvoiceNo("");
+      setInvoiceDate("");
       if (fileInputRef.current) fileInputRef.current.value = "";
     } catch (err) {
       setError(err.message);
@@ -118,55 +130,100 @@ export default function UploadBill() {
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="page-content"
+    >
       <div className="card">
-        <h2>Upload purchase bill(s)</h2>
-        <p style={{ color: "#666", fontSize: 13 }}>
-          Select one bill, or several at once - each is processed independently in the background.
-        </p>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 12 }}>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              capture="environment"
-              multiple
-              onChange={(e) => setFiles(Array.from(e.target.files))}
-              required
-            />
-            {files.length > 1 && (
-              <p style={{ fontSize: 13, color: "#666" }}>{files.length} files selected</p>
-            )}
+        <div style={{ display: "flex", gap: "12px", alignItems: "flex-start", marginBottom: "20px" }}>
+          <div style={{ background: "var(--primary-100)", padding: "10px", borderRadius: "10px" }}>
+            <UploadCloud size={24} color="var(--primary-600)" />
           </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-            <input
-              placeholder="Distributor name (optional)"
-              value={distributorName}
-              onChange={(e) => setDistributorName(e.target.value)}
-              style={{ flex: 1, minWidth: 200 }}
-            />
+          <div>
+            <h2 style={{ margin: "0 0 4px 0", color: "var(--text-main)" }}>Upload purchase bill(s)</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: 0, lineHeight: 1.5 }}>
+              Select one bill, or several at once - each is processed independently in the background.
+            </p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit}>
+          <div style={{ marginBottom: "16px" }}>
+            <div style={{ 
+              border: "2px dashed var(--border-color)", 
+              borderRadius: "12px", 
+              padding: "24px", 
+              textAlign: "center",
+              background: "var(--bg-muted)",
+              transition: "border-color 0.2s ease"
+            }} 
+            onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--primary-400)'}
+            onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}>
+              <UploadCloud size={32} color="var(--text-muted)" style={{ marginBottom: "12px" }} />
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,application/pdf"
+                multiple
+                onChange={(e) => setFiles(Array.from(e.target.files))}
+                required
+                style={{ display: "block", width: "100%", cursor: "pointer" }}
+              />
+              {files.length > 1 && (
+                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "12px", fontWeight: 600 }}>
+                  <FileText size={14} className="inline mr-1" /> {files.length} files selected
+                </p>
+              )}
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "12px", marginBottom: "20px", flexWrap: "wrap" }}>
+            <div style={{ flex: 1, minWidth: "200px" }}>
+              <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Distributor (optional)</label>
+              <input
+                placeholder="e.g. RATHORE MEDICOS"
+                value={distributorName}
+                onChange={(e) => setDistributorName(e.target.value)}
+                style={{ width: "100%" }}
+              />
+            </div>
             {files.length <= 1 && (
               <>
-                <input
-                  placeholder="Invoice no. (optional)"
-                  value={invoiceNo}
-                  onChange={(e) => setInvoiceNo(e.target.value)}
-                />
-                <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} />
+                <div style={{ flex: 1, minWidth: "150px" }}>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Invoice no. (optional)</label>
+                  <input
+                    placeholder="e.g. INV-2023"
+                    value={invoiceNo}
+                    onChange={(e) => setInvoiceNo(e.target.value)}
+                    style={{ width: "100%" }}
+                  />
+                </div>
+                <div style={{ flex: 1, minWidth: "150px" }}>
+                  <label style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Invoice date (optional)</label>
+                  <input type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} style={{ width: "100%" }} />
+                </div>
               </>
             )}
           </div>
-          <button type="submit" disabled={uploading || files.length === 0}>
+          <button type="submit" className="btn btn-primary" disabled={uploading || files.length === 0} style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "8px", width: "100%", padding: "12px" }}>
+            {uploading ? <Loader size={18} className="spin" /> : <UploadCloud size={18} />}
             {uploading ? "Uploading..." : files.length > 1 ? `Upload ${files.length} bills` : "Upload and process"}
           </button>
-          {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
+          {error && <p style={{ color: "var(--danger-600)", marginTop: "16px", fontSize: "14px", textAlign: "center" }}>{error}</p>}
         </form>
       </div>
 
-      {uploadedBills.map((b) => (
-        <BillProgressRow key={b.bill_id} billId={b.bill_id} filename={b.filename} duplicateWarning={b.duplicate_warning} />
-      ))}
-    </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+        {uploadedBills.map((b, i) => (
+          <BillProgressRow key={`${b.bill_id}-${i}`} billId={b.bill_id} filename={b.filename} duplicateWarning={b.duplicate_warning} />
+        ))}
+      </div>
+      <style>{`
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+      `}</style>
+    </motion.div>
   );
 }

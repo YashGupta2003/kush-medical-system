@@ -1,15 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { api } from "../api/client.js";
+import { 
+  Link as LinkIcon, CheckCircle2, AlertTriangle, FileText, 
+  Package, Activity, Shield, ShieldCheck, Database, 
+  Lock, ArrowRight, ChevronRight, ChevronDown, Check, XCircle
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const EVENT_META = {
-  rate_change: { label: "Rate change", icon: "💰", badge: "auto" },
-  batch_received: { label: "Batch received", icon: "📦", badge: "learned" },
-  bill_confirmed: { label: "Bill confirmed", icon: "🧾", badge: "manual" },
-  stock_adjustment: { label: "Stock adjustment", icon: "⚖️", badge: "unmatched" },
+  rate_change: { label: "Rate change", icon: <Activity size={14} />, badge: "auto" },
+  batch_received: { label: "Batch received", icon: <Package size={14} />, badge: "learned" },
+  bill_confirmed: { label: "Bill confirmed", icon: <FileText size={14} />, badge: "manual" },
+  stock_adjustment: { label: "Stock adjustment", icon: <Database size={14} />, badge: "unmatched" },
 };
 
 function eventMeta(type) {
-  return EVENT_META[type] || { label: type, icon: "🔗", badge: "manual" };
+  return EVENT_META[type] || { label: type, icon: <LinkIcon size={14} />, badge: "manual" };
 }
 
 function shortHash(h) {
@@ -29,66 +35,143 @@ function timeAgo(iso) {
   return `${days}d ago`;
 }
 
-// ---------------------------------------------------------------------------
-// Payload summary — a tiny, event-type-aware one-liner so the table is
-// scannable without expanding every row.
-// ---------------------------------------------------------------------------
 function payloadSummary(entry) {
   const p = entry.payload || {};
   switch (entry.event_type) {
     case "rate_change":
-      return `${p.medicine_name || "Medicine #" + p.medicine_id} · ₹${p.old_net_rate ?? "—"} → ₹${p.new_net_rate ?? "—"}`;
+      return `${p.medicine_name || "ID: " + p.medicine_id} • ₹${p.old_net_rate ?? "—"} → ₹${p.new_net_rate ?? "—"}`;
     case "batch_received":
-      return `${p.qty_received ?? "—"} units${p.batch_no ? ` · batch ${p.batch_no}` : ""}${p.expiry_date ? ` · exp ${p.expiry_date}` : ""}`;
+      return `${p.qty_received ?? "—"} units${p.batch_no ? ` • batch ${p.batch_no}` : ""}${p.expiry_date ? ` • exp ${p.expiry_date}` : ""}`;
     case "bill_confirmed":
-      return `Bill #${p.bill_id} · ${p.item_count ?? "—"} items · ₹${p.total_amount ?? "—"}${p.invoice_no ? ` · Inv ${p.invoice_no}` : ""}`;
+      return `Bill #${p.bill_id} • ${p.item_count ?? "—"} items • ₹${p.total_amount ?? "—"}${p.invoice_no ? ` • Inv ${p.invoice_no}` : ""}`;
     case "stock_adjustment":
-      return `${p.medicine_name || "Medicine #" + p.medicine_id} · ${p.previous_stock ?? "—"} → ${p.new_stock ?? "—"}`;
+      return `${p.medicine_name || "ID: " + p.medicine_id} • ${p.previous_stock ?? "—"} → ${p.new_stock ?? "—"}`;
     default:
       return JSON.stringify(p).slice(0, 80);
   }
 }
 
 // ---------------------------------------------------------------------------
-// Verify-chain result banner
+// VerifyBanner with sequential scanning animation
 // ---------------------------------------------------------------------------
 function VerifyBanner({ result, verifying, onVerify }) {
+  const [scanProgress, setScanProgress] = useState(0);
+
+  useEffect(() => {
+    let interval;
+    if (verifying) {
+      setScanProgress(0);
+      interval = setInterval(() => {
+        setScanProgress((prev) => {
+          if (prev >= 98) return prev;
+          return prev + Math.random() * 5;
+        });
+      }, 50);
+    } else {
+      setScanProgress(100);
+    }
+    return () => clearInterval(interval);
+  }, [verifying]);
+
+  const isValid = result && result.is_valid;
+  const isBroken = result && !result.is_valid;
+
+  let bgClass = "var(--bg-surface)";
+  let borderColor = "var(--border-subtle)";
+  let textColor = "var(--text-main)";
+  let Icon = Shield;
+  let iconColor = "var(--text-muted)";
+  
+  if (verifying) {
+    bgClass = "var(--primary-50)";
+    borderColor = "var(--primary-200)";
+    textColor = "var(--primary-700)";
+    Icon = Activity;
+    iconColor = "var(--primary-500)";
+  } else if (isValid) {
+    bgClass = "var(--success-bg)";
+    borderColor = "var(--success-border)";
+    textColor = "var(--success-text)";
+    Icon = ShieldCheck;
+    iconColor = "var(--success-text)";
+  } else if (isBroken) {
+    bgClass = "var(--danger-bg)";
+    borderColor = "var(--danger-border)";
+    textColor = "var(--danger-text)";
+    Icon = ShieldAlert;
+    iconColor = "var(--danger-text)";
+  }
+
   return (
-    <div className={`audit-verify-banner ${result ? (result.is_valid ? "valid" : "broken") : "idle"}`}>
-      <div className="audit-verify-left">
-        <span className="audit-verify-icon">
-          {!result ? "🔗" : result.is_valid ? "✅" : "🚨"}
-        </span>
-        <div>
-          {!result && (
+    <div style={{
+      position: "relative",
+      display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16,
+      padding: "var(--space-6)", borderRadius: "var(--radius-xl)", border: `1px solid ${borderColor}`,
+      background: bgClass, transition: "all 0.3s ease", overflow: "hidden"
+    }}>
+      {/* Scanning Laser Effect */}
+      {verifying && (
+        <motion.div 
+          style={{ position: "absolute", top: 0, bottom: 0, left: 0, width: "100%", background: "linear-gradient(90deg, transparent, rgba(20, 184, 166, 0.2), transparent)", zIndex: 0 }}
+          animate={{ x: ["-100%", "100%"] }}
+          transition={{ repeat: Infinity, duration: 1.5, ease: "linear" }}
+        />
+      )}
+      
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)", position: "relative", zIndex: 1 }}>
+        <div style={{ 
+          width: 48, height: 48, borderRadius: "var(--radius-full)", background: "var(--bg-app)", 
+          display: "flex", alignItems: "center", justifyContent: "center", color: iconColor, border: `1px solid ${borderColor}`
+        }}>
+          <Icon size={24} style={{ animation: verifying ? "pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite" : "none" }} />
+        </div>
+        
+        <div style={{ color: textColor }}>
+          {!result && !verifying && (
             <>
-              <div className="audit-verify-title">Chain integrity: not yet checked</div>
-              <div className="audit-verify-sub">
-                Recomputes every hash in the ledger from scratch and confirms nothing has been altered.
+              <div style={{ fontWeight: 700, fontSize: "var(--text-lg)" }}>Cryptographic Ledger Idle</div>
+              <div style={{ fontSize: "var(--text-sm)", opacity: 0.8, marginTop: 4 }}>
+                Ready to recompute all blocks from genesis to prove immutability.
               </div>
             </>
           )}
-          {result && result.is_valid && (
+          {verifying && (
             <>
-              <div className="audit-verify-title">Chain verified — unbroken from genesis</div>
-              <div className="audit-verify-sub">
-                All {result.total_entries} entries recomputed cleanly. Checked {timeAgo(result.verified_at)}.
+              <div style={{ fontWeight: 700, fontSize: "var(--text-lg)" }}>Verifying TrustChain...</div>
+              <div style={{ fontSize: "var(--text-sm)", opacity: 0.8, marginTop: 4 }}>
+                Recomputing SHA-256 hashes. Progress: {Math.round(scanProgress)}%
               </div>
             </>
           )}
-          {result && !result.is_valid && (
+          {isValid && (
             <>
-              <div className="audit-verify-title">Tampering detected — {result.broken_entries.length} entry(ies) broken</div>
-              <div className="audit-verify-sub">
-                Out of {result.total_entries} total entries. See below for exactly what changed.
+              <div style={{ fontWeight: 700, fontSize: "var(--text-lg)", display: "flex", alignItems: "center", gap: 6 }}><CheckCircle2 size={18} /> Chain Verified — Unbroken</div>
+              <div style={{ fontSize: "var(--text-sm)", opacity: 0.8, marginTop: 4 }}>
+                All {result.total_entries} blocks verified flawlessly at {new Date(result.verified_at).toLocaleTimeString()}.
+              </div>
+            </>
+          )}
+          {isBroken && (
+            <>
+              <div style={{ fontWeight: 700, fontSize: "var(--text-lg)", display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={18} /> Integrity Violation Detected</div>
+              <div style={{ fontSize: "var(--text-sm)", opacity: 0.8, marginTop: 4 }}>
+                {result.broken_entries.length} block(s) tampered out of {result.total_entries}. Details below.
               </div>
             </>
           )}
         </div>
       </div>
-      <button onClick={onVerify} disabled={verifying}>
-        {verifying ? "Verifying..." : "Verify chain integrity"}
-      </button>
+      
+      <div style={{ position: "relative", zIndex: 1 }}>
+        <button 
+          className="btn btn-primary" 
+          onClick={onVerify} 
+          disabled={verifying}
+          style={{ padding: "var(--space-3) var(--space-6)", fontSize: "var(--text-base)" }}
+        >
+          {verifying ? "Computing..." : "Run Cryptographic Audit"}
+        </button>
+      </div>
     </div>
   );
 }
@@ -96,69 +179,113 @@ function VerifyBanner({ result, verifying, onVerify }) {
 function BrokenEntriesList({ entries }) {
   if (!entries || entries.length === 0) return null;
   return (
-    <div className="audit-broken-list">
+    <div style={{ marginTop: "var(--space-4)", display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
       {entries.map((b) => (
-        <div key={b.id} className="audit-broken-row">
-          <div className="flex-between">
-            <strong style={{ fontSize: 13 }}>
-              {eventMeta(b.event_type).icon} Entry #{b.id} · {eventMeta(b.event_type).label}
-              {b.reference_id != null && <span style={{ color: "#888", fontWeight: 400 }}> (ref #{b.reference_id})</span>}
+        <motion.div key={b.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} style={{
+          background: "var(--bg-app)", border: "1px solid var(--danger-border)", borderLeft: "4px solid var(--danger-text)",
+          borderRadius: "var(--radius-md)", padding: "var(--space-4)"
+        }}>
+          <div className="flex-between" style={{ marginBottom: "var(--space-2)" }}>
+            <strong style={{ fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: 6, color: "var(--text-main)" }}>
+              <XCircle size={14} color="var(--danger-text)" /> Block #{b.id} • {eventMeta(b.event_type).label}
+              {b.reference_id != null && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> (ref #{b.reference_id})</span>}
             </strong>
-            <span style={{ fontSize: 11, color: "#888" }}>{b.created_at ? new Date(b.created_at).toLocaleString() : ""}</span>
+            <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>{b.created_at ? new Date(b.created_at).toLocaleString() : ""}</span>
           </div>
-          <ul className="audit-broken-problems">
-            {b.problems.map((p, i) => <li key={i}>{p}</li>)}
+          <ul style={{ margin: 0, paddingLeft: 22, fontSize: "var(--text-xs)", color: "var(--danger-text)" }}>
+            {b.problems.map((p, i) => <li key={i} style={{ marginBottom: 4 }}>{p}</li>)}
           </ul>
-        </div>
+        </motion.div>
       ))}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// One ledger row, expandable to show the actual hash chain values — this
-// is what makes "how does tamper-evidence actually work" demonstrable
-// rather than just asserted.
-// ---------------------------------------------------------------------------
 function LedgerRow({ entry, isBroken }) {
   const [expanded, setExpanded] = useState(false);
   const meta = eventMeta(entry.event_type);
 
   return (
-    <div className={`audit-ledger-row ${isBroken ? "broken" : ""}`}>
-      <div className="audit-ledger-row-summary" onClick={() => setExpanded((e) => !e)}>
-        <span className="audit-ledger-caret">{expanded ? "▾" : "▸"}</span>
-        <span className={`badge ${meta.badge}`} style={{ flexShrink: 0 }}>{meta.icon} {meta.label}</span>
-        <span className="audit-ledger-summary-text">{payloadSummary(entry)}</span>
-        <span className="audit-ledger-time" title={new Date(entry.created_at).toLocaleString()}>
+    <div style={{ borderBottom: "1px solid var(--border-subtle)", background: isBroken ? "var(--danger-bg)" : "transparent" }}>
+      <div 
+        onClick={() => setExpanded((e) => !e)}
+        style={{ 
+          display: "flex", alignItems: "center", gap: "var(--space-3)", padding: "var(--space-3) var(--space-4)", 
+          cursor: "pointer", transition: "background 0.2s" 
+        }}
+        onMouseEnter={(e) => e.currentTarget.style.background = "var(--bg-surface-hover)"}
+        onMouseLeave={(e) => e.currentTarget.style.background = "transparent"}
+      >
+        <span style={{ color: "var(--text-muted)", display: "flex" }}>
+          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+        </span>
+        <span className={`badge ${meta.badge}`} style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+          {meta.icon} {meta.label}
+        </span>
+        <span style={{ flex: 1, fontSize: "var(--text-sm)", color: "var(--text-main)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+          {payloadSummary(entry)}
+        </span>
+        <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", flexShrink: 0 }} title={new Date(entry.created_at).toLocaleString()}>
           {timeAgo(entry.created_at)}
         </span>
       </div>
 
-      {expanded && (
-        <div className="audit-ledger-detail">
-          <div className="audit-hash-chain">
-            <div className="audit-hash-block">
-              <div className="audit-hash-label">previous_hash</div>
-              <code className="audit-hash-value">{shortHash(entry.previous_hash)}</code>
+      <AnimatePresence>
+        {expanded && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }} 
+            exit={{ opacity: 0, height: 0 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div style={{ padding: "0 var(--space-4) var(--space-4) 44px" }}>
+              {/* Hash Chain Visualizer */}
+              <div style={{ 
+                display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap",
+                background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-lg)", 
+                padding: "var(--space-3) var(--space-4)", marginBottom: "var(--space-3)" 
+              }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Previous Hash</div>
+                  <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, background: "var(--bg-app)", padding: "4px 8px", borderRadius: 4, color: "var(--text-main)" }}>
+                    {shortHash(entry.previous_hash)}
+                  </code>
+                </div>
+                
+                <div style={{ display: "flex", alignItems: "center", color: "var(--text-muted)" }}>
+                  <span style={{ margin: "0 8px" }}>+</span>
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ fontSize: 10, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Payload Hash</div>
+                  <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, background: "var(--bg-app)", padding: "4px 8px", borderRadius: 4, color: "var(--text-main)" }}>
+                    {shortHash(entry.payload_hash)}
+                  </code>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6, color: "var(--primary-500)", margin: "0 8px" }}>
+                  <ArrowRight size={14} /> <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: 1 }}>SHA-256</span> <ArrowRight size={14} />
+                </div>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                  <div style={{ fontSize: 10, color: "var(--primary-200)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Entry Block Hash</div>
+                  <code style={{ fontFamily: "ui-monospace, monospace", fontSize: 12, background: "var(--primary-700)", color: "#fff", padding: "4px 8px", borderRadius: 4, border: "1px solid var(--primary-600)" }}>
+                    {shortHash(entry.entry_hash)}
+                  </code>
+                </div>
+              </div>
+
+              {/* JSON Payload */}
+              <div style={{ background: "#0d0d12", borderRadius: "var(--radius-lg)", padding: "var(--space-4)", border: "1px solid #1f1f2e" }}>
+                <div style={{ fontSize: 10, color: "#8a8a9e", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600, marginBottom: "var(--space-2)" }}>Raw Block Payload</div>
+                <pre style={{ margin: 0, color: "#10b981", fontSize: 12, fontFamily: "ui-monospace, monospace", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                  {JSON.stringify(entry.payload, null, 2)}
+                </pre>
+              </div>
             </div>
-            <span className="audit-hash-arrow">＋</span>
-            <div className="audit-hash-block">
-              <div className="audit-hash-label">payload_hash</div>
-              <code className="audit-hash-value">{shortHash(entry.payload_hash)}</code>
-            </div>
-            <span className="audit-hash-arrow">→ SHA-256 →</span>
-            <div className="audit-hash-block current">
-              <div className="audit-hash-label">entry_hash</div>
-              <code className="audit-hash-value">{shortHash(entry.entry_hash)}</code>
-            </div>
-          </div>
-          <div className="audit-payload-json">
-            <div className="audit-hash-label" style={{ marginBottom: 4 }}>Full payload (what was hashed)</div>
-            <pre>{JSON.stringify(entry.payload, null, 2)}</pre>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -185,6 +312,8 @@ export default function AuditTrail() {
     setVerifying(true);
     setError(null);
     try {
+      // Small artificial delay to let the animation play out for dramatic effect
+      await new Promise(resolve => setTimeout(resolve, 1500));
       const res = await api.verifyAuditChain();
       setVerifyResult(res);
     } catch (e) {
@@ -198,127 +327,76 @@ export default function AuditTrail() {
   const counts = entries.reduce((acc, e) => { acc[e.event_type] = (acc[e.event_type] || 0) + 1; return acc; }, {});
 
   return (
-    <div>
-      <div className="card audit-header-card">
-        <h2 style={{ marginBottom: 4 }}>🔗 TrustChain — Tamper-Evident Audit Trail</h2>
-        <p style={{ color: "#666", fontSize: 13, marginTop: 0, maxWidth: 760 }}>
-          Every rate change, batch receipt, confirmed bill, and manual stock adjustment is chained
-          into an append-only ledger — each entry's hash is derived from the entry before it, all
-          the way back to genesis. Editing any past entry (even directly in the database) breaks
-          the chain from that point forward, and <strong>Verify chain integrity</strong> below
-          proves it. This is a hash chain, not a distributed blockchain — deliberately, since a
-          single shop's database has one trust boundary and doesn't need a multi-party consensus
-          network to get tamper-evidence.
+    <div style={{ paddingBottom: "var(--space-10)" }}>
+      <div className="card" style={{ marginBottom: "var(--space-6)" }}>
+        <h1 style={{ display: "flex", alignItems: "center", gap: 12, fontSize: "var(--text-3xl)", marginBottom: "var(--space-2)" }}>
+          <Lock size={32} color="var(--primary-500)" /> TrustChain Ledger
+        </h1>
+        <p style={{ color: "var(--text-muted)", fontSize: "var(--text-base)", marginBottom: "var(--space-6)", maxWidth: 800 }}>
+          An append-only cryptographic ledger. Every significant operational event is chained, deriving its SHA-256 hash from the previous block back to genesis. Any database-level tampering breaks the cryptographic link permanently.
         </p>
 
-        <div className="stat-row" style={{ marginTop: 14, marginBottom: 0 }}>
-          <div className="stat-box">
-            <div className="value">{entries.length}</div>
-            <div className="label">Entries shown</div>
+        <div style={{ display: "flex", gap: "var(--space-4)", flexWrap: "wrap", padding: "var(--space-4)", background: "var(--bg-app)", borderRadius: "var(--radius-lg)", border: "1px solid var(--border-subtle)" }}>
+          <div className="stat-card" style={{ flex: 1, minWidth: 150 }}>
+            <span className="stat-label">Total Chain Blocks</span>
+            <span className="stat-value">{entries.length}</span>
           </div>
           {Object.entries(EVENT_META).map(([key, meta]) => (
-            <div key={key} className="stat-box">
-              <div className="value">{counts[key] || 0}</div>
-              <div className="label">{meta.icon} {meta.label}</div>
+            <div key={key} className="stat-card" style={{ flex: 1, minWidth: 150 }}>
+              <span className="stat-label" style={{ display: "flex", alignItems: "center", gap: 6 }}>{meta.icon} {meta.label}</span>
+              <span className="stat-value">{counts[key] || 0}</span>
             </div>
           ))}
         </div>
       </div>
 
-      <div className="card">
+      <div style={{ marginBottom: "var(--space-6)" }}>
         <VerifyBanner result={verifyResult} verifying={verifying} onVerify={handleVerify} />
         {verifyResult && !verifyResult.is_valid && <BrokenEntriesList entries={verifyResult.broken_entries} />}
-        {error && <p style={{ color: "#b91c1c", fontSize: 13, marginTop: 10 }}>{error}</p>}
+        {error && <div style={{ color: "var(--danger-text)", fontSize: "var(--text-sm)", marginTop: "var(--space-3)", padding: "var(--space-3)", background: "var(--danger-bg)", borderRadius: "var(--radius-md)" }}>{error}</div>}
       </div>
 
-      <div className="card">
-        <div className="flex-between" style={{ marginBottom: 10 }}>
-          <h3 style={{ margin: 0 }}>Ledger</h3>
-          <select value={eventType} onChange={(e) => setEventType(e.target.value)}>
-            <option value="">All event types</option>
+      <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+        <div className="flex-between" style={{ padding: "var(--space-4)", borderBottom: "1px solid var(--border-subtle)", background: "var(--bg-surface)" }}>
+          <h3 style={{ margin: 0, fontSize: "var(--text-lg)", display: "flex", alignItems: "center", gap: 8 }}>
+            <Database size={18} /> Block Explorer
+          </h3>
+          <select className="input" style={{ width: 220, padding: "var(--space-2)" }} value={eventType} onChange={(e) => setEventType(e.target.value)}>
+            <option value="">All Block Types</option>
             {Object.entries(EVENT_META).map(([key, meta]) => (
-              <option key={key} value={key}>{meta.icon} {meta.label}</option>
+              <option key={key} value={key}>{meta.label}</option>
             ))}
           </select>
         </div>
 
-        {loading && <p style={{ color: "#888", fontSize: 13 }}>Loading ledger...</p>}
-
-        {!loading && entries.length === 0 && (
-          <p style={{ color: "#888", fontSize: 13 }}>
-            No audit entries yet — they're created automatically as bills are confirmed, batches
-            are received, rates change, and stock is manually adjusted.
-          </p>
+        {loading && (
+          <div style={{ padding: "var(--space-8)", textAlign: "center", color: "var(--text-muted)" }}>
+            <Activity size={24} style={{ animation: "spin 2s linear infinite", margin: "0 auto var(--space-3)" }} />
+            <p>Syncing ledger...</p>
+          </div>
         )}
 
-        {!loading && entries.map((entry) => (
-          <LedgerRow key={entry.id} entry={entry} isBroken={brokenIds.has(entry.id)} />
-        ))}
+        {!loading && entries.length === 0 && (
+          <div className="empty-state" style={{ padding: "var(--space-10)" }}>
+            <Database size={32} className="empty-state-icon" />
+            <p style={{ margin: 0, color: "var(--text-muted)" }}>Genesis block pending. The ledger will append as operational events occur.</p>
+          </div>
+        )}
+
+        {!loading && (
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            {entries.map((entry) => (
+              <LedgerRow key={entry.id} entry={entry} isBroken={brokenIds.has(entry.id)} />
+            ))}
+          </div>
+        )}
       </div>
 
       <style>{`
-        .audit-header-card { background: linear-gradient(135deg, #fff, #f8faff); }
-
-        .audit-verify-banner {
-          display: flex; justify-content: space-between; align-items: center; gap: 16px;
-          padding: 16px 18px; border-radius: 12px; border: 1px solid #e5e5e5; background: #fafafa;
-          transition: background 0.2s ease, border-color 0.2s ease;
-        }
-        .audit-verify-banner.valid { background: #f0fdf4; border-color: #bbf7d0; }
-        .audit-verify-banner.broken { background: #fef2f2; border-color: #fecaca; }
-        .audit-verify-left { display: flex; align-items: center; gap: 12px; }
-        .audit-verify-icon { font-size: 26px; flex-shrink: 0; }
-        .audit-verify-title { font-weight: 700; font-size: 14.5px; color: #1c1c1e; }
-        .audit-verify-sub { font-size: 12.5px; color: #666; margin-top: 2px; }
-
-        .audit-broken-list { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-        .audit-broken-row {
-          background: #fff; border: 1px solid #fecaca; border-left: 4px solid #dc2626;
-          border-radius: 10px; padding: 12px 14px;
-        }
-        .audit-broken-problems { margin: 8px 0 0; padding-left: 18px; font-size: 12.5px; color: #7f1d1d; }
-        .audit-broken-problems li { margin-bottom: 3px; }
-
-        .audit-ledger-row {
-          border-bottom: 1px solid #f0f0f0;
-        }
-        .audit-ledger-row:last-child { border-bottom: none; }
-        .audit-ledger-row.broken { background: #fff5f5; }
-        .audit-ledger-row-summary {
-          display: flex; align-items: center; gap: 10px; padding: 11px 4px; cursor: pointer;
-          transition: background 0.12s ease;
-        }
-        .audit-ledger-row-summary:hover { background: #fafafa; }
-        .audit-ledger-caret { width: 12px; color: #999; font-size: 11px; flex-shrink: 0; }
-        .audit-ledger-summary-text { flex: 1; font-size: 13px; color: #333; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .audit-ledger-time { font-size: 11.5px; color: #999; flex-shrink: 0; }
-
-        .audit-ledger-detail {
-          padding: 4px 4px 16px 26px; animation: auditFadeIn 0.2s ease;
-        }
-        @keyframes auditFadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-        .audit-hash-chain {
-          display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
-          background: #f8f9fb; border: 1px solid #eee; border-radius: 10px; padding: 12px 14px;
-          margin-bottom: 10px;
-        }
-        .audit-hash-block { display: flex; flex-direction: column; gap: 2px; }
-        .audit-hash-block.current .audit-hash-value { background: #1c1c1e; color: #fff; }
-        .audit-hash-label { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.4px; }
-        .audit-hash-value {
-          font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px;
-          background: #eee; padding: 3px 8px; border-radius: 6px; color: #1c1c1e;
-        }
-        .audit-hash-arrow { color: #aaa; font-size: 12px; }
-
-        .audit-payload-json {
-          background: #1c1c1e; border-radius: 10px; padding: 12px 14px;
-        }
-        .audit-payload-json .audit-hash-label { color: #999; }
-        .audit-payload-json pre {
-          margin: 0; color: #d1f5d3; font-size: 12px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-          white-space: pre-wrap; word-break: break-word;
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        @keyframes pulse {
+          0%, 100% { opacity: 1; }
+          50% { opacity: .5; }
         }
       `}</style>
     </div>

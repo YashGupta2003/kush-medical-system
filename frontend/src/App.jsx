@@ -1,5 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Routes, Route, NavLink, useLocation } from "react-router-dom";
+import { AnimatePresence, motion } from "framer-motion";
+import { 
+  BarChart2, Search, RefreshCw, Network as NetworkIcon, Scan, Upload, FileStack, Package, 
+  Hourglass, FileText, Users as UsersIcon, Bot, ShoppingCart, UserCircle, Globe, Snowflake, 
+  Lightbulb, TrendingUp, ShieldCheck, Link2, Hexagon, Box, Activity, Shield, ChevronDown
+} from 'lucide-react';
+
 import UploadBill from "./pages/UploadBill.jsx";
 import ReviewBill from "./pages/ReviewBill.jsx";
 import SearchDashboard from "./pages/SearchDashboard.jsx";
@@ -28,29 +35,57 @@ import TrustScore from "./pages/TrustScore.jsx";
 
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 
-
-const NAV_ITEMS = [
-  { to: "/analytics", label: "Analytics", icon: "📊", ownerOnly: true },
-  { to: "/", label: "Search & Master", icon: "🔍", end: true },
-  { to: "/substitutes", label: "Substitutes", icon: "🔄" },
-  { to: "/graph", label: "PharmaGraph", icon: "🕸️" },
-  { to: "/scan", label: "Barcode Scan", icon: "📷" },
-  { to: "/upload", label: "Upload Bill", icon: "📤" },
-  { to: "/bills", label: "Review Queue", icon: "🗂️" },
-  { to: "/stock", label: "Stock & Reorder", icon: "📦" },
-  { to: "/expiry", label: "Expiry Tracker", icon: "⏳", badgeKey: "urgent" },
-  { to: "/gst", label: "GST Summary", icon: "🧾", ownerOnly: true },
-  { to: "/users", label: "Staff", icon: "👥", ownerOnly: true },
-  { to: "/copilot", label: "PharmaCopilot", icon: "🤖", ownerOnly: true },
-  { to: "/pos", label: "Point of Sale", icon: "🛒" },
-  { to: "/customers", label: "Customers", icon: "👤" },
-  { to: "/network", label: "Pharma Network", icon: "🌐" },
-  { to: "/cold-chain", label: "Cold Chain", icon: "🧊" },
-
-  { to: "/predictive", label: "Predictive Intel", icon: "🔮", ownerOnly: true },
-  { to: "/surveillance", label: "Health Surveillance", icon: "📈", ownerOnly: true },
-  { to: "/trust-score", label: "Supply Trust", icon: "🛡️", ownerOnly: true },
-  { to: "/audit", label: "TrustChain", icon: "🔗", ownerOnly: true },
+const NAV_GROUPS = [
+  {
+    label: "Operations",
+    icon: <Box size={16} />,
+    items: [
+      { to: "/", label: "Search & Master", icon: <Search size={16} />, end: true },
+      { to: "/substitutes", label: "Substitutes", icon: <RefreshCw size={16} /> },
+      { to: "/scan", label: "Barcode Scan", icon: <Scan size={16} /> },
+      { to: "/pos", label: "Point of Sale", icon: <ShoppingCart size={16} /> },
+      { to: "/customers", label: "Customers", icon: <UserCircle size={16} /> },
+    ]
+  },
+  {
+    label: "Inventory",
+    icon: <Package size={16} />,
+    items: [
+      { to: "/stock", label: "Stock & Reorder", icon: <Package size={16} /> },
+      { to: "/expiry", label: "Expiry Tracker", icon: <Hourglass size={16} />, badgeKey: "urgent" },
+      { to: "/cold-chain", label: "Cold Chain", icon: <Snowflake size={16} /> },
+    ]
+  },
+  {
+    label: "Finance",
+    icon: <FileText size={16} />,
+    items: [
+      { to: "/upload", label: "Upload Bill", icon: <Upload size={16} /> },
+      { to: "/bills", label: "Review Queue", icon: <FileStack size={16} /> },
+      { to: "/gst", label: "GST Summary", icon: <FileText size={16} />, ownerOnly: true },
+    ]
+  },
+  {
+    label: "Intelligence",
+    icon: <Activity size={16} />,
+    items: [
+      { to: "/analytics", label: "Analytics", icon: <BarChart2 size={16} />, ownerOnly: true },
+      { to: "/graph", label: "PharmaGraph", icon: <NetworkIcon size={16} /> },
+      { to: "/copilot", label: "PharmaCopilot", icon: <Bot size={16} />, ownerOnly: true },
+      { to: "/predictive", label: "Predictive Intel", icon: <Lightbulb size={16} />, ownerOnly: true },
+      { to: "/surveillance", label: "Health Surveillance", icon: <TrendingUp size={16} />, ownerOnly: true },
+      { to: "/network", label: "Pharma Network", icon: <Globe size={16} /> },
+    ]
+  },
+  {
+    label: "System",
+    icon: <Shield size={16} />,
+    items: [
+      { to: "/users", label: "Staff", icon: <UsersIcon size={16} />, ownerOnly: true },
+      { to: "/trust-score", label: "Supply Trust", icon: <ShieldCheck size={16} />, ownerOnly: true },
+      { to: "/audit", label: "TrustChain", icon: <Link2 size={16} />, ownerOnly: true },
+    ]
+  }
 ];
 
 function HealthBadge() {
@@ -70,32 +105,112 @@ function HealthBadge() {
   if (!health) return null;
 
   const isHealthy = health.status === "healthy";
-  const statusColor = isHealthy ? "#10b981" : health.status === "degraded" ? "#f59e0b" : "#ef4444";
+  const statusColor = isHealthy ? "var(--success-text)" : health.status === "degraded" ? "var(--warning-text)" : "var(--danger-text)";
+  const bgBadge = isHealthy ? "var(--success-bg)" : health.status === "degraded" ? "var(--warning-bg)" : "var(--danger-bg)";
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
       title={`System Status: ${health.status.toUpperCase()}\nDB: ${health.services?.database?.status || 'N/A'}\nRedis: ${health.services?.redis?.status || 'N/A'}\nCelery Workers: ${health.services?.celery?.active_workers ?? 'N/A'}`}
-      className="health-badge-glass"
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: 6,
-        borderRadius: 20,
-        fontSize: 12,
-        color: "#e2e8f0",
-        cursor: "help",
-      }}
+      className="badge"
+      style={{ display: "flex", alignItems: "center", gap: 6, padding: "4px 10px", cursor: "help", background: bgBadge, color: statusColor, border: `1px solid ${statusColor}40` }}
     >
-      <span
-        style={{
-          width: 8,
-          height: 8,
-          borderRadius: "50%",
-          background: statusColor,
-          boxShadow: `0 0 6px ${statusColor}`,
-        }}
-      />
+      <span style={{ width: 6, height: 6, borderRadius: "50%", background: statusColor, boxShadow: `0 0 6px ${statusColor}` }} />
       <span>System {health.status}</span>
+    </motion.div>
+  );
+}
+
+function NavDropdownGroup({ group, isOwner, urgentCount }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const location = useLocation();
+
+  const filteredItems = group.items.filter(item => !item.ownerOnly || isOwner);
+  if (filteredItems.length === 0) return null;
+
+  const isActiveGroup = filteredItems.some(item => 
+    item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)
+  );
+
+  const groupHasUrgent = filteredItems.some(item => item.badgeKey === "urgent" && urgentCount > 0);
+
+  return (
+    <div 
+      style={{ position: "relative" }}
+      onMouseEnter={() => setIsOpen(true)}
+      onMouseLeave={() => setIsOpen(false)}
+    >
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        transition={{ type: "spring", stiffness: 400, damping: 17 }}
+        style={{
+          display: "flex", alignItems: "center", gap: 6,
+          padding: "8px 14px",
+          borderRadius: "var(--radius-full)",
+          background: isActiveGroup ? "var(--primary-50)" : "transparent",
+          color: "var(--primary-600)", // Teal color for all feature groups
+          fontWeight: 600,
+          fontSize: "var(--text-sm)",
+          cursor: "pointer",
+          transition: "background 0.3s ease, color 0.3s ease",
+        }}
+      >
+        {group.icon}
+        <motion.span transition={{ duration: 0.2 }} style={{ display: "inline-block" }}>
+          {group.label}
+        </motion.span>
+        <ChevronDown size={14} style={{ opacity: 0.6, transform: isOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }} />
+        {groupHasUrgent && <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--danger-text)", marginLeft: 4 }} />}
+      </motion.div>
+
+      <AnimatePresence>
+        {isOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 10, scale: 0.95, transition: { duration: 0.1 } }}
+            transition={{ type: "spring", stiffness: 400, damping: 25 }}
+            style={{
+              position: "absolute", top: "100%", left: "50%", transform: "translateX(-50%)",
+              marginTop: 8, minWidth: 220,
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-lg)",
+              boxShadow: "0 10px 40px rgba(0,0,0,0.08)",
+              padding: 8,
+              zIndex: 9999,
+              display: "flex", flexDirection: "column", gap: 4
+            }}
+          >
+            {filteredItems.map(item => (
+              <NavLink key={item.to} to={item.to} end={item.end} style={{ textDecoration: "none" }} onClick={() => setIsOpen(false)}>
+                {({ isActive }) => (
+                  <motion.div
+                    whileHover={{ scale: 1.02, x: 4, background: "var(--bg-surface-hover)" }}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 12px",
+                      borderRadius: "var(--radius-md)",
+                      color: isActive ? "var(--primary-600)" : "var(--text-main)",
+                      background: isActive ? "var(--primary-50)" : "transparent",
+                      fontWeight: isActive ? 600 : 500,
+                      fontSize: "var(--text-sm)",
+                    }}
+                  >
+                    {item.icon}
+                    <span style={{ flex: 1 }}>{item.label}</span>
+                    {item.badgeKey === "urgent" && urgentCount > 0 && (
+                      <span className="badge" style={{ background: "var(--danger-text)", color: "#fff", padding: "2px 6px", fontSize: "10px" }}>{urgentCount}</span>
+                    )}
+                  </motion.div>
+                )}
+              </NavLink>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -119,84 +234,122 @@ function NavBar() {
   if (!user) return null;
 
   return (
-    <nav className="app-nav">
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-        <div className="app-nav-brand">
-          <span className="app-nav-brand-icon">💊</span>
-          Kush Medical Hall
+    <nav className="app-nav" style={{ 
+      padding: "16px 32px", 
+      borderBottom: "1px solid var(--border-subtle)", 
+      background: "rgba(255, 255, 255, 0.7)",
+      backdropFilter: "blur(20px)",
+      WebkitBackdropFilter: "blur(20px)",
+      position: "sticky", top: 0, zIndex: 1000,
+      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, color: "var(--primary-600)", fontWeight: 800, fontSize: "1.2rem", letterSpacing: "-0.02em" }}>
+          <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))", color: "#fff", width: 40, height: 40, borderRadius: 12, boxShadow: "0 4px 10px rgba(20, 184, 166, 0.3)" }}>
+             <Hexagon size={24} strokeWidth={2.5} />
+          </div>
+          <span style={{ background: "linear-gradient(to right, var(--primary-600), var(--primary-800))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+            Kush Medical
+          </span>
         </div>
         <HealthBadge />
       </div>
       
-      <div className="app-nav-links">
-        {NAV_ITEMS.filter((item) => !item.ownerOnly || isOwner).map((item) => (
-          <NavLink
-            key={item.to}
-            to={item.to}
-            end={item.end}
-            className={({ isActive }) => `nav-link${isActive ? " active" : ""}`}
-          >
-            <span className="nav-icon">{item.icon}</span>
-            <span className="nav-text">{item.label}</span>
-            {item.badgeKey === "urgent" && urgentCount > 0 && (
-              <span className="nav-badge">{urgentCount}</span>
-            )}
-          </NavLink>
+      <div className="app-nav-links" style={{ display: "flex", gap: "8px", alignItems: "center", flex: 1, justifyContent: "center" }}>
+        {NAV_GROUPS.map((group) => (
+          <NavDropdownGroup key={group.label} group={group} isOwner={isOwner} urgentCount={urgentCount} />
         ))}
       </div>
       
-      <div className="user-profile-section">
-        <div className="user-profile-info">
-          <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg, #2563eb, #38bdf8)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 'bold', fontSize: 13, boxShadow: '0 2px 6px rgba(37, 99, 235, 0.25)' }}>
+      <div className="user-profile-section" style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <NotificationBell />
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 16px", background: "var(--bg-surface)", borderRadius: "var(--radius-full)", border: "1px solid var(--border-subtle)", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
+          <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
             {(user.full_name || user.username).charAt(0).toUpperCase()}
           </div>
-          <span className="user-profile-name">{user.full_name || user.username}</span>
-          <span className="badge" style={{ marginLeft: 6, background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0', padding: '2px 8px', fontSize: 11 }}>{user.role}</span>
+          <div style={{ display: "flex", flexDirection: "column", lineHeight: 1.1 }}>
+            <span style={{ fontSize: "var(--text-sm)", fontWeight: 600, color: "var(--text-main)" }}>{user.full_name || user.username}</span>
+            <span style={{ fontSize: "10px", color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 700 }}>{user.role}</span>
+          </div>
         </div>
-        <NotificationBell />
-        <button className="user-profile-logout" onClick={logout}>Logout</button>
+        <motion.button 
+          onClick={logout}
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          style={{ 
+            background: "transparent", border: "1px solid var(--border-strong)", 
+            padding: "8px 16px", borderRadius: "var(--radius-full)", 
+            color: "var(--text-main)", fontWeight: 600, fontSize: "var(--text-sm)", 
+            cursor: "pointer", transition: "all 0.2s" 
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.background = "var(--bg-surface-hover)"; e.currentTarget.style.borderColor = "var(--text-main)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.background = "transparent"; e.currentTarget.style.borderColor = "var(--border-strong)"; }}
+        >
+          Logout
+        </motion.button>
       </div>
     </nav>
   );
 }
 
+const PageWrapper = ({ children }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 15 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -15 }}
+    transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+  >
+    {children}
+  </motion.div>
+);
+
 export default function App() {
-  const { loading ,isOwner } = useAuth();
+  const { loading, isOwner } = useAuth();
   const location = useLocation();
   const isLoginPage = location.pathname === "/login";
 
-  if (loading) return <p style={{ padding: 20 }}>Loading System...</p>;
+  useEffect(() => {
+    // Add theme listener or default logic if needed
+    // For now we assume system preference or data-theme
+  }, []);
+
+  if (loading) return (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg-app)" }}>
+      <div className="skeleton" style={{ width: 200, height: 40, borderRadius: 20 }}></div>
+    </div>
+  );
 
   return (
-    <div>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       {!isLoginPage && <NavBar />}
-      <div className={isLoginPage ? "" : "container"}>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/" element={<RequireAuth><SearchDashboard /></RequireAuth>} />
-          <Route path="/substitutes" element={<RequireAuth><Substitutes /></RequireAuth>} />
-          <Route path="/graph" element={<RequireAuth><GraphExplorer isOwner={isOwner} /></RequireAuth>} />
-          <Route path="/scan" element={<RequireAuth><BarcodeScan /></RequireAuth>} />
-          <Route path="/upload" element={<RequireAuth><UploadBill /></RequireAuth>} />
-          <Route path="/bills" element={<RequireAuth><BillHistory /></RequireAuth>} />
-          <Route path="/review/:billId" element={<RequireAuth><ReviewBill /></RequireAuth>} />
-          <Route path="/stock" element={<RequireAuth><Stock /></RequireAuth>} />
-          <Route path="/expiry" element={<RequireAuth><Expiry /></RequireAuth>} />
-          <Route path="/analytics" element={<RequireOwner><Analytics /></RequireOwner>} />
-          <Route path="/gst" element={<RequireOwner><GstReport /></RequireOwner>} />
-          <Route path="/users" element={<RequireOwner><Users /></RequireOwner>} />
-          <Route path="/copilot" element={<RequireOwner><Copilot /></RequireOwner>} />
-          <Route path="/pos" element={<RequireAuth><PointOfSale /></RequireAuth>} />
-          <Route path="/customers" element={<RequireAuth><Customers /></RequireAuth>} />
-          <Route path="/network" element={<RequireAuth><Network isOwner={isOwner} /></RequireAuth>} />
-           <Route path="/predictive" element={<RequireOwner><Predictive /></RequireOwner>} />
-          <Route path="/audit" element={<RequireOwner><AuditTrail /></RequireOwner>} />
-          <Route path="/cold-chain" element={<RequireAuth><ColdChain isOwner={isOwner} /></RequireAuth>} />
-          <Route path="/surveillance" element={<RequireOwner><Surveillance /></RequireOwner>} />
-          <Route path="/trust-score" element={<RequireOwner><TrustScore /></RequireOwner>} />
-
-          <Route path="/notifications" element={<RequireAuth><div /></RequireAuth>} />
-        </Routes>
+      <div className={isLoginPage ? "" : "container"} style={{ flex: 1 }}>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
+            <Route path="/" element={<RequireAuth><PageWrapper><SearchDashboard /></PageWrapper></RequireAuth>} />
+            <Route path="/substitutes" element={<RequireAuth><PageWrapper><Substitutes /></PageWrapper></RequireAuth>} />
+            <Route path="/graph" element={<RequireAuth><PageWrapper><GraphExplorer isOwner={isOwner} /></PageWrapper></RequireAuth>} />
+            <Route path="/scan" element={<RequireAuth><PageWrapper><BarcodeScan /></PageWrapper></RequireAuth>} />
+            <Route path="/upload" element={<RequireAuth><PageWrapper><UploadBill /></PageWrapper></RequireAuth>} />
+            <Route path="/bills" element={<RequireAuth><PageWrapper><BillHistory /></PageWrapper></RequireAuth>} />
+            <Route path="/review/:billId" element={<RequireAuth><PageWrapper><ReviewBill /></PageWrapper></RequireAuth>} />
+            <Route path="/stock" element={<RequireAuth><PageWrapper><Stock /></PageWrapper></RequireAuth>} />
+            <Route path="/expiry" element={<RequireAuth><PageWrapper><Expiry /></PageWrapper></RequireAuth>} />
+            <Route path="/analytics" element={<RequireOwner><PageWrapper><Analytics /></PageWrapper></RequireOwner>} />
+            <Route path="/gst" element={<RequireOwner><PageWrapper><GstReport /></PageWrapper></RequireOwner>} />
+            <Route path="/users" element={<RequireOwner><PageWrapper><Users /></PageWrapper></RequireOwner>} />
+            <Route path="/copilot" element={<RequireOwner><PageWrapper><Copilot /></PageWrapper></RequireOwner>} />
+            <Route path="/pos" element={<RequireAuth><PageWrapper><PointOfSale /></PageWrapper></RequireAuth>} />
+            <Route path="/customers" element={<RequireAuth><PageWrapper><Customers /></PageWrapper></RequireAuth>} />
+            <Route path="/network" element={<RequireAuth><PageWrapper><Network isOwner={isOwner} /></PageWrapper></RequireAuth>} />
+            <Route path="/predictive" element={<RequireOwner><PageWrapper><Predictive /></PageWrapper></RequireOwner>} />
+            <Route path="/audit" element={<RequireOwner><PageWrapper><AuditTrail /></PageWrapper></RequireOwner>} />
+            <Route path="/cold-chain" element={<RequireAuth><PageWrapper><ColdChain isOwner={isOwner} /></PageWrapper></RequireAuth>} />
+            <Route path="/surveillance" element={<RequireOwner><PageWrapper><Surveillance /></PageWrapper></RequireOwner>} />
+            <Route path="/trust-score" element={<RequireOwner><PageWrapper><TrustScore /></PageWrapper></RequireOwner>} />
+            <Route path="/notifications" element={<RequireAuth><PageWrapper><div /></PageWrapper></RequireAuth>} />
+          </Routes>
+        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { Users as UsersIcon, UserPlus, ShieldOff } from "lucide-react";
 import { api } from "../api/client.js";
 
 export default function Users() {
@@ -36,42 +38,53 @@ export default function Users() {
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="page-content"
+    >
       <div className="card">
-        <h2>👥 Manage Staff Accounts</h2>
-        <p style={{ color: "#666", fontSize: 13 }}>
+        <h2 style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+          <UsersIcon size={24} color="var(--primary-500)" /> Manage Staff Accounts
+        </h2>
+        <p style={{ color: "var(--text-muted)", fontSize: 13, marginTop: 0 }}>
           Staff can upload/review bills, record sales, and view stock — but can't see cost prices,
           Analytics, or GST reports. Only the Owner has full access.
         </p>
-        <form onSubmit={handleCreate} style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div>
-            <label style={{ fontSize: 12, color: "#666" }}>Username</label>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} required />
+        <form onSubmit={handleCreate} style={{ display: "flex", gap: 12, flexWrap: "wrap", alignItems: "flex-end", marginTop: 16 }}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>Username</label>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} required style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-surface)", color: "var(--text-main)" }} />
           </div>
-          <div>
-            <label style={{ fontSize: 12, color: "#666" }}>Full name</label>
-            <input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>Full name</label>
+            <input value={fullName} onChange={(e) => setFullName(e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-surface)", color: "var(--text-main)" }} />
           </div>
-          <div>
-            <label style={{ fontSize: 12, color: "#666" }}>Password</label>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>Password</label>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-surface)", color: "var(--text-main)" }} />
           </div>
-          <div>
-            <label style={{ fontSize: 12, color: "#666" }}>Role</label>
-            <select value={role} onChange={(e) => setRole(e.target.value)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            <label style={{ fontSize: 12, color: "var(--text-muted)", fontWeight: 500 }}>Role</label>
+            <select value={role} onChange={(e) => setRole(e.target.value)} style={{ padding: "8px 12px", borderRadius: 6, border: "1px solid var(--border)", background: "var(--bg-surface)", color: "var(--text-main)" }}>
               <option value="staff">Staff</option>
               <option value="owner">Owner</option>
             </select>
           </div>
-          <button type="submit" disabled={saving}>{saving ? "Adding..." : "Add account"}</button>
+          <button type="submit" disabled={saving} className="btn btn-primary" style={{ padding: "8px 16px", display: "flex", alignItems: "center", gap: 6 }}>
+            <UserPlus size={16} />
+            {saving ? "Adding..." : "Add account"}
+          </button>
         </form>
-        {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
+        {error && <p style={{ color: "var(--danger)", marginTop: 12 }}>{error}</p>}
       </div>
 
       <div className="card">
-        <h3 style={{ marginTop: 0 }}>All accounts</h3>
-        <table>
-          <thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Status</th><th></th></tr></thead>
+        <h3 style={{ marginTop: 0, color: "var(--text-main)" }}>All accounts</h3>
+        <table className="table">
+          <thead><tr><th>Username</th><th>Full name</th><th>Role</th><th>Status</th><th>Actions</th></tr></thead>
           <tbody>
             {users.map((u) => (
               <tr key={u.id}>
@@ -79,12 +92,18 @@ export default function Users() {
                 <td>{u.full_name || "—"}</td>
                 <td><span className={`badge ${u.role === "owner" ? "auto" : "manual"}`}>{u.role}</span></td>
                 <td>{u.is_active ? <span className="badge auto">active</span> : <span className="badge unmatched">disabled</span>}</td>
-                <td>{u.is_active && <button className="secondary" onClick={() => handleDeactivate(u.id)}>Deactivate</button>}</td>
+                <td>
+                  {u.is_active && (
+                    <button className="btn btn-secondary" onClick={() => handleDeactivate(u.id)} style={{ padding: "4px 8px", fontSize: 12, display: "flex", alignItems: "center", gap: 4 }}>
+                      <ShieldOff size={14} /> Deactivate
+                    </button>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-    </div>
+    </motion.div>
   );
 }

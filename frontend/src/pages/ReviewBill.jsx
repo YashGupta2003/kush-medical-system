@@ -1,6 +1,11 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import { api } from "../api/client.js";
+import { 
+  FileText, ZoomIn, ZoomOut, Maximize, Target, Trash2, Link as LinkIcon, 
+  CheckCircle2, AlertTriangle, FileWarning, Plus, ArrowRight, ArrowLeft 
+} from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 
 const FIELD_LABELS = {
   qty: "Qty", free_qty: "Free", mrp: "MRP", rate: "Rate",
@@ -8,12 +13,6 @@ const FIELD_LABELS = {
 };
 const EDITABLE_FIELDS = Object.keys(FIELD_LABELS);
 
-// ---------------------------------------------------------------------------
-// Mirrors app/services/cost_calculator.py compute_cost_per_unit() exactly,
-// so the pill on screen always matches what the backend will actually save
-// - including live updates as the user edits fields, instead of showing the
-// stale number from the original (possibly OCR-misread) parse.
-// ---------------------------------------------------------------------------
 function computeCostPerUnit(row) {
   const qty = Number(row.qty) || 0;
   const free = Number(row.free_qty) || 0;
@@ -33,19 +32,6 @@ function computeCostPerUnit(row) {
   return netLanded / effectiveUnits;
 }
 
-// ---------------------------------------------------------------------------
-// Search-and-link widget for line items that OCR/fuzzy-matching couldn't
-// resolve to a medicine on their own. Without this, medicine_id stays null
-// forever for unmatched items, and /bills/confirm silently skips the master
-// list update, stock increment, AND expiry batch creation for that item
-// (all three require a non-null medicine_id on the backend).
-// ---------------------------------------------------------------------------
-// BUG FIX #6: MedicineLinkPicker now supports paginated search.
-// Previously page=1, page_size=8 was hardcoded with no "Load More" option,
-// so medicines beyond the first 8 results were permanently inaccessible.
-// Fix: tracks current page in state, renders a "Load more" button when the
-// last fetch returned a full page (meaning there are likely more results),
-// and appends results on subsequent pages instead of replacing them.
 const PICKER_PAGE_SIZE = 8;
 
 function MedicineLinkPicker({ onLink }) {
@@ -55,14 +41,12 @@ function MedicineLinkPicker({ onLink }) {
   const [hasMore, setHasMore] = useState(false);
   const [searching, setSearching] = useState(false);
 
-  // Reset page and results when query changes
   useEffect(() => {
     setPage(1);
     setResults([]);
     setHasMore(false);
   }, [query]);
 
-  // Fetch whenever query or page changes
   useEffect(() => {
     if (query.trim().length < 2) {
       setResults([]);
@@ -76,10 +60,8 @@ function MedicineLinkPicker({ onLink }) {
           if (page === 1) {
             setResults(d.items);
           } else {
-            // Append new page results to existing list
             setResults((prev) => [...prev, ...d.items]);
           }
-          // If the API returned a full page, there might be more
           setHasMore(d.items.length === PICKER_PAGE_SIZE);
         })
         .finally(() => setSearching(false));
@@ -92,51 +74,54 @@ function MedicineLinkPicker({ onLink }) {
   }
 
   return (
-    <div style={{ marginTop: 6 }}>
+    <div style={{ marginTop: "var(--space-2)", background: "var(--bg-app)", padding: "var(--space-2)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
       <input
-        style={{ width: "100%" }}
-        placeholder="Type to search the master list and link the correct medicine..."
+        className="input"
+        style={{ width: "100%", fontSize: "var(--text-xs)", padding: "var(--space-2)" }}
+        placeholder="Type to search master list and link..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
       />
-      {searching && <p style={{ fontSize: 12, color: "#888", margin: "4px 0 0" }}>Searching...</p>}
+      {searching && <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: "4px 0 0" }}>Searching directory...</p>}
       {results.length > 0 && (
-        <>
-          <table style={{ marginTop: 6 }}>
-            <tbody>
-              {results.map((m) => (
-                <tr
-                  key={m.id}
-                  style={{ cursor: "pointer" }}
-                  onClick={() => { onLink(m); setQuery(""); setResults([]); setPage(1); }}
-                >
-                  <td>{m.particulars}</td>
-                  <td style={{ color: "#888" }}>{m.unit}</td>
-                  <td><button className="secondary">Link this</button></td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {/* BUG FIX #6: Load More button — visible when there may be more results */}
+        <div style={{ marginTop: "var(--space-2)" }}>
+          <div className="table-container" style={{ borderRadius: "var(--radius-sm)" }}>
+            <table className="table" style={{ fontSize: "var(--text-xs)" }}>
+              <tbody>
+                {results.map((m) => (
+                  <tr
+                    key={m.id}
+                    style={{ cursor: "pointer" }}
+                    onClick={() => { onLink(m); setQuery(""); setResults([]); setPage(1); }}
+                  >
+                    <td style={{ fontWeight: 500 }}>{m.particulars}</td>
+                    <td style={{ color: "var(--text-muted)" }}>{m.unit}</td>
+                    <td style={{ textAlign: "right", padding: "4px" }}>
+                      <button className="btn btn-ghost" style={{ padding: "4px 8px", fontSize: "var(--text-xs)" }}>
+                        <LinkIcon size={12} /> Link
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
           {hasMore && (
             <button
-              className="secondary"
-              style={{ marginTop: 6, fontSize: 12 }}
+              className="btn btn-ghost"
+              style={{ width: "100%", marginTop: 4, fontSize: "var(--text-xs)" }}
               onClick={handleLoadMore}
               disabled={searching}
             >
-              {searching ? "Loading..." : `Load more results (showing ${results.length})`}
+              {searching ? "Loading..." : `Load more (${results.length} shown)`}
             </button>
           )}
-        </>
+        </div>
       )}
     </div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Left pane: zoomable/pannable bill image with click-to-fill rectangle select
-// ---------------------------------------------------------------------------
 function BillImageViewer({ billId, pickingField, onRegionSelected }) {
   const containerRef = useRef(null);
   const imgRef = useRef(null);
@@ -193,25 +178,41 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
   }
 
   return (
-    <div className="card image-viewer-card" style={{ padding: 12 }}>
-      <div className="flex-between" style={{ marginBottom: 10 }}>
-        <strong style={{ fontSize: 14 }}>📄 Original bill</strong>
-        <div style={{ display: "flex", gap: 6 }}>
-          <button className="secondary" onClick={() => setZoom((z) => Math.max(0.3, +(z - 0.25).toFixed(2)))}>−</button>
-          <span style={{ fontSize: 13, alignSelf: "center", minWidth: 40, textAlign: "center" }}>{Math.round(zoom * 100)}%</span>
-          <button className="secondary" onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}>+</button>
-          <button className="secondary" onClick={() => setZoom(1)}>Reset</button>
+    <div className="card" style={{ padding: "var(--space-3)", position: "sticky", top: 100 }}>
+      <div className="flex-between" style={{ marginBottom: "var(--space-3)" }}>
+        <strong style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--text-sm)", color: "var(--text-main)" }}>
+          <FileText size={16} /> Original Document
+        </strong>
+        <div style={{ display: "flex", gap: 4, background: "var(--bg-app)", padding: 4, borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
+          <button className="icon-btn" onClick={() => setZoom((z) => Math.max(0.3, +(z - 0.25).toFixed(2)))}><ZoomOut size={14}/></button>
+          <span style={{ fontSize: "var(--text-xs)", alignSelf: "center", minWidth: 40, textAlign: "center", fontWeight: 600 }}>{Math.round(zoom * 100)}%</span>
+          <button className="icon-btn" onClick={() => setZoom((z) => Math.min(4, +(z + 0.25).toFixed(2)))}><ZoomIn size={14}/></button>
+          <button className="icon-btn" onClick={() => setZoom(1)} title="Reset"><Maximize size={14}/></button>
         </div>
       </div>
-      {pickingField && (
-        <p style={{ background: "#fef3c7", padding: 10, borderRadius: 8, fontSize: 13, marginBottom: 10 }}>
-          🎯 Drag a box around the correct value for <strong>{FIELD_LABELS[pickingField.field] || pickingField.field}</strong>.
-        </p>
-      )}
+      
+      <AnimatePresence>
+        {pickingField && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }} 
+            animate={{ opacity: 1, height: "auto" }} 
+            exit={{ opacity: 0, height: 0 }}
+            style={{ overflow: "hidden", marginBottom: "var(--space-3)" }}
+          >
+            <div style={{ background: "var(--warning-bg)", color: "var(--warning-text)", padding: "var(--space-2) var(--space-3)", borderRadius: "var(--radius-md)", fontSize: "var(--text-xs)", border: "1px solid var(--warning-border)", display: "flex", alignItems: "center", gap: 6 }}>
+              <Target size={14} /> Drag a box around the value for <strong>{FIELD_LABELS[pickingField.field] || pickingField.field}</strong>.
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <div
         ref={containerRef}
-        className="image-scroll-area"
-        style={{ cursor: pickingField ? "crosshair" : panning ? "grabbing" : "grab" }}
+        style={{
+          overflow: "auto", height: "calc(100vh - 200px)", border: "1px solid var(--border-subtle)", 
+          borderRadius: "var(--radius-md)", position: "relative", background: "var(--bg-app)",
+          cursor: pickingField ? "crosshair" : panning ? "grabbing" : "grab"
+        }}
         onMouseDown={handleMouseDown}
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
@@ -234,7 +235,7 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
               position: "fixed",
               left: Math.min(drag.startX, drag.curX), top: Math.min(drag.startY, drag.curY),
               width: Math.abs(drag.curX - drag.startX), height: Math.abs(drag.curY - drag.startY),
-              border: "2px solid #2563eb", background: "rgba(37,99,235,0.15)", pointerEvents: "none",
+              border: "2px solid var(--primary-500)", background: "rgba(20, 184, 166, 0.15)", pointerEvents: "none",
             }}
           />
         )}
@@ -243,33 +244,42 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
   );
 }
 
-// ---------------------------------------------------------------------------
-// One editable line-item card
-// ---------------------------------------------------------------------------
 function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pickingField, onLinkMedicine, onRemove }) {
   const isPicking = (field) => pickingField && pickingField.itemId === row.id && pickingField.field === field;
 
   return (
-    <div className="item-card">
-      <div className="item-card-header">
-        <input
-          value={row.raw_name || ""}
-          placeholder="Medicine name as printed on the bill..."
-          onChange={(e) => onFieldChange(row.id, "raw_name", e.target.value)}
-        />
-        <button
-          className={`icon-btn ${isPicking("raw_name") ? "" : "secondary"}`}
-          title="Pick name from image"
-          onClick={() => onPickField(row.id, "raw_name")}
-        >🎯</button>
-        <button
-          className="icon-btn secondary"
-          title="Remove this item"
-          onClick={() => onRemove(row.id)}
-        >🗑️</button>
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      layout
+      className="card" 
+      style={{ marginBottom: "var(--space-4)", padding: "var(--space-4)" }}
+    >
+      <div className="flex-between" style={{ gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+        <div style={{ flex: 1, display: "flex", gap: "var(--space-2)", alignItems: "center" }}>
+          <input
+            className="input"
+            style={{ fontSize: "var(--text-base)", fontWeight: 600, padding: "var(--space-2) var(--space-3)" }}
+            value={row.raw_name || ""}
+            placeholder="Medicine name as printed..."
+            onChange={(e) => onFieldChange(row.id, "raw_name", e.target.value)}
+          />
+          <button
+            className={`icon-btn ${isPicking("raw_name") ? "" : "btn-ghost"}`}
+            style={{ background: isPicking("raw_name") ? "var(--primary-100)" : undefined, color: isPicking("raw_name") ? "var(--primary-600)" : undefined }}
+            title="Pick name from image"
+            onClick={() => onPickField(row.id, "raw_name")}
+          >
+            <Target size={16} />
+          </button>
+        </div>
+        <button className="icon-btn btn-ghost" title="Remove" onClick={() => onRemove(row.id)} style={{ color: "var(--danger-text)" }}>
+          <Trash2 size={16} />
+        </button>
       </div>
 
-      <div className="item-match-row">
+      <div style={{ marginBottom: "var(--space-4)" }}>
         {row.medicine_id && row.suggested_medicine_name ? (
           <span className={`badge ${row.match_status}`}>
             {row.match_status === "learned" ? "Learned match: "
@@ -278,55 +288,57 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
             {row.suggested_medicine_name} ({Math.round(row.match_confidence || 0)}%)
           </span>
         ) : (
-          <>
-            <span className="badge unmatched">Unmatched — pick manually</span>
+          <div>
+            <span className="badge unmatched">Unmatched — action required</span>
             <MedicineLinkPicker onLink={(medicine) => onLinkMedicine(row.id, medicine)} />
-          </>
+          </div>
         )}
       </div>
 
-      <div className="item-fields-grid">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(100px, 1fr))", gap: "var(--space-3)", marginBottom: "var(--space-4)", background: "var(--bg-app)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
         {EDITABLE_FIELDS.map((f) => (
-          <div className="field-group" key={f}>
-            <label>{FIELD_LABELS[f]}</label>
-            <div className="field-group-inner">
+          <div key={f}>
+            <label style={{ display: "block", fontSize: "10px", color: "var(--text-muted)", marginBottom: 4, textTransform: "uppercase", fontWeight: 600 }}>{FIELD_LABELS[f]}</label>
+            <div style={{ display: "flex", gap: 4 }}>
               <input
+                className="input"
+                style={{ padding: "4px 8px", fontSize: "var(--text-sm)" }}
                 type="number"
                 value={row[f] ?? ""}
                 onChange={(e) => onFieldChange(row.id, f, e.target.value)}
               />
               <button
-                className={`icon-btn ${isPicking(f) ? "" : "secondary"}`}
-                title={`Pick ${FIELD_LABELS[f]} from image`}
+                className={`icon-btn ${isPicking(f) ? "" : "btn-ghost"}`}
+                style={{ width: 28, height: 28, background: isPicking(f) ? "var(--primary-100)" : undefined, color: isPicking(f) ? "var(--primary-600)" : undefined }}
+                title={`Pick from image`}
                 onClick={() => onPickField(row.id, f)}
-              >🎯</button>
+              >
+                <Target size={14} />
+              </button>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="item-card-footer">
-        <span className="cost-pill">Cost/unit: ₹{computeCostPerUnit(row).toFixed(2)}</span>
-        <label className="update-list-toggle">
+      <div className="flex-between" style={{ paddingTop: "var(--space-3)", borderTop: "1px solid var(--border-subtle)" }}>
+        <span style={{ background: "var(--success-bg)", color: "var(--success-text)", padding: "4px 12px", borderRadius: "var(--radius-full)", fontSize: "var(--text-sm)", fontWeight: 600, border: "1px solid var(--success-border)" }}>
+          Cost/unit: ₹{computeCostPerUnit(row).toFixed(2)}
+        </span>
+        <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--text-sm)", color: "var(--text-main)", cursor: row.medicine_id ? "pointer" : "not-allowed", opacity: row.medicine_id ? 1 : 0.6 }}>
           <input
             type="checkbox"
+            style={{ width: 16, height: 16, accentColor: "var(--primary-500)" }}
             checked={!!applied}
             disabled={!row.medicine_id}
             onChange={(e) => onToggleApply(row.id, e.target.checked)}
           />
-          Update master list
-          {!row.medicine_id && (
-            <span style={{ color: "#999", fontSize: 11 }}>(link a medicine first)</span>
-          )}
+          Update Master List
         </label>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// ---------------------------------------------------------------------------
-// Main review page
-// ---------------------------------------------------------------------------
 export default function ReviewBill() {
   const { billId } = useParams();
   const [bill, setBill] = useState(null);
@@ -434,7 +446,6 @@ export default function ReviewBill() {
   }, [pickingField, billId]);
 
   const itemsToApplyCount = Object.values(applyFlags).filter(Boolean).length;
-
   const itemsMissingExpiry = Object.values(rows).filter(
     (r) => r.medicine_id && (!r.exp_date || !String(r.exp_date).trim())
   );
@@ -490,163 +501,189 @@ export default function ReviewBill() {
     }
   }
 
-  if (!bill) return <p>Loading...</p>;
+  if (!bill) return <div className="skeleton" style={{ height: "100vh" }}></div>;
 
   if (stage === "done" && changeSummary) {
     return (
-      <div className="card">
-        <h2>✅ Master list updated</h2>
-        {changeSummary.length === 0 && <p>No master rate list changes were made.</p>}
-        <table>
-          <thead><tr><th>Medicine</th><th>Column</th><th>Old value</th><th>New value</th><th>Status</th></tr></thead>
-          <tbody>
-            {changeSummary.map((c, i) => (
-              <tr key={i}>
-                <td>{c.medicine_name}</td>
-                <td>{c.field === "net_rate" ? "Cost price (NET RATE)" : "MRP"}</td>
-                <td>{c.old_value ?? "—"}</td>
-                <td><strong>{c.new_value ?? "—"}</strong></td>
-                <td><span className="badge auto">found &amp; updated</span></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <Link to="/"><button style={{ marginTop: 16 }}>View full updated medicine list</button></Link>
-      </div>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card card-raised" style={{ maxWidth: 800, margin: "0 auto", marginTop: "var(--space-10)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: "var(--space-6)", color: "var(--success-text)" }}>
+          <CheckCircle2 size={32} />
+          <h2 style={{ margin: 0, color: "var(--text-main)" }}>Master List Synchronized</h2>
+        </div>
+        {changeSummary.length === 0 && <p style={{ color: "var(--text-muted)" }}>No master rate list changes were required.</p>}
+        
+        {changeSummary.length > 0 && (
+          <div className="table-container">
+            <table className="table">
+              <thead><tr><th>Medicine</th><th>Field Updated</th><th>Old Value</th><th>New Value</th><th>Status</th></tr></thead>
+              <tbody>
+                {changeSummary.map((c, i) => (
+                  <tr key={i}>
+                    <td style={{ fontWeight: 500 }}>{c.medicine_name}</td>
+                    <td><span className="badge" style={{ background: "var(--bg-app)", border: "1px solid var(--border-subtle)" }}>{c.field === "net_rate" ? "Cost (NET)" : "MRP"}</span></td>
+                    <td style={{ color: "var(--text-muted)", textDecoration: "line-through" }}>{c.old_value ?? "—"}</td>
+                    <td style={{ color: "var(--success-text)", fontWeight: 600 }}>{c.new_value ?? "—"}</td>
+                    <td><span className="badge auto">Applied</span></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div style={{ marginTop: "var(--space-6)", display: "flex", justifyContent: "flex-end" }}>
+          <Link to="/" style={{ textDecoration: "none" }}>
+            <button className="btn btn-primary"><ArrowRight size={16} /> View Master List</button>
+          </Link>
+        </div>
+      </motion.div>
     );
   }
 
   if (stage === "expiry_check") {
     return (
-      <div className="card" style={{ borderLeft: "4px solid #ea580c" }}>
-        <h2>📝 A few items are missing an expiry date</h2>
-        <p style={{ color: "#666", fontSize: 13 }}>
-          The bill photo didn't show a readable expiry date for these items. Check the actual
-          packet/strip and enter it here — this powers your Expiry Tracker alerts later. You can
-          also skip and fill these in afterwards from the Expiry page.
-        </p>
-        {itemsMissingExpiry.map((r) => (
-          <div key={r.id} className="reorder-item-row">
-            <div className="reorder-item-name">{r.raw_name}</div>
-            <input type="date" onChange={(e) => updateField(r.id, "exp_date", e.target.value)} />
-          </div>
-        ))}
-        <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
-          <button onClick={() => setStage("confirming")}>Continue</button>
-          <button className="secondary" onClick={() => setStage("reviewing")}>Back to review</button>
+      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} className="card" style={{ maxWidth: 600, margin: "0 auto", marginTop: "var(--space-10)", borderTop: "4px solid var(--warning-text)" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: "var(--space-4)" }}>
+          <AlertTriangle size={28} className="text-warning-text" style={{ color: "var(--warning-text)" }} />
+          <h2 style={{ margin: 0 }}>Missing Expiry Data</h2>
         </div>
-      </div>
+        <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", marginBottom: "var(--space-6)" }}>
+          The OCR engine could not reliably read the expiry date for these items. Please enter them manually to ensure the Expiry Tracker can alert you in the future.
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", marginBottom: "var(--space-6)" }}>
+          {itemsMissingExpiry.map((r) => (
+            <div key={r.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "var(--space-3)", background: "var(--bg-app)", borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)" }}>
+              <div style={{ fontWeight: 500, fontSize: "var(--text-sm)" }}>{r.raw_name}</div>
+              <input className="input" style={{ width: 160 }} type="date" onChange={(e) => updateField(r.id, "exp_date", e.target.value)} />
+            </div>
+          ))}
+        </div>
+        <div style={{ display: "flex", gap: "var(--space-3)", justifyContent: "flex-end" }}>
+          <button className="btn btn-ghost" onClick={() => setStage("reviewing")}><ArrowLeft size={16} /> Back</button>
+          <button className="btn btn-primary" onClick={() => setStage("confirming")}>Continue to Confirm</button>
+        </div>
+      </motion.div>
     );
   }
 
   if (stage === "confirming") {
     return (
-      <div className="card">
-        <h2>Update the master rate list now?</h2>
-        <p>
-          You're about to update <strong>{itemsToApplyCount}</strong> medicine
-          {itemsToApplyCount === 1 ? "" : "s"} in your master rate list based on this bill.
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ maxWidth: 500, margin: "0 auto", marginTop: "var(--space-10)" }}>
+        <h2 style={{ marginBottom: "var(--space-2)" }}>Commit to Ledger?</h2>
+        <p style={{ color: "var(--text-muted)", marginBottom: "var(--space-6)" }}>
+          You are about to synchronize <strong>{itemsToApplyCount}</strong> matched items to the master rate list and TrustChain ledger.
         </p>
-        <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={handleFinalConfirm}>Yes, update the list</button>
-          <button className="secondary" onClick={() => setStage("reviewing")}>No, let me review again</button>
+        <div style={{ display: "flex", gap: "var(--space-3)" }}>
+          <button className="btn btn-secondary" style={{ flex: 1 }} onClick={() => setStage("reviewing")}>Cancel</button>
+          <button className="btn btn-primary" style={{ flex: 1 }} onClick={handleFinalConfirm}>Confirm & Synchronize</button>
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   if (stage === "applying") {
-    return <div className="card"><p>Updating master list...</p></div>;
+    return (
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", height: "50vh", gap: "var(--space-4)" }}>
+         <div className="skeleton" style={{ width: 64, height: 64, borderRadius: "50%" }}></div>
+         <p style={{ color: "var(--text-muted)", fontWeight: 500 }}>Executing Cryptographic Ledger Commit...</p>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <div className="card">
+    <div style={{ paddingBottom: "var(--space-10)" }}>
+      {/* Header Bar */}
+      <div className="card" style={{ marginBottom: "var(--space-6)", padding: "var(--space-4)" }}>
         <div className="flex-between">
           <div>
-            <h2 style={{ marginBottom: 4 }}>Review bill #{bill.id}</h2>
-            <p style={{ color: "#666", fontSize: 13, margin: 0 }}>
-              {bill.year}-{String(bill.month).padStart(2, "0")} · Uploaded {new Date(bill.uploaded_at).toLocaleDateString()}
+            <h2 style={{ marginBottom: "var(--space-1)", fontSize: "var(--text-2xl)", display: "flex", alignItems: "center", gap: 8 }}>
+              <FileText size={24} color="var(--primary-600)" /> Invoice Digitation Review
+            </h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0 }}>
+              Batch: {bill.year}-{String(bill.month).padStart(2, "0")} • Processed on {new Date(bill.uploaded_at).toLocaleDateString()}
             </p>
-            <div style={{ display: "flex", gap: 12, marginTop: 8, flexWrap: "wrap" }}>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <label style={{ fontSize: 11, color: "#666", display: "block", marginBottom: 2 }}>Distributor Name</label>
+            
+            <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-4)", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: 240 }}>
+                <label style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "block", marginBottom: 4, fontWeight: 600, textTransform: "uppercase" }}>Distributor Entity</label>
                 <input
-                  style={{ width: "100%" }}
+                  className="input"
                   value={distributorName}
                   onChange={(e) => { setDistributorName(e.target.value); setIs409Error(false); }}
-                  placeholder="Distributor name..."
+                  placeholder="e.g. Apollo Pharma..."
                 />
               </div>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <label style={{ fontSize: 11, color: "#666", display: "block", marginBottom: 2 }}>Invoice No.</label>
+              <div style={{ flex: 1, minWidth: 200 }}>
+                <label style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "block", marginBottom: 4, fontWeight: 600, textTransform: "uppercase" }}>Invoice Number</label>
                 <input
-                  style={{ width: "100%" }}
+                  className="input"
                   value={invoiceNo}
                   onChange={(e) => { setInvoiceNo(e.target.value); setIs409Error(false); }}
-                  placeholder="Invoice number..."
+                  placeholder="e.g. INV-100234..."
                 />
               </div>
             </div>
           </div>
-          <button onClick={handleProceedClick} disabled={Object.keys(rows).length === 0} style={{ alignSelf: "flex-start" }}>
-            Looks good — proceed ({itemsToApplyCount} to update)
+          <button className="btn btn-primary" onClick={handleProceedClick} disabled={Object.keys(rows).length === 0} style={{ padding: "var(--space-3) var(--space-6)", alignSelf: "flex-start", fontSize: "var(--text-base)" }}>
+            Approve Batch ({itemsToApplyCount}) <ArrowRight size={18} />
           </button>
         </div>
+
         {bill.status === "needs_attention" && (
-          <p style={{ background: "#fee2e2", padding: 10, borderRadius: 8, fontSize: 13, marginTop: 10 }}>
-            ⚠️ This bill needs extra attention: {bill.needs_attention_reason}
-          </p>
+          <div style={{ background: "var(--warning-bg)", color: "var(--warning-text)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", marginTop: "var(--space-4)", border: "1px solid var(--warning-border)", display: "flex", alignItems: "flex-start", gap: 8 }}>
+            <FileWarning size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+            <span><strong>Attention Required:</strong> {bill.needs_attention_reason}</span>
+          </div>
         )}
-        {is409Error ? (
-          <div style={{ background: "#fef2f2", border: "1px solid #fca5a5", color: "#991b1b", padding: 12, borderRadius: 8, marginTop: 10, fontSize: 13 }}>
-            <strong style={{ fontSize: 14 }}>⚠️ Duplicate Invoice Conflict (HTTP 409)</strong>
-            <p style={{ margin: "4px 0 0" }}>{error}</p>
-            <p style={{ margin: "6px 0 0", color: "#7f1d1d" }}>
-              This invoice number and distributor match an already-confirmed bill. If this is a separate delivery, please update the Invoice No. field above before confirming.
+        
+        {is409Error && (
+          <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger-text)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", marginTop: "var(--space-4)" }}>
+            <strong style={{ fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={16} /> Duplicate Conflict Detected</strong>
+            <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)" }}>{error}</p>
+            <p style={{ margin: "4px 0 0", fontSize: "var(--text-xs)", opacity: 0.9 }}>
+              This invoice number and distributor match an already-confirmed bill. Modify the metadata above to proceed.
             </p>
           </div>
-        ) : (
-          error && <p style={{ color: "#b91c1c", marginTop: 8 }}>{error}</p>
         )}
-        {regionLoading && <p style={{ color: "#666", marginTop: 8 }}>Reading selected region...</p>}
       </div>
 
-      <div className="review-grid">
+      <div style={{ display: "grid", gridTemplateColumns: "minmax(400px, 1fr) minmax(500px, 1.2fr)", gap: "var(--space-6)", alignItems: "start" }}>
+        {/* Left Side: Viewer */}
         <BillImageViewer billId={bill.id} pickingField={pickingField} onRegionSelected={handleRegionSelected} />
 
+        {/* Right Side: Rows */}
         <div>
-          <div className="flex-between" style={{ marginBottom: 10 }}>
-            <p style={{ fontSize: 13, color: "#666", margin: 0 }}>
-              Click 🎯 next to any field, then drag a box around the correct value on the image to re-read just that spot.
+          <div className="flex-between" style={{ marginBottom: "var(--space-4)", padding: "var(--space-2) var(--space-4)", background: "var(--bg-surface)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius-lg)" }}>
+            <p style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", margin: 0, display: "flex", alignItems: "center", gap: 6 }}>
+              <Target size={14} /> Click the target icon to bound a region on the image for instant OCR read.
             </p>
-            <button className="secondary" onClick={handleAddItem} disabled={addingItem}>
-              {addingItem ? "Adding..." : "+ Add item manually"}
+            <button className="btn btn-secondary" style={{ fontSize: "var(--text-xs)" }} onClick={handleAddItem} disabled={addingItem}>
+              {addingItem ? "Adding..." : <><Plus size={14} /> Manual Line Item</>}
             </button>
           </div>
 
           {Object.keys(rows).length === 0 && (
-            <div className="card" style={{ borderLeft: "4px solid #ea580c" }}>
-              <p style={{ margin: 0, fontSize: 13, color: "#666" }}>
-                No items could be read automatically from this bill. Use "+ Add item manually" above
-                to enter each line item by hand, using the original bill image on the left as reference.
-              </p>
-            </div>
+             <div className="empty-state card">
+               <FileWarning size={32} className="empty-state-icon" />
+               <p className="empty-state-title">No items extracted</p>
+               <p style={{ fontSize: "var(--text-sm)", color: "var(--text-muted)", margin: 0 }}>The vision model could not extract tabular data. Please add items manually.</p>
+             </div>
           )}
 
-          {Object.values(rows).map((r) => (
-            <ItemCard
-              key={r.id}
-              row={r}
-              applied={applyFlags[r.id]}
-              onFieldChange={updateField}
-              onToggleApply={(id, checked) => setApplyFlags((prev) => ({ ...prev, [id]: checked }))}
-              onPickField={(id, field) => setPickingField({ itemId: id, field })}
-              pickingField={pickingField}
-              onLinkMedicine={handleLinkMedicine}
-              onRemove={handleRemoveItem}
-            />
-          ))}
+          <AnimatePresence>
+            {Object.values(rows).map((r) => (
+              <ItemCard
+                key={r.id}
+                row={r}
+                applied={applyFlags[r.id]}
+                onFieldChange={updateField}
+                onToggleApply={(id, checked) => setApplyFlags((prev) => ({ ...prev, [id]: checked }))}
+                onPickField={(id, field) => setPickingField({ itemId: id, field })}
+                pickingField={pickingField}
+                onLinkMedicine={handleLinkMedicine}
+                onRemove={handleRemoveItem}
+              />
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>

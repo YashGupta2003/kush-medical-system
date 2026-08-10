@@ -1048,3 +1048,4 @@ message: "This API method requires billing to be enabled. Please enable billing 
 [2026-08-11 00:28:29] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 0 subscriber(s) (transactional=False)
 [2026-08-11 00:28:29] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 0 subscriber(s) (transactional=False)
 [2026-08-11 00:50:41] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 01:11:50] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.

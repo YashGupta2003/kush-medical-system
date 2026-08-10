@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
+import { motion } from "framer-motion";
+import { Hexagon, Lock, User, AlertCircle } from "lucide-react";
 
 export default function Login() {
   const { login } = useAuth();
@@ -26,38 +28,142 @@ export default function Login() {
     }
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.2
+      }
+    }
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div style={{
-      minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center",
-      background: "linear-gradient(135deg, #14141a, #24242e)",
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      position: "relative",
+      overflow: "hidden",
+      background: "var(--bg-app)"
     }}>
-      <div className="card" style={{ width: 360, animation: "fadeInUp 0.4s ease" }}>
-        <div style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ fontSize: 40 }}>💊</div>
-          <h2 style={{ margin: "8px 0 2px" }}>Kush Medical Hall</h2>
-          <p style={{ color: "#888", fontSize: 13, margin: 0 }}>Bill Digitization &amp; Rate List System</p>
-        </div>
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 12 }}>
-            <label style={{ fontSize: 12, color: "#666" }}>Username</label>
-            <input style={{ width: "100%" }} value={username} onChange={(e) => setUsername(e.target.value)} required autoFocus />
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ fontSize: 12, color: "#666" }}>Password</label>
-            <input type="password" style={{ width: "100%" }} value={password} onChange={(e) => setPassword(e.target.value)} required />
-          </div>
-          {error && <p style={{ color: "#b91c1c", fontSize: 13, marginBottom: 12 }}>{error}</p>}
-          <button type="submit" style={{ width: "100%" }} disabled={loading}>
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
-      </div>
-      <style>{`
-        @keyframes fadeInUp {
-          from { opacity: 0; transform: translateY(12px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+      {/* Dynamic Background */}
+      <div style={{
+        position: "absolute",
+        inset: 0,
+        zIndex: 0,
+        background: "radial-gradient(circle at 50% 0%, var(--primary-900) 0%, transparent 60%), radial-gradient(circle at 100% 100%, var(--primary-800) 0%, transparent 50%)",
+        opacity: 0.15
+      }} />
+      
+      <motion.div 
+        className="card card-raised"
+        style={{ width: "100%", maxWidth: 400, position: "relative", zIndex: 1, padding: "var(--space-8)" }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
+      >
+        <motion.div variants={containerVariants} initial="hidden" animate="visible">
+          <motion.div variants={itemVariants} style={{ textAlign: "center", marginBottom: "var(--space-6)" }}>
+            <div style={{ 
+              width: 64, height: 64, margin: "0 auto", 
+              background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))",
+              borderRadius: "var(--radius-xl)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              color: "#fff",
+              boxShadow: "0 10px 20px rgba(20, 184, 166, 0.2)"
+            }}>
+              <Hexagon size={32} strokeWidth={2} />
+            </div>
+            <h2 style={{ margin: "var(--space-4) 0 var(--space-1)", fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", color: "var(--text-main)" }}>
+              Kush Medical Hall
+            </h2>
+            <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0 }}>
+              Precision Intelligence Dashboard
+            </p>
+          </motion.div>
+
+          <form onSubmit={handleSubmit}>
+            <motion.div variants={itemVariants} style={{ marginBottom: "var(--space-4)" }}>
+              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", marginBottom: "var(--space-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Username
+              </label>
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
+                  <User size={16} />
+                </div>
+                <input 
+                  className="input" 
+                  style={{ paddingLeft: 36 }} 
+                  value={username} 
+                  onChange={(e) => setUsername(e.target.value)} 
+                  required 
+                  autoFocus 
+                  placeholder="Enter your username"
+                />
+              </div>
+            </motion.div>
+
+            <motion.div variants={itemVariants} style={{ marginBottom: "var(--space-6)" }}>
+              <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", marginBottom: "var(--space-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                Password
+              </label>
+              <div style={{ position: "relative" }}>
+                <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
+                  <Lock size={16} />
+                </div>
+                <input 
+                  type="password" 
+                  className="input" 
+                  style={{ paddingLeft: 36 }} 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  required 
+                  placeholder="••••••••"
+                />
+              </div>
+            </motion.div>
+
+            {error && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }} 
+                animate={{ opacity: 1, y: 0 }}
+                style={{ 
+                  background: "var(--danger-bg)", 
+                  color: "var(--danger-text)", 
+                  padding: "var(--space-3)", 
+                  borderRadius: "var(--radius-md)",
+                  fontSize: "var(--text-sm)",
+                  display: "flex", alignItems: "center", gap: 8,
+                  marginBottom: "var(--space-4)",
+                  border: "1px solid var(--danger-border)"
+                }}
+              >
+                <AlertCircle size={16} />
+                <span>{error}</span>
+              </motion.div>
+            )}
+
+            <motion.div variants={itemVariants}>
+              <button 
+                type="submit" 
+                className="btn btn-primary" 
+                style={{ width: "100%", padding: "var(--space-3)", fontSize: "var(--text-base)", fontWeight: 600 }} 
+                disabled={loading}
+              >
+                {loading ? "Authenticating..." : "Sign in to Workspace"}
+              </button>
+            </motion.div>
+          </form>
+        </motion.div>
+      </motion.div>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Html5Qrcode } from "html5-qrcode";
+import { motion } from "framer-motion";
+import { Camera, CheckCircle, Package, Search as SearchIcon, ScanLine, XCircle } from "lucide-react";
 import { api } from "../api/client.js";
 
 const SCANNER_ID = "barcode-scanner-region";
@@ -94,34 +96,58 @@ export default function BarcodeScan() {
   }
 
   return (
-    <div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -10 }}
+      transition={{ duration: 0.2 }}
+      className="page-content"
+    >
       <div className="card">
-        <h2 style={{ marginBottom: 4 }}>📷 Barcode / QR Scanner</h2>
-        <p style={{ color: "#666", fontSize: 13, marginTop: 0 }}>
-          Point your camera at a medicine strip's barcode for an instant stock lookup — no typing needed.
-        </p>
-        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "flex-start", gap: "12px", marginBottom: "16px" }}>
+          <div style={{ background: "var(--primary-100)", padding: "10px", borderRadius: "10px" }}>
+            <ScanLine size={24} color="var(--primary-600)" />
+          </div>
+          <div>
+            <h2 style={{ margin: "0 0 4px 0", color: "var(--text-main)" }}>Barcode / QR Scanner</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: 0, lineHeight: 1.5 }}>
+              Point your camera at a medicine strip's barcode for an instant stock lookup — no typing needed.
+            </p>
+          </div>
+        </div>
+        
+        <div style={{ display: "flex", gap: "8px", marginBottom: "16px" }}>
           {!scanning ? (
-            <button onClick={startScanning}>Start camera</button>
+            <button className="btn btn-primary" onClick={startScanning} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <Camera size={16} /> Start camera
+            </button>
           ) : (
-            <button className="secondary" onClick={stopScanning}>Stop camera</button>
+            <button className="btn secondary" onClick={stopScanning} style={{ display: "flex", alignItems: "center", gap: "8px", background: "var(--bg-muted)" }}>
+              <XCircle size={16} /> Stop camera
+            </button>
           )}
         </div>
+        
         <div
           id={SCANNER_ID}
           style={{
-            width: "100%", maxWidth: 420, borderRadius: 12, overflow: "hidden",
-            border: scanning ? "2px solid #2563eb" : "1px solid #eee", minHeight: scanning ? 260 : 0,
+            width: "100%", maxWidth: "420px", borderRadius: "12px", overflow: "hidden",
+            border: scanning ? "2px solid var(--primary-500)" : "1px solid var(--border-color)", 
+            minHeight: scanning ? "260px" : 0,
             background: "#000",
+            transition: "min-height 0.3s ease, border 0.3s ease",
+            margin: "0 auto"
           }}
         />
-        {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
-        {loading && <p style={{ color: "#666", marginTop: 10 }}>Looking up scanned code...</p>}
+        {error && <p style={{ color: "var(--danger-600)", marginTop: "16px", fontSize: "14px", textAlign: "center" }}>{error}</p>}
+        {loading && <p style={{ color: "var(--text-secondary)", marginTop: "16px", fontSize: "14px", textAlign: "center", display: "flex", alignItems: "center", justifyContent: "center", gap: "8px" }}><ScanLine className="spin" size={16}/> Looking up scanned code...</p>}
       </div>
 
       {result && result.found && (
-        <div className="card" style={{ borderLeft: "4px solid #16a34a", animation: "fadeIn 0.3s ease" }}>
-          <h3 style={{ marginTop: 0 }}>✅ {result.medicine.particulars}</h3>
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ borderLeft: "4px solid var(--success-500)" }}>
+          <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: "8px", color: "var(--text-main)" }}>
+            <CheckCircle size={20} color="var(--success-500)" /> {result.medicine.particulars}
+          </h3>
           <div className="stat-row">
             <div className={`stat-box ${result.stock.low_stock_threshold != null && result.stock.current_stock < result.stock.low_stock_threshold ? "warn" : ""}`}>
               <div className="value">{result.stock.current_stock}</div>
@@ -133,44 +159,65 @@ export default function BarcodeScan() {
             </div>
           </div>
           {result.stock.last_purchase && (
-            <div className="last-purchase-card">
-              <div className="title">📦 Last arrived</div>
-              <div>{result.stock.last_purchase.qty_received} units from <strong>{result.stock.last_purchase.distributor_name || "unknown"}</strong></div>
-              <div>Rate: ₹{result.stock.last_purchase.rate ?? "—"}</div>
+            <div className="last-purchase-card" style={{ marginTop: "16px", background: "var(--bg-muted)", padding: "12px", borderRadius: "8px" }}>
+              <div className="title" style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 600, color: "var(--text-main)", marginBottom: "8px" }}>
+                <Package size={16} /> Last arrived
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                {result.stock.last_purchase.qty_received} units from <strong style={{ color: "var(--text-main)" }}>{result.stock.last_purchase.distributor_name || "unknown"}</strong>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Rate: ₹{result.stock.last_purchase.rate ?? "—"}</div>
             </div>
           )}
-        </div>
+        </motion.div>
       )}
 
       {result && !result.found && (
-        <div className="card" style={{ borderLeft: "4px solid #ea580c", animation: "fadeIn 0.3s ease" }}>
-          <h3 style={{ marginTop: 0 }}>🔎 Barcode not recognized yet</h3>
-          <p style={{ color: "#666", fontSize: 13 }}>
-            This code (<code>{lastCode}</code>) isn't linked to any medicine yet. Search and select the
+        <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ borderLeft: "4px solid var(--warning-500)" }}>
+          <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: "8px", color: "var(--text-main)" }}>
+            <SearchIcon size={20} color="var(--warning-500)" /> Barcode not recognized yet
+          </h3>
+          <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
+            This code (<code style={{ background: "var(--bg-muted)", padding: "2px 4px", borderRadius: "4px" }}>{lastCode}</code>) isn't linked to any medicine yet. Search and select the
             correct one below to link it — future scans will resolve instantly.
           </p>
-          <input
-            style={{ width: "100%" }}
-            placeholder="Search medicine name..."
-            value={linkQuery}
-            onChange={(e) => setLinkQuery(e.target.value)}
-          />
+          <div style={{ position: "relative", marginTop: "16px" }}>
+            <SearchIcon size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+            <input
+              style={{ width: "100%", paddingLeft: "36px" }}
+              placeholder="Search medicine name..."
+              value={linkQuery}
+              onChange={(e) => setLinkQuery(e.target.value)}
+            />
+          </div>
           {linkResults.length > 0 && (
-            <table style={{ marginTop: 8 }}>
-              <tbody>
-                {linkResults.map((m) => (
-                  <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => handleLinkMedicine(m.id)}>
-                    <td>{m.particulars}</td>
-                    <td style={{ color: "#888" }}>{m.unit}</td>
-                    <td>{linking ? "Linking..." : <button className="secondary">Link this</button>}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ marginTop: "12px", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
+              <table className="table" style={{ margin: 0, width: "100%" }}>
+                <tbody>
+                  {linkResults.map((m) => (
+                    <tr key={m.id} style={{ transition: "background 0.2s ease" }} className="hover-row">
+                      <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>
+                        <div style={{ fontWeight: 600, color: "var(--text-main)" }}>{m.particulars}</div>
+                        <div style={{ fontSize: "12px", color: "var(--text-muted)" }}>{m.unit}</div>
+                      </td>
+                      <td style={{ padding: "12px", textAlign: "right", borderBottom: "1px solid var(--border-color)" }}>
+                        <button className="btn secondary" onClick={() => handleLinkMedicine(m.id)} disabled={linking}>
+                          {linking ? "Linking..." : "Link this"}
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+        </motion.div>
       )}
-      <style>{`@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }`}</style>
-    </div>
+      <style>{`
+        .spin { animation: spin 1s linear infinite; }
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .hover-row:hover { background: var(--bg-muted); }
+      `}</style>
+    </motion.div>
   );
 }

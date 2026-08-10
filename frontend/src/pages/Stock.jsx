@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import { motion } from "framer-motion";
+import { CheckCircle, Package, AlertTriangle, Building, Search, Plus, Edit3, ClipboardList, Lightbulb, TrendingUp } from "lucide-react";
 import { api } from "../api/client.js";
 
 // ---------------------------------------------------------------------------
@@ -49,7 +51,7 @@ function RecordSaleTab() {
     try {
       const updated = await api.recordSale(selected.id, Number(qtySold));
       setSnapshot(updated);
-      setConfirmation(`✅ Recorded: ${qtySold} sold. Stock is now ${updated.current_stock}.`);
+      setConfirmation(`Recorded: ${qtySold} sold. Stock is now ${updated.current_stock}.`);
       setQtySold("");
     } catch (err) {
       setError(err.message);
@@ -59,36 +61,41 @@ function RecordSaleTab() {
   }
 
   return (
-    <div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
       <div className="card">
-        <h2>Record a Sale</h2>
-        <p style={{ color: "#666", fontSize: 13 }}>
+        <h2 style={{ color: "var(--text-main)", marginTop: 0 }}>Record a Sale</h2>
+        <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
           Search the medicine that was just sold, check current stock levels, then enter how many pieces were sold.
         </p>
-        <input
-          style={{ width: "100%" }}
-          placeholder="Search medicine name (e.g. AMLOKIND-AT TABS)..."
-          value={query}
-          onChange={(e) => { setQuery(e.target.value); setSelected(null); setSnapshot(null); }}
-        />
+        <div style={{ position: "relative" }}>
+          <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+          <input
+            style={{ width: "100%", paddingLeft: "36px" }}
+            placeholder="Search medicine name (e.g. AMLOKIND-AT TABS)..."
+            value={query}
+            onChange={(e) => { setQuery(e.target.value); setSelected(null); setSnapshot(null); }}
+          />
+        </div>
         {results.length > 0 && (
-          <table style={{ marginTop: 10 }}>
-            <tbody>
-              {results.map((m) => (
-                <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer" }}>
-                  <td><strong>{m.particulars}</strong></td>
-                  <td style={{ color: "#888" }}>{m.unit || "—"}</td>
-                  <td>Stock: {m.current_stock ?? 0}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div style={{ marginTop: "12px", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
+            <table className="table" style={{ width: "100%", margin: 0 }}>
+              <tbody>
+                {results.map((m) => (
+                  <tr key={m.id} onClick={() => selectMedicine(m)} style={{ cursor: "pointer", transition: "background 0.2s" }} className="hover-row">
+                    <td style={{ padding: "10px", borderBottom: "1px solid var(--border-color)" }}><strong style={{ color: "var(--text-main)" }}>{m.particulars}</strong></td>
+                    <td style={{ padding: "10px", color: "var(--text-muted)", borderBottom: "1px solid var(--border-color)" }}>{m.unit || "—"}</td>
+                    <td style={{ padding: "10px", borderBottom: "1px solid var(--border-color)", textAlign: "right" }}>Stock: {m.current_stock ?? 0}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {snapshot && (
-        <div className="card">
-          <h3 style={{ marginTop: 0 }}>{snapshot.medicine_name}</h3>
+        <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ marginTop: "16px" }}>
+          <h3 style={{ marginTop: 0, color: "var(--text-main)" }}>{snapshot.medicine_name}</h3>
 
           <div className="stat-row">
             <div className={`stat-box ${snapshot.low_stock_threshold != null && snapshot.current_stock < snapshot.low_stock_threshold ? "warn" : ""}`}>
@@ -102,23 +109,25 @@ function RecordSaleTab() {
           </div>
 
           {snapshot.last_purchase ? (
-            <div className="last-purchase-card">
-              <div className="title">📦 Last Delivery Received</div>
-              <div>
-                <strong>{snapshot.last_purchase.qty_received}</strong> units
-                {snapshot.last_purchase.free_qty_received > 0 && <> (+{snapshot.last_purchase.free_qty_received} free)</>}
-                {" "}from <strong>{snapshot.last_purchase.distributor_name || "distributor"}</strong>
+            <div className="last-purchase-card" style={{ background: "var(--bg-muted)", padding: "16px", borderRadius: "8px", marginTop: "16px" }}>
+              <div className="title" style={{ display: "flex", alignItems: "center", gap: "6px", fontWeight: 600, color: "var(--text-main)", marginBottom: "8px" }}>
+                <Package size={16} /> Last Delivery Received
               </div>
-              <div>Rate: ₹{snapshot.last_purchase.rate ?? "—"} · MRP: ₹{snapshot.last_purchase.mrp ?? "—"}</div>
-              <div>Date: {snapshot.last_purchase.purchase_date ? new Date(snapshot.last_purchase.purchase_date).toLocaleDateString() : "—"}</div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px" }}>
+                <strong style={{ color: "var(--text-main)" }}>{snapshot.last_purchase.qty_received}</strong> units
+                {snapshot.last_purchase.free_qty_received > 0 && <> (+{snapshot.last_purchase.free_qty_received} free)</>}
+                {" "}from <strong style={{ color: "var(--text-main)" }}>{snapshot.last_purchase.distributor_name || "distributor"}</strong>
+              </div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px" }}>Rate: ₹{snapshot.last_purchase.rate ?? "—"} · MRP: ₹{snapshot.last_purchase.mrp ?? "—"}</div>
+              <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>Date: {snapshot.last_purchase.purchase_date ? new Date(snapshot.last_purchase.purchase_date).toLocaleDateString() : "—"}</div>
             </div>
           ) : (
-            <p style={{ color: "#888", fontSize: 13 }}>No purchase history found yet for this medicine.</p>
+            <p style={{ color: "var(--text-muted)", fontSize: "13px", marginTop: "16px" }}>No purchase history found yet for this medicine.</p>
           )}
 
-          <form onSubmit={handleRecordSale} style={{ display: "flex", gap: 8, alignItems: "flex-end", marginTop: 12 }}>
+          <form onSubmit={handleRecordSale} style={{ display: "flex", gap: "12px", alignItems: "flex-end", marginTop: "20px" }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, color: "#666" }}>Quantity Sold</label>
+              <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Quantity Sold</label>
               <input
                 type="number" min="0.01" step="0.01" required
                 style={{ width: "100%" }}
@@ -126,14 +135,15 @@ function RecordSaleTab() {
                 onChange={(e) => setQtySold(e.target.value)}
               />
             </div>
-            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Record sale"}</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Saving..." : "Record sale"}</button>
           </form>
 
-          {confirmation && <p style={{ color: "#16a34a", marginTop: 10 }}>{confirmation}</p>}
-          {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
-        </div>
+          {confirmation && <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--success-600)", background: "var(--success-100)", padding: "10px", borderRadius: "8px", marginTop: "16px", fontSize: "14px" }}><CheckCircle size={18} /> {confirmation}</div>}
+          {error && <p style={{ color: "var(--danger-600)", marginTop: "16px", fontSize: "14px" }}>{error}</p>}
+        </motion.div>
       )}
-    </div>
+      <style>{`.hover-row:hover { background: var(--bg-muted) !important; }`}</style>
+    </motion.div>
   );
 }
 
@@ -169,7 +179,7 @@ function AdjustmentTab() {
         new_total_stock: Number(newStock),
         note: note.trim() || undefined,
       });
-      setMessage(`✅ Stock updated for ${selected.particulars}. New total balance: ${res.resulting_balance}`);
+      setMessage(`Stock updated for ${selected.particulars}. New total balance: ${res.resulting_balance}`);
       setSelected(null);
       setNewStock("");
       setNote("");
@@ -182,39 +192,44 @@ function AdjustmentTab() {
   }
 
   return (
-    <div className="card">
-      <h2>Manual Physical Inventory Adjustment</h2>
-      <p style={{ color: "#666", fontSize: 13 }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="card">
+      <h2 style={{ color: "var(--text-main)", marginTop: 0 }}>Manual Physical Inventory Adjustment</h2>
+      <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
         Directly align stock records with physical shelf counts (e.g. damaged stock, manual audit counts). Every change is audited in the Stock Ledger.
       </p>
       <form onSubmit={handleAdjust}>
-        <div style={{ marginBottom: 12 }}>
-          <label style={{ fontSize: 12, color: "#666" }}>Select Medicine</label>
-          <input
-            style={{ width: "100%" }}
-            placeholder="Search medicine to adjust..."
-            value={selected ? selected.particulars : query}
-            onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
-          />
+        <div style={{ marginBottom: "16px" }}>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Select Medicine</label>
+          <div style={{ position: "relative" }}>
+            <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+            <input
+              style={{ width: "100%", paddingLeft: "36px" }}
+              placeholder="Search medicine to adjust..."
+              value={selected ? selected.particulars : query}
+              onChange={(e) => { setQuery(e.target.value); setSelected(null); }}
+            />
+          </div>
           {results.length > 0 && !selected && (
-            <table style={{ marginTop: 6 }}>
-              <tbody>
-                {results.map((m) => (
-                  <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => { setSelected(m); setNewStock(m.current_stock ?? 0); setResults([]); }}>
-                    <td><strong>{m.particulars}</strong></td>
-                    <td>Current: {m.current_stock ?? 0}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <div style={{ marginTop: "8px", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
+              <table className="table" style={{ width: "100%", margin: 0 }}>
+                <tbody>
+                  {results.map((m) => (
+                    <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => { setSelected(m); setNewStock(m.current_stock ?? 0); setResults([]); }} className="hover-row">
+                      <td style={{ padding: "10px", borderBottom: "1px solid var(--border-color)" }}><strong style={{ color: "var(--text-main)" }}>{m.particulars}</strong></td>
+                      <td style={{ padding: "10px", borderBottom: "1px solid var(--border-color)", textAlign: "right" }}>Current: {m.current_stock ?? 0}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </div>
 
         {selected && (
-          <>
-            <div style={{ display: "flex", gap: 12, marginBottom: 12 }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ fontSize: 12, color: "#666" }}>New Physical Stock Count</label>
+          <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }}>
+            <div style={{ display: "flex", gap: "16px", marginBottom: "16px", flexWrap: "wrap" }}>
+              <div style={{ flex: 1, minWidth: "150px" }}>
+                <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>New Physical Stock Count</label>
                 <input
                   type="number" step="0.01" required
                   style={{ width: "100%" }}
@@ -222,8 +237,8 @@ function AdjustmentTab() {
                   onChange={(e) => setNewStock(e.target.value)}
                 />
               </div>
-              <div style={{ flex: 2 }}>
-                <label style={{ fontSize: 12, color: "#666" }}>Audit Note / Reason</label>
+              <div style={{ flex: 2, minWidth: "200px" }}>
+                <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Audit Note / Reason</label>
                 <input
                   placeholder="e.g. Shelf audit, broken bottle discarded"
                   style={{ width: "100%" }}
@@ -232,13 +247,14 @@ function AdjustmentTab() {
                 />
               </div>
             </div>
-            <button type="submit" disabled={saving}>{saving ? "Saving..." : "Save Adjustment"}</button>
-          </>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Saving..." : "Save Adjustment"}</button>
+          </motion.div>
         )}
       </form>
-      {message && <p style={{ color: "#16a34a", marginTop: 10 }}>{message}</p>}
-      {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
-    </div>
+      {message && <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--success-600)", background: "var(--success-100)", padding: "10px", borderRadius: "8px", marginTop: "16px", fontSize: "14px" }}><CheckCircle size={18} /> {message}</div>}
+      {error && <p style={{ color: "var(--danger-600)", marginTop: "16px", fontSize: "14px" }}>{error}</p>}
+      <style>{`.hover-row:hover { background: var(--bg-muted) !important; }`}</style>
+    </motion.div>
   );
 }
 
@@ -257,48 +273,51 @@ function StockLedgerTab() {
   }, []);
 
   return (
-    <div className="card">
-      <h2>Stock Ledger Audit Trail</h2>
-      <p style={{ color: "#666", fontSize: 13 }}>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="card">
+      <h2 style={{ color: "var(--text-main)", marginTop: 0 }}>Stock Ledger Audit Trail</h2>
+      <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
         Immutable history of every inventory change across bills, sales, and adjustments.
       </p>
       {loading ? (
-        <p>Loading ledger entries...</p>
+        <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Loading ledger entries...</p>
       ) : ledger.length === 0 ? (
-        <p style={{ color: "#888" }}>No ledger movements recorded yet.</p>
+        <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>No ledger movements recorded yet.</p>
       ) : (
-        <table style={{ marginTop: 12 }}>
-          <thead>
-            <tr>
-              <th>Timestamp</th>
-              <th>Medicine</th>
-              <th>Reason</th>
-              <th>Change Qty</th>
-              <th>Resulting Balance</th>
-              <th>Note / Ref</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ledger.map((row) => (
-              <tr key={row.id}>
-                <td>{new Date(row.created_at).toLocaleString()}</td>
-                <td><strong>{row.medicine_name || row.medicine_id}</strong></td>
-                <td>
-                  <span className={`badge ${row.reason === "bill_received" ? "auto" : row.reason === "sale" ? "learned" : "manual"}`}>
-                    {row.reason}
-                  </span>
-                </td>
-                <td style={{ color: row.change_qty > 0 ? "#16a34a" : "#dc2626", fontWeight: "bold" }}>
-                  {row.change_qty > 0 ? `+${row.change_qty}` : row.change_qty}
-                </td>
-                <td><strong>{row.resulting_balance}</strong></td>
-                <td>{row.note || "—"}</td>
+        <div style={{ overflowX: "auto", marginTop: "16px", border: "1px solid var(--border-color)", borderRadius: "8px" }}>
+          <table className="table" style={{ width: "100%", margin: 0 }}>
+            <thead style={{ background: "var(--bg-muted)" }}>
+              <tr>
+                <th style={{ padding: "12px", textAlign: "left" }}>Timestamp</th>
+                <th style={{ padding: "12px", textAlign: "left" }}>Medicine</th>
+                <th style={{ padding: "12px", textAlign: "left" }}>Reason</th>
+                <th style={{ padding: "12px", textAlign: "right" }}>Change Qty</th>
+                <th style={{ padding: "12px", textAlign: "right" }}>Resulting Balance</th>
+                <th style={{ padding: "12px", textAlign: "left" }}>Note / Ref</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ledger.map((row) => (
+                <tr key={row.id} style={{ transition: "background 0.2s" }} className="hover-row">
+                  <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", whiteSpace: "nowrap", color: "var(--text-secondary)" }}>{new Date(row.created_at).toLocaleString()}</td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}><strong style={{ color: "var(--text-main)" }}>{row.medicine_name || row.medicine_id}</strong></td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>
+                    <span className={`badge ${row.reason === "bill_received" ? "auto" : row.reason === "sale" ? "learned" : "manual"}`}>
+                      {row.reason}
+                    </span>
+                  </td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right", color: row.change_qty > 0 ? "var(--success-600)" : "var(--danger-600)", fontWeight: "bold" }}>
+                    {row.change_qty > 0 ? `+${row.change_qty}` : row.change_qty}
+                  </td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right" }}><strong style={{ color: "var(--text-main)" }}>{row.resulting_balance}</strong></td>
+                  <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", color: "var(--text-secondary)", fontSize: "13px" }}>{row.note || "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
-    </div>
+      <style>{`.hover-row:hover { background: var(--bg-muted) !important; }`}</style>
+    </motion.div>
   );
 }
 
@@ -355,70 +374,76 @@ function AddReorderItemModal({ onClose, onAdded }) {
   }
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-        <h3 style={{ marginTop: 0 }}>Add item to reorder list</h3>
-        <div className="tabs">
+    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 1000, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.4)" }}>
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="modal-box" onClick={(e) => e.stopPropagation()} style={{ width: "100%", maxWidth: "500px" }}>
+        <h3 style={{ marginTop: 0, color: "var(--text-main)" }}>Add item to reorder list</h3>
+        <div className="tabs" style={{ marginBottom: "16px" }}>
           <button className={`tab-button ${mode === "existing" ? "active" : ""}`} onClick={() => setMode("existing")}>Existing medicine</button>
           <button className={`tab-button ${mode === "custom" ? "active" : ""}`} onClick={() => setMode("custom")}>New item</button>
         </div>
 
         <form onSubmit={handleSubmit}>
           {mode === "existing" ? (
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 12, color: "#666" }}>Search medicine</label>
-              <input
-                style={{ width: "100%" }}
-                value={selectedMedicine ? selectedMedicine.particulars : query}
-                onChange={(e) => { setQuery(e.target.value); setSelectedMedicine(null); }}
-                placeholder="Start typing..."
-              />
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Search medicine</label>
+              <div style={{ position: "relative" }}>
+                <Search size={16} style={{ position: "absolute", left: "12px", top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }} />
+                <input
+                  style={{ width: "100%", paddingLeft: "36px" }}
+                  value={selectedMedicine ? selectedMedicine.particulars : query}
+                  onChange={(e) => { setQuery(e.target.value); setSelectedMedicine(null); }}
+                  placeholder="Start typing..."
+                />
+              </div>
               {results.length > 0 && !selectedMedicine && (
-                <table style={{ marginTop: 6 }}>
-                  <tbody>
-                    {results.map((m) => (
-                      <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => { setSelectedMedicine(m); setResults([]); }}>
-                        <td>{m.particulars}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <div style={{ marginTop: "8px", border: "1px solid var(--border-color)", borderRadius: "8px", overflow: "hidden" }}>
+                  <table className="table" style={{ width: "100%", margin: 0 }}>
+                    <tbody>
+                      {results.map((m) => (
+                        <tr key={m.id} style={{ cursor: "pointer" }} onClick={() => { setSelectedMedicine(m); setResults([]); }} className="hover-row">
+                          <td style={{ padding: "10px", borderBottom: "1px solid var(--border-color)" }}>{m.particulars}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               )}
             </div>
           ) : (
-            <div style={{ marginBottom: 10 }}>
-              <label style={{ fontSize: 12, color: "#666" }}>Item name</label>
+            <div style={{ marginBottom: "16px" }}>
+              <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Item name</label>
               <input style={{ width: "100%" }} value={customName} onChange={(e) => setCustomName(e.target.value)}
                 placeholder="e.g. Listerine Mouthwash 250ml" />
             </div>
           )}
 
-          <div style={{ marginBottom: 10 }}>
-            <label style={{ fontSize: 12, color: "#666" }}>Order from distributor (optional)</label>
+          <div style={{ marginBottom: "16px" }}>
+            <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Order from distributor (optional)</label>
             <input style={{ width: "100%" }} value={distributorName} onChange={(e) => setDistributorName(e.target.value)}
               placeholder="e.g. RATHORE MEDICOS" />
           </div>
 
-          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+          <div style={{ display: "flex", gap: "12px", marginBottom: "16px" }}>
             <div style={{ flex: 1 }}>
-              <label style={{ fontSize: 12, color: "#666" }}>Quantity needed</label>
+              <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Quantity needed</label>
               <input type="number" min="1" style={{ width: "100%" }} value={quantity} onChange={(e) => setQuantity(e.target.value)} />
             </div>
           </div>
 
-          <div style={{ marginBottom: 14 }}>
-            <label style={{ fontSize: 12, color: "#666" }}>Note (optional)</label>
+          <div style={{ marginBottom: "20px" }}>
+            <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Note (optional)</label>
             <input style={{ width: "100%" }} value={note} onChange={(e) => setNote(e.target.value)} />
           </div>
 
-          {error && <p style={{ color: "#b91c1c", fontSize: 13 }}>{error}</p>}
+          {error && <p style={{ color: "var(--danger-600)", fontSize: "13px", marginBottom: "16px" }}>{error}</p>}
 
-          <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
-            <button type="button" className="secondary" onClick={onClose}>Cancel</button>
-            <button type="submit" disabled={saving}>{saving ? "Adding..." : "Add to list"}</button>
+          <div style={{ display: "flex", gap: "12px", justifyContent: "flex-end" }}>
+            <button type="button" className="btn secondary" onClick={onClose}>Cancel</button>
+            <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? "Adding..." : "Add to list"}</button>
           </div>
         </form>
-      </div>
+      </motion.div>
+      <style>{`.hover-row:hover { background: var(--bg-muted) !important; }`}</style>
     </div>
   );
 }
@@ -450,54 +475,60 @@ function ReorderListTab() {
   const totalItems = groups.reduce((sum, g) => sum + g.items.length, 0);
 
   return (
-    <div>
-      <div className="card">
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
+      <div className="card" style={{ marginBottom: "20px" }}>
         <div className="flex-between">
           <div>
-            <h2 style={{ marginBottom: 4 }}>Reorder List</h2>
-            <p style={{ color: "#666", fontSize: 13, margin: 0 }}>
+            <h2 style={{ marginBottom: "8px", color: "var(--text-main)", marginTop: 0 }}>Reorder List</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: 0 }}>
               Grouped by distributor, so you know exactly who to call and what to ask for.
-              {totalItems > 0 && <> <strong>{totalItems}</strong> item{totalItems === 1 ? "" : "s"} need attention.</>}
+              {totalItems > 0 && <> <strong style={{ color: "var(--text-main)" }}>{totalItems}</strong> item{totalItems === 1 ? "" : "s"} need attention.</>}
             </p>
           </div>
-          <button onClick={() => setShowModal(true)}>+ Add manual item</button>
+          <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Plus size={16} /> Add manual item
+          </button>
         </div>
       </div>
 
-      {loading && <p>Loading...</p>}
+      {loading && <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Loading...</p>}
       {!loading && groups.length === 0 && (
-        <div className="card"><p style={{ color: "#666" }}>Nothing to reorder right now — stock levels look healthy. 🎉</p></div>
+        <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>Nothing to reorder right now — stock levels look healthy.</p>
+        </div>
       )}
 
       {groups.map((group) => {
         const isFallback = group.distributor_name.includes("Unknown") || group.distributor_name.includes("Unassigned");
         return (
-          <div className="distributor-group" key={group.distributor_name}>
-            <div className={`distributor-group-header ${isFallback ? "fallback" : ""}`}>
-              <span className="name">{isFallback ? "⚠️ " : "🏢 "}{group.distributor_name}</span>
-              <span className="count">{group.items.length} item{group.items.length === 1 ? "" : "s"}</span>
+          <div className="distributor-group" key={group.distributor_name} style={{ background: "var(--bg-surface)", border: "1px solid var(--border-color)", borderRadius: "12px", marginBottom: "20px", overflow: "hidden" }}>
+            <div className={`distributor-group-header ${isFallback ? "fallback" : ""}`} style={{ background: isFallback ? "var(--warning-100)" : "var(--bg-muted)", padding: "12px 16px", borderBottom: "1px solid var(--border-color)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span className="name" style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, color: isFallback ? "var(--warning-800)" : "var(--text-main)" }}>
+                {isFallback ? <AlertTriangle size={18} /> : <Building size={18} />} {group.distributor_name}
+              </span>
+              <span className="count" style={{ background: "var(--bg-surface)", padding: "2px 8px", borderRadius: "12px", fontSize: "12px", color: "var(--text-secondary)", fontWeight: 600 }}>{group.items.length} item{group.items.length === 1 ? "" : "s"}</span>
             </div>
             {group.items.map((item, idx) => (
-              <div className="reorder-item-row" key={item.id ?? `auto-${item.medicine_id}-${idx}`}>
-                <div>
-                  <div className="reorder-item-name">{item.name}</div>
-                  <div className="reorder-item-meta">
-                    {item.current_stock != null && <>Stock: {item.current_stock}{item.low_stock_threshold != null && <> (below {item.low_stock_threshold})</>} · </>}
+              <div className="reorder-item-row" key={item.id ?? `auto-${item.medicine_id}-${idx}`} style={{ padding: "16px", borderBottom: idx < group.items.length - 1 ? "1px solid var(--border-color)" : "none", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "16px", flexWrap: "wrap" }}>
+                <div style={{ flex: 1, minWidth: "250px" }}>
+                  <div className="reorder-item-name" style={{ fontWeight: 600, color: "var(--text-main)", fontSize: "15px", marginBottom: "4px" }}>{item.name}</div>
+                  <div className="reorder-item-meta" style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                    {item.current_stock != null && <>Stock: <strong style={{ color: "var(--text-main)" }}>{item.current_stock}</strong>{item.low_stock_threshold != null && <> (below {item.low_stock_threshold})</>} · </>}
                     {item.last_qty_received != null && <>Last order: {item.last_qty_received} units @ ₹{item.last_rate ?? "—"} </>}
                     {item.last_purchase_date && <>on {new Date(item.last_purchase_date).toLocaleDateString()} </>}
-                    {item.quantity_needed != null && <>· Need: {item.quantity_needed}</>}
-                    {item.note && <> · "{item.note}"</>}
+                    {item.quantity_needed != null && <>· <strong style={{ color: "var(--primary-600)" }}>Need: {item.quantity_needed}</strong></>}
+                    {item.note && <div style={{ marginTop: "4px", fontStyle: "italic" }}>"{item.note}"</div>}
                   </div>
                 </div>
-                <div className="reorder-item-actions">
-                  <span className={`badge ${item.source === "auto_low_stock" ? "unmatched" : "manual"}`}>
+                <div className="reorder-item-actions" style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+                  <span className={`badge ${item.source === "auto_low_stock" ? "unmatched" : "manual"}`} style={{ whiteSpace: "nowrap" }}>
                     {item.source === "auto_low_stock" ? "Low stock" : "Manually added"}
                   </span>
                   {item.id && (
-                    <>
-                      <button onClick={() => handleFulfill(item.id)}>Mark Fulfilled</button>
-                      <button className="secondary" onClick={() => handleRemove(item.id)}>Remove</button>
-                    </>
+                    <div style={{ display: "flex", gap: "8px" }}>
+                      <button className="btn btn-primary" onClick={() => handleFulfill(item.id)} style={{ padding: "6px 12px", fontSize: "13px" }}>Mark Fulfilled</button>
+                      <button className="btn secondary" onClick={() => handleRemove(item.id)} style={{ padding: "6px 12px", fontSize: "13px" }}>Remove</button>
+                    </div>
                   )}
                 </div>
               </div>
@@ -507,7 +538,7 @@ function ReorderListTab() {
       })}
 
       {showModal && <AddReorderItemModal onClose={() => setShowModal(false)} onAdded={refresh} />}
-    </div>
+    </motion.div>
   );
 }
 
@@ -540,7 +571,7 @@ function SmartReorderTab() {
     setError(null);
     try {
       const updated = await api.applySmartThreshold(medicineId);
-      setNotice(`✅ Applied smart threshold ${updated.low_stock_threshold} for medicine ID ${medicineId}.`);
+      setNotice(`Applied smart threshold ${updated.low_stock_threshold} for medicine ID ${medicineId}.`);
       loadList();
     } catch (err) {
       setError(err.message);
@@ -558,18 +589,18 @@ function SmartReorderTab() {
   }
 
   return (
-    <div>
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }}>
       <div className="card">
-        <div className="flex-between">
+        <div className="flex-between" style={{ flexWrap: "wrap", gap: "16px" }}>
           <div>
-            <h2 style={{ marginBottom: 4 }}>Smart Reorder Point Engine</h2>
-            <p style={{ color: "#666", fontSize: 13, margin: 0 }}>
+            <h2 style={{ marginBottom: "8px", color: "var(--text-main)", marginTop: 0 }}>Smart Reorder Point Engine</h2>
+            <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: 0, lineHeight: 1.5 }}>
               Data-driven reorder point suggestions based on rolling sales history, lead time demand, and safety stock.
             </p>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <label style={{ fontSize: 12, color: "#666" }}>Rolling Window:</label>
-            <select value={windowDays} onChange={(e) => setWindowDays(Number(e.target.value))}>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px", background: "var(--bg-muted)", padding: "8px 16px", borderRadius: "8px" }}>
+            <label style={{ fontSize: "13px", color: "var(--text-secondary)", fontWeight: 500 }}>Rolling Window:</label>
+            <select style={{ border: "1px solid var(--border-color)", borderRadius: "6px", padding: "4px 8px" }} value={windowDays} onChange={(e) => setWindowDays(Number(e.target.value))}>
               <option value={7}>7 Days</option>
               <option value={14}>14 Days</option>
               <option value={30}>30 Days</option>
@@ -578,67 +609,73 @@ function SmartReorderTab() {
             </select>
           </div>
         </div>
-        {notice && <p style={{ color: "#16a34a", marginTop: 10 }}>{notice}</p>}
-        {error && <p style={{ color: "#b91c1c", marginTop: 10 }}>{error}</p>}
+        {notice && <div style={{ display: "flex", alignItems: "center", gap: "8px", color: "var(--success-600)", background: "var(--success-100)", padding: "10px", borderRadius: "8px", marginTop: "16px", fontSize: "14px" }}><CheckCircle size={18} /> {notice}</div>}
+        {error && <p style={{ color: "var(--danger-600)", marginTop: "16px", fontSize: "14px" }}>{error}</p>}
       </div>
 
       {loading ? (
-        <p>Calculating data-driven reorder thresholds...</p>
+        <p style={{ color: "var(--text-muted)", padding: "20px", textAlign: "center" }}>Calculating data-driven reorder thresholds...</p>
       ) : items.length === 0 ? (
-        <div className="card"><p style={{ color: "#888" }}>No sales history recorded yet across medicines.</p></div>
+        <div className="card" style={{ textAlign: "center", padding: "40px 20px" }}><p style={{ color: "var(--text-secondary)", fontSize: "15px" }}>No sales history recorded yet across medicines.</p></div>
       ) : (
-        <div className="card">
-          <table>
-            <thead>
-              <tr>
-                <th>Medicine</th>
-                <th>Avg. Daily Sales ({windowDays}d)</th>
-                <th>Current Threshold</th>
-                <th>Suggested Threshold</th>
-                <th>Lead Time (Days)</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {items.map((row) => (
-                <tr key={row.medicine_id} style={{ opacity: row.has_sufficient_data ? 1 : 0.65 }}>
-                  <td><strong>{row.medicine_name || `Medicine #${row.medicine_id}`}</strong></td>
-                  <td>{row.avg_daily_sales} units/day</td>
-                  <td>{row.current_threshold ?? "—"}</td>
-                  <td>
-                    {row.has_sufficient_data ? (
-                      <strong style={{ color: "#2563eb", fontSize: 15 }}>{row.suggested_threshold} units</strong>
-                    ) : (
-                      <span style={{ color: "#64748b", fontSize: 12, fontStyle: "italic" }}>
-                        {row.reason || "Not enough sales data"}
-                      </span>
-                    )}
-                  </td>
-                  <td>
-                    <input
-                      type="number"
-                      min="1"
-                      style={{ width: 70 }}
-                      defaultValue={row.lead_time_days}
-                      onBlur={(e) => handleLeadTimeChange(row.medicine_id, e.target.value)}
-                    />
-                  </td>
-                  <td>
-                    <button
-                      disabled={!row.has_sufficient_data}
-                      onClick={() => handleApply(row.medicine_id)}
-                      className={row.has_sufficient_data ? "" : "secondary"}
-                    >
-                      Apply suggestion
-                    </button>
-                  </td>
+        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table className="table" style={{ width: "100%", margin: 0 }}>
+              <thead style={{ background: "var(--bg-muted)" }}>
+                <tr>
+                  <th style={{ padding: "12px", textAlign: "left" }}>Medicine</th>
+                  <th style={{ padding: "12px", textAlign: "right" }}>Avg. Daily Sales ({windowDays}d)</th>
+                  <th style={{ padding: "12px", textAlign: "right" }}>Current Threshold</th>
+                  <th style={{ padding: "12px", textAlign: "right" }}>Suggested Threshold</th>
+                  <th style={{ padding: "12px", textAlign: "center" }}>Lead Time (Days)</th>
+                  <th style={{ padding: "12px", textAlign: "right" }}>Action</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {items.map((row) => (
+                  <tr key={row.medicine_id} style={{ opacity: row.has_sufficient_data ? 1 : 0.65, transition: "background 0.2s" }} className="hover-row">
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}><strong style={{ color: "var(--text-main)" }}>{row.medicine_name || `Medicine #${row.medicine_id}`}</strong></td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right", color: "var(--text-secondary)" }}>{row.avg_daily_sales} units/day</td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right", color: "var(--text-muted)" }}>{row.current_threshold ?? "—"}</td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right" }}>
+                      {row.has_sufficient_data ? (
+                        <strong style={{ color: "var(--primary-600)", fontSize: "15px", display: "flex", alignItems: "center", justifyContent: "flex-end", gap: "4px" }}>
+                          <Lightbulb size={16} /> {row.suggested_threshold} units
+                        </strong>
+                      ) : (
+                        <span style={{ color: "var(--text-muted)", fontSize: "12px", fontStyle: "italic" }}>
+                          {row.reason || "Not enough sales data"}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "center" }}>
+                      <input
+                        type="number"
+                        min="1"
+                        style={{ width: "70px", padding: "4px 8px", textAlign: "center", border: "1px solid var(--border-color)", borderRadius: "4px" }}
+                        defaultValue={row.lead_time_days}
+                        onBlur={(e) => handleLeadTimeChange(row.medicine_id, e.target.value)}
+                      />
+                    </td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right" }}>
+                      <button
+                        className={`btn ${row.has_sufficient_data ? "btn-primary" : "secondary"}`}
+                        disabled={!row.has_sufficient_data}
+                        onClick={() => handleApply(row.medicine_id)}
+                        style={{ padding: "6px 12px", fontSize: "13px" }}
+                      >
+                        Apply suggestion
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
-    </div>
+      <style>{`.hover-row:hover { background: var(--bg-muted) !important; }`}</style>
+    </motion.div>
   );
 }
 
@@ -649,19 +686,32 @@ export default function Stock() {
   const [tab, setTab] = useState("sale");
 
   return (
-    <div>
-      <div className="tabs">
-        <button className={`tab-button ${tab === "sale" ? "active" : ""}`} onClick={() => setTab("sale")}>Record a Sale</button>
-        <button className={`tab-button ${tab === "adjustment" ? "active" : ""}`} onClick={() => setTab("adjustment")}>Stock Adjustment</button>
-        <button className={`tab-button ${tab === "ledger" ? "active" : ""}`} onClick={() => setTab("ledger")}>Stock Ledger</button>
-        <button className={`tab-button ${tab === "reorder" ? "active" : ""}`} onClick={() => setTab("reorder")}>Reorder List</button>
-        <button className={`tab-button ${tab === "smart-reorder" ? "active" : ""}`} onClick={() => setTab("smart-reorder")}>Smart Reorder</button>
+    <div className="page-content">
+      <div className="tabs" style={{ marginBottom: "20px", display: "flex", overflowX: "auto", borderBottom: "1px solid var(--border-color)" }}>
+        <button className={`tab-button ${tab === "sale" ? "active" : ""}`} onClick={() => setTab("sale")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <TrendingUp size={18} /> Record a Sale
+        </button>
+        <button className={`tab-button ${tab === "adjustment" ? "active" : ""}`} onClick={() => setTab("adjustment")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Edit3 size={18} /> Stock Adjustment
+        </button>
+        <button className={`tab-button ${tab === "ledger" ? "active" : ""}`} onClick={() => setTab("ledger")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <ClipboardList size={18} /> Stock Ledger
+        </button>
+        <button className={`tab-button ${tab === "reorder" ? "active" : ""}`} onClick={() => setTab("reorder")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Package size={18} /> Reorder List
+        </button>
+        <button className={`tab-button ${tab === "smart-reorder" ? "active" : ""}`} onClick={() => setTab("smart-reorder")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Lightbulb size={18} /> Smart Reorder
+        </button>
       </div>
-      {tab === "sale" && <RecordSaleTab />}
-      {tab === "adjustment" && <AdjustmentTab />}
-      {tab === "ledger" && <StockLedgerTab />}
-      {tab === "reorder" && <ReorderListTab />}
-      {tab === "smart-reorder" && <SmartReorderTab />}
+      
+      <div style={{ position: "relative", minHeight: "400px" }}>
+        {tab === "sale" && <RecordSaleTab />}
+        {tab === "adjustment" && <AdjustmentTab />}
+        {tab === "ledger" && <StockLedgerTab />}
+        {tab === "reorder" && <ReorderListTab />}
+        {tab === "smart-reorder" && <SmartReorderTab />}
+      </div>
     </div>
   );
 }
