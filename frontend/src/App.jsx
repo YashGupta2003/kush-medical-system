@@ -34,6 +34,7 @@ import Surveillance from "./pages/Surveillance.jsx";
 import TrustScore from "./pages/TrustScore.jsx";
 import MedicalBackground from "./components/MedicalBackground.jsx";
 import CommandPalette from "./components/CommandPalette.jsx";
+import ThemeToggle from "./components/ThemeToggle.jsx";
 
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 
@@ -264,6 +265,7 @@ function NavBar() {
       </div>
       
       <div className="user-profile-section" style={{ display: "flex", alignItems: "center", gap: 20 }}>
+        <ThemeToggle />
         <NotificationBell />
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "6px 16px", background: "var(--bg-surface)", borderRadius: "var(--radius-full)", border: "1px solid var(--border-subtle)", boxShadow: "0 2px 10px rgba(0,0,0,0.03)" }}>
           <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'linear-gradient(135deg, var(--primary-500), var(--primary-600))', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
