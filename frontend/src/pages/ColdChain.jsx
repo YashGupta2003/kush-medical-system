@@ -12,6 +12,7 @@ export default function ColdChain({ isOwner }) {
     const [note, setNote] = useState("");
     const [recentReadings, setRecentReadings] = useState([]);
     const [logStatus, setLogStatus] = useState(null);
+    const [loading, setLoading] = useState(false);
 
     // Units Tab (Owner)
     const [newUnit, setNewUnit] = useState({ unit_label: "", location_note: "", min_temp_c: 2.0, max_temp_c: 8.0 });
@@ -86,6 +87,11 @@ export default function ColdChain({ isOwner }) {
 
     const handleLogReading = async (e) => {
         e.preventDefault();
+        if (!selectedUnit) {
+            setLogStatus({ type: "error", msg: "Please select a unit first. If none exist, ask the owner to create one." });
+            return;
+        }
+        setLoading(true);
         try {
             await api.recordColdChainReading({
                 unit_id: parseInt(selectedUnit),
@@ -99,6 +105,8 @@ export default function ColdChain({ isOwner }) {
             setTimeout(() => setLogStatus(null), 3000);
         } catch (err) {
             setLogStatus({ type: "error", msg: "Failed to log reading." });
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -161,7 +169,9 @@ export default function ColdChain({ isOwner }) {
                     <form onSubmit={handleLogReading} style={{ maxWidth: "400px", marginBottom: "32px" }}>
                         <div className="cc-form-group">
                             <label>Select Unit</label>
-                            <select className="cc-input" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} required>
+                            <select className="cc-input" value={selectedUnit} onChange={(e) => setSelectedUnit(e.target.value)} required disabled={units.length === 0}>
+                                {units.length === 0 && <option value="">No units configured</option>}
+                                {units.length > 0 && <option value="" disabled>Select a unit...</option>}
                                 {units.map(u => <option key={u.id} value={u.id}>{u.unit_label}</option>)}
                             </select>
                         </div>
@@ -173,7 +183,7 @@ export default function ColdChain({ isOwner }) {
                             <label>Note (Optional)</label>
                             <input type="text" className="cc-input" value={note} onChange={(e) => setNote(e.target.value)} />
                         </div>
-                        <button type="submit" className="cc-btn">Log Reading</button>
+                        <button type="submit" className="cc-btn" disabled={loading || units.length === 0}>Log Reading</button>
                         {logStatus && (
                             <div style={{ marginTop: "12px", color: logStatus.type === "error" ? "red" : "green" }}>
                                 {logStatus.msg}
