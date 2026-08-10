@@ -114,7 +114,7 @@ def detect_spikes(db: Session, days: int = 14, z_threshold: float = 2.0) -> List
             
         z_scores = anomaly_service._leave_one_out_zscores(counts)
         
-        for i, z in enumerate(z_scores):
+        for i, z in z_scores.items():
             if math.isfinite(z) and z >= z_threshold and counts[i] > 0:
                 is_recent = (i >= len(counts) - 2)
                 if is_recent:
@@ -160,14 +160,15 @@ def get_all_conditions_summary(db: Session, days: int = 7) -> List[Dict[str, Any
         z_scores = anomaly_service._leave_one_out_zscores(counts)
         has_spike = False
         latest_z = None
+        n = len(counts)
         # Guard against inf/NaN from zero-variance data (std=0)
-        if len(z_scores) >= 1 and math.isfinite(z_scores[-1]):
-            latest_z = float(z_scores[-1])
+        if n >= 1 and math.isfinite(z_scores.get(n - 1, float('inf'))):
+            latest_z = float(z_scores[n - 1])
             if latest_z >= 2.0 and counts[-1] > 0:
                 has_spike = True
-            elif len(z_scores) >= 2 and math.isfinite(z_scores[-2]) and z_scores[-2] >= 2.0 and counts[-2] > 0:
+            elif n >= 2 and math.isfinite(z_scores.get(n - 2, float('inf'))) and z_scores[n - 2] >= 2.0 and counts[-2] > 0:
                 has_spike = True
-                latest_z = float(z_scores[-2])
+                latest_z = float(z_scores[n - 2])
                 
         summaries.append({
             "condition_name": cond,
