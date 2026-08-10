@@ -553,3 +553,28 @@ class ColdChainReading(Base):
 
     unit = relationship("ColdChainUnit", back_populates="readings")
     recorded_by = relationship("User")
+
+
+class DistributorTrustScore(Base):
+    """
+    Feature 4 — Supply Chain Trust Score cache.
+
+    Stores the last-computed composite trust score for each distributor,
+    enabling efficient threshold-crossing detection ("is this score newly
+    below HIGH_RISK_THRESHOLD?") without recomputing from scratch on
+    every request. Upserted by trust_score_service.compute_trust_score.
+    """
+    __tablename__ = "distributor_trust_scores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=False, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True, index=True)
+    score = Column(Numeric(5, 2), nullable=False)
+    confidence = Column(String(20), nullable=False)
+    computed_at = Column(DateTime, default=datetime.utcnow)
+
+    distributor = relationship("Distributor")
+
+    __table_args__ = (
+        UniqueConstraint('distributor_id', 'medicine_id', name='uq_distributor_trust_score'),
+    )

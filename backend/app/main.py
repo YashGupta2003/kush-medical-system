@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 from app.routers import (
     bills, medicines, dashboard, stock, expiry, analytics, auth, gst,
     health, substitutes, graph, copilot, pos, audit, customers, network,
-    symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance,
+    symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance, trust_score,
 )
 from app.database import ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
@@ -135,6 +135,7 @@ app.include_router(anomalies.router)
 app.include_router(notifications.router)
 app.include_router(cold_chain.router)
 app.include_router(surveillance.router)
+app.include_router(trust_score.router)
 
 
 

@@ -854,3 +854,96 @@ ValueError: Simulated subscriber error
 [2026-08-10 17:05:01] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
 [2026-08-10 17:05:02] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
 [2026-08-10 17:05:02] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 00:00:49] [WARNING] [database] [database.py:30]: Schema sync check warning: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2026-08-11 00:00:49] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 00:00:49] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 00:02:00] [WARNING] [database] [database.py:30]: Schema sync check warning: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2026-08-11 00:02:00] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 00:02:00] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 00:02:38] [WARNING] [database] [database.py:30]: Schema sync check warning: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2026-08-11 00:02:38] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 00:02:39] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 00:03:15] [WARNING] [database] [database.py:30]: Schema sync check warning: (pymysql.err.OperationalError) (1045, "Access denied for user 'root'@'localhost' (using password: NO)")
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+[2026-08-11 00:03:15] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 00:03:16] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 00:04:31] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-08-11 00:04:31] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-08-11 00:04:31] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-08-11 00:04:31] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-08-11 00:04:31] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-08-11 00:04:31] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-08-11 00:04:33] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-11 00:04:33] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-11 00:04:34] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-11 00:04:34] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 60
+[2026-08-11 00:04:34] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-08-11 00:04:34] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 7 rows
+[2026-08-11 00:04:34] [INFO] [bill_parser] [bill_parser.py:156]: final result: 3 usable line items out of 4 candidate rows
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 3 line item rows from OCR text
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:93]: Stage 4: Computing costs and linking items against master rate list
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-11 00:04:34] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 60
+[2026-08-11 00:04:34] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 7 rows
+[2026-08-11 00:04:34] [INFO] [bill_parser] [bill_parser.py:156]: final result: 3 usable line items out of 4 candidate rows
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 3 line item rows from OCR text
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:93]: Stage 4: Computing costs and linking items against master rate list
+[2026-08-11 00:04:34] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:154]: Pipeline successfully completed for Bill #2 in 3.08s
+[2026-08-11 00:04:34] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-08-11 00:04:34] [INFO] [bill_pipeline] [pipeline.py:154]: Pipeline successfully completed for Bill #2 in 3.08s
+[2026-08-11 00:04:43] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.

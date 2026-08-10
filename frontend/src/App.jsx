@@ -24,6 +24,7 @@ import Network from "./pages/Network.jsx";
 import Predictive from "./pages/Predictive.jsx";
 import ColdChain from "./pages/ColdChain.jsx";
 import Surveillance from "./pages/Surveillance.jsx";
+import TrustScore from "./pages/TrustScore.jsx";
 
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 
@@ -48,6 +49,7 @@ const NAV_ITEMS = [
 
   { to: "/predictive", label: "Predictive Intel", icon: "🔮", ownerOnly: true },
   { to: "/surveillance", label: "Health Surveillance", icon: "📈", ownerOnly: true },
+  { to: "/trust-score", label: "Supply Trust", icon: "🛡️", ownerOnly: true },
   { to: "/audit", label: "TrustChain", icon: "🔗", ownerOnly: true },
 ];
 
@@ -191,6 +193,7 @@ export default function App() {
           <Route path="/audit" element={<RequireOwner><AuditTrail /></RequireOwner>} />
           <Route path="/cold-chain" element={<RequireAuth><ColdChain isOwner={isOwner} /></RequireAuth>} />
           <Route path="/surveillance" element={<RequireOwner><Surveillance /></RequireOwner>} />
+          <Route path="/trust-score" element={<RequireOwner><TrustScore /></RequireOwner>} />
 
           <Route path="/notifications" element={<RequireAuth><div /></RequireAuth>} />
         </Routes>

@@ -308,4 +308,14 @@ export const api = {
   getSurveillanceSpikes: (days = 14, zThreshold = 2.0) =>
       apiFetch(`/surveillance/spikes?days=${days}&z_threshold=${zThreshold}`),
   triggerSurveillanceScan: () => apiFetch("/surveillance/scan-now", { method: "POST" }),
+
+  // Feature 4: Supply Chain Trust Score
+  getTrustScores: () => apiFetch('/trust-score/distributors'),
+  getTrustScore: (id, medicineId) => {
+    const params = new URLSearchParams();
+    if (medicineId) params.set("medicine_id", medicineId);
+    return apiFetch(`/trust-score/distributors/${id}?${params.toString()}`);
+  },
+  getBatchCollisions: (days = 365) => apiFetch(`/trust-score/batch-collisions?days=${days}`),
+  getRateConsistency: (medicineId) => apiFetch(`/trust-score/medicine/${medicineId}/rate-consistency`),
 };

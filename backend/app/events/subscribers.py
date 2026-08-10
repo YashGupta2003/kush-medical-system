@@ -25,6 +25,7 @@ from app.events.events import (
     CreditOverdueEvent,
     ColdChainExcursionEvent,
     SurveillanceSpikeDetectedEvent,
+    DistributorTrustScoreDroppedEvent,
 )
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
@@ -414,6 +415,27 @@ def handle_surveillance_spike(event: SurveillanceSpikeDetectedEvent) -> None:
     )
 
 
+def handle_trust_score_dropped(event: DistributorTrustScoreDroppedEvent) -> None:
+    """Creates an owner notification when a distributor's trust score drops below threshold."""
+    from app.services import notification_service
+    notification_service.create_notification(
+        event.db,
+        notification_type="system",
+        title=f"⚠️ Trust Score Alert: {event.distributor_name}",
+        body=(
+            f"Trust score for {event.distributor_name} dropped from "
+            f"{event.old_score:.0f} to {event.new_score:.0f}. "
+            f"Reasons: {'; '.join(event.reasons[:3])}. "
+            f"Review in Supply Trust dashboard."
+        ),
+        severity="critical",
+        recipient_user_id=None,
+        related_entity_type="distributor",
+        related_entity_id=str(event.distributor_id),
+        channel="in_app",
+    )
+
+
 def register_all_subscribers() -> None:
     """
     Registers all application domain subscribers with the global EventBus.
@@ -438,5 +460,6 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(CreditOverdueEvent, handle_credit_overdue)
     event_bus.subscribe(ColdChainExcursionEvent, handle_cold_chain_excursion)
     event_bus.subscribe(SurveillanceSpikeDetectedEvent, handle_surveillance_spike)
+    event_bus.subscribe(DistributorTrustScoreDroppedEvent, handle_trust_score_dropped)
 
     logger.info("All domain event subscribers successfully registered with EventBus.")

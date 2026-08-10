@@ -162,3 +162,14 @@ class SurveillanceSpikeDetectedEvent(DomainEvent):
     z_score: float
     avg_count: float
     db: Session
+
+
+@dataclass(frozen=True, kw_only=True)
+class DistributorTrustScoreDroppedEvent(DomainEvent):
+    """Fired when a distributor's composite trust score drops below HIGH_RISK_THRESHOLD (40)."""
+    distributor_id: int
+    distributor_name: str
+    old_score: float
+    new_score: float
+    reasons: list[str]
+    db: Session
