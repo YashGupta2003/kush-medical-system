@@ -32,6 +32,7 @@ import Predictive from "./pages/Predictive.jsx";
 import ColdChain from "./pages/ColdChain.jsx";
 import Surveillance from "./pages/Surveillance.jsx";
 import TrustScore from "./pages/TrustScore.jsx";
+import MedicalBackground from "./components/MedicalBackground.jsx";
 
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 
@@ -320,7 +321,8 @@ export default function App() {
   );
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
+      <MedicalBackground />
       {!isLoginPage && <NavBar />}
       <div className={isLoginPage ? "" : "container"} style={{ flex: 1 }}>
         <AnimatePresence mode="wait">
