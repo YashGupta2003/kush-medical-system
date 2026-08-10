@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Package, AlertTriangle, Building, Search, Plus, Edit3, ClipboardList, Lightbulb, TrendingUp } from "lucide-react";
-import { api } from "../api/client.js";
+import { api, getToken } from "../api/client.js";
 
 // ---------------------------------------------------------------------------
 // TAB 1: Record a Sale
@@ -266,7 +266,7 @@ function StockLedgerTab() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    api.getStockLedger({ limit: 50 })
+    api.getAuditLedger({ limit: 50 })
       .then((res) => setLedger(res.items || res))
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -556,9 +556,12 @@ function SmartReorderTab() {
   function loadList() {
     setLoading(true);
     setError(null);
-    api.getSmartReorderList(windowDays)
+    fetch(`/api/stock/smart-reorder?window_days=${windowDays}`, {
+      headers: { "Authorization": `Bearer ${getToken()}` }
+    })
+      .then((r) => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
       .then((data) => setItems(data))
-      .catch((err) => setError(err.message))
+      .catch((err) => setError(err.message || err.detail || "Failed to load smart reorder list"))
       .finally(() => setLoading(false));
   }
 
@@ -570,7 +573,15 @@ function SmartReorderTab() {
     setNotice(null);
     setError(null);
     try {
-      const updated = await api.applySmartThreshold(medicineId);
+      const res = await fetch(`/api/stock/medicine/${medicineId}/smart-threshold/apply`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${getToken()}` }
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.detail || "Failed to apply smart threshold");
+      }
+      const updated = await res.json();
       setNotice(`Applied smart threshold ${updated.low_stock_threshold} for medicine ID ${medicineId}.`);
       loadList();
     } catch (err) {
@@ -581,7 +592,15 @@ function SmartReorderTab() {
   async function handleLeadTimeChange(medicineId, val) {
     const parsed = val === "" ? null : parseInt(val, 10);
     try {
-      await api.updateLeadTime(medicineId, parsed);
+      const res = await fetch(`/api/stock/medicine/${medicineId}/lead-time`, {
+        method: "PATCH",
+        headers: { "Authorization": `Bearer ${getToken()}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ lead_time_days: parsed })
+      });
+      if (!res.ok) {
+        const e = await res.json();
+        throw new Error(e.detail || "Failed to update lead time");
+      }
       loadList();
     } catch (err) {
       setError(err.message);

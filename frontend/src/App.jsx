@@ -37,14 +37,26 @@ import { NotificationBell } from "./pages/NotificationCenter.jsx";
 
 const NAV_GROUPS = [
   {
+    label: "Intelligence",
+    icon: <Activity size={16} />,
+    items: [
+      { to: "/analytics", label: "Analytics", icon: <BarChart2 size={16} />, ownerOnly: true },
+      { to: "/", label: "Central Command", icon: <Search size={16} />, end: true },
+      { to: "/copilot", label: "PharmaCopilot", icon: <Bot size={16} />, ownerOnly: true },
+      { to: "/predictive", label: "Predictive Intel", icon: <Lightbulb size={16} />, ownerOnly: true },
+      { to: "/surveillance", label: "Health Surveillance", icon: <TrendingUp size={16} />, ownerOnly: true },
+      { to: "/graph", label: "PharmaGraph", icon: <NetworkIcon size={16} /> },
+    ]
+  },
+  {
     label: "Operations",
     icon: <Box size={16} />,
     items: [
-      { to: "/", label: "Search & Master", icon: <Search size={16} />, end: true },
-      { to: "/substitutes", label: "Substitutes", icon: <RefreshCw size={16} /> },
-      { to: "/scan", label: "Barcode Scan", icon: <Scan size={16} /> },
       { to: "/pos", label: "Point of Sale", icon: <ShoppingCart size={16} /> },
+      { to: "/scan", label: "Barcode Scan", icon: <Scan size={16} /> },
+      { to: "/substitutes", label: "Substitutes", icon: <RefreshCw size={16} /> },
       { to: "/customers", label: "Customers", icon: <UserCircle size={16} /> },
+      { to: "/network", label: "Pharma Network", icon: <Globe size={16} /> },
     ]
   },
   {
@@ -63,18 +75,6 @@ const NAV_GROUPS = [
       { to: "/upload", label: "Upload Bill", icon: <Upload size={16} /> },
       { to: "/bills", label: "Review Queue", icon: <FileStack size={16} /> },
       { to: "/gst", label: "GST Summary", icon: <FileText size={16} />, ownerOnly: true },
-    ]
-  },
-  {
-    label: "Intelligence",
-    icon: <Activity size={16} />,
-    items: [
-      { to: "/analytics", label: "Analytics", icon: <BarChart2 size={16} />, ownerOnly: true },
-      { to: "/graph", label: "PharmaGraph", icon: <NetworkIcon size={16} /> },
-      { to: "/copilot", label: "PharmaCopilot", icon: <Bot size={16} />, ownerOnly: true },
-      { to: "/predictive", label: "Predictive Intel", icon: <Lightbulb size={16} />, ownerOnly: true },
-      { to: "/surveillance", label: "Health Surveillance", icon: <TrendingUp size={16} />, ownerOnly: true },
-      { to: "/network", label: "Pharma Network", icon: <Globe size={16} /> },
     ]
   },
   {
@@ -142,15 +142,15 @@ function NavDropdownGroup({ group, isOwner, urgentCount }) {
       onMouseLeave={() => setIsOpen(false)}
     >
       <motion.div
-        whileHover={{ scale: 1.05 }}
+        whileHover={{ scale: 1.08 }}
         whileTap={{ scale: 0.95 }}
         transition={{ type: "spring", stiffness: 400, damping: 17 }}
         style={{
           display: "flex", alignItems: "center", gap: 6,
           padding: "8px 14px",
           borderRadius: "var(--radius-full)",
-          background: isActiveGroup ? "var(--primary-50)" : "transparent",
-          color: "var(--primary-600)", // Teal color for all feature groups
+          background: isActiveGroup ? "var(--primary-50)" : (isOpen ? "rgba(0,0,0,0.06)" : "transparent"),
+          color: isActiveGroup ? "var(--primary-600)" : "#1e293b", // Hardcoded dark slate for contrast
           fontWeight: 600,
           fontSize: "var(--text-sm)",
           cursor: "pointer",
