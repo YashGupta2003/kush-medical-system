@@ -10,35 +10,17 @@ from app.services.auth_service import (
     revoke_all_tokens_for_user,
 )
 
+from app.core.rate_limit import limiter
+
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# ---------------------------------------------------------------------------
-# Rate limiting (Priority 2a) — 5 login attempts per minute per IP.
-# We use slowapi, which is the FastAPI-native wrapper around the `limits`
-# library. The limiter is initialized in main.py and stored as app.state.limiter
-# so it's available here via the Request object.
-# ---------------------------------------------------------------------------
-def _get_limiter():
-    """Lazy import so tests that don't set up slowapi still work."""
-    try:
-        from slowapi import Limiter
-        from slowapi.util import get_remote_address
-        return Limiter(key_func=get_remote_address)
-    except ImportError:
-        return None
-
-
 @router.post("/login", response_model=schemas.TokenResponse)
+@limiter.limit("5/minute")
 def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     """
     Priority 2a: Rate limited to 5 requests/minute/IP via slowapi.
     Returns both access_token (12h) and refresh_token (30d).
     """
-    # Rate limit check — done via the app-level limiter in main.py.
-    # The @limiter.limit decorator can't be applied here directly because
-    # the limiter object isn't available at module import time (circular
-    # imports with main.py). Instead, rate limiting for this endpoint is
-    # wired via the global limit in main.py. See main.py for the wiring.
     user = authenticate_user(db, payload.username, payload.password)
     if not user:
         raise HTTPException(401, "Incorrect username or password")

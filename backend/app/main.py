@@ -1,4 +1,21 @@
-from fastapi import FastAPI, Request
+"""
+Kush Medical Hall — FastAPI application entry point.
+
+API Versioning:
+  All business routers are mounted under the /v1 prefix. In development the
+  Vite proxy transparently rewrites /api → /v1, so the frontend always calls
+  /api/... and the proxy maps it to /v1/... at the backend.
+
+  The health-check router is intentionally mounted TWICE:
+    • /health        — unversioned, for load-balancer / k8s liveness probes
+    • /v1/health     — versioned, for programmatic API consumers
+
+  A deprecation shim re-mounts the same routers at their bare paths
+  (e.g. /auth/login) so that any tooling or script that used the old
+  unversioned URLs continues to work. Those paths are tagged
+  "deprecated" in OpenAPI and will be removed in v2.
+"""
+from fastapi import FastAPI, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
@@ -15,51 +32,79 @@ from app.config import settings
 ensure_database_schema_synced()
 register_all_subscribers()
 
+# ---------------------------------------------------------------------------
+# OpenAPI / FastAPI app definition
+# Improved metadata: version tag, contact, license, and per-tag descriptions
+# so every section of the Swagger UI has a readable summary.
+# ---------------------------------------------------------------------------
 app = FastAPI(
-    title="Kush Medical Hall - Pharmacy Operating System",
+    title="Kush Medical Hall — Pharmacy Operating System",
     description=(
-        "Full pharmacy operating system: OCR bill digitization, PharmaGraph, "
-        "PharmaCopilot, Safety Guardrail POS, TrustChain audit, Customer Health "
-        "Companion, Inter-Pharmacy Network, Predictive Intelligence, and "
-        "Notification Engine."
+        "## Kush Medical Hall API v1\n\n"
+        "A full pharmacy operating system covering:\n"
+        "- **OCR Bill Digitisation** — upload invoices; AI extracts line items automatically.\n"
+        "- **PharmaGraph** — knowledge graph of medicines, salts, conditions, and interactions.\n"
+        "- **PharmaCopilot** — Groq-powered AI assistant for clinical/inventory queries.\n"
+        "- **Safety Guardrail POS** — drug-interaction checks at checkout.\n"
+        "- **TrustChain** — SHA-256 hash-chain audit ledger; tamper-evident.\n"
+        "- **Customer Health Companion** — udhaar ledger + adherence tracking.\n"
+        "- **Inter-Pharmacy Network** — near-expiry listing exchange.\n"
+        "- **Predictive Intelligence** — demand forecast + anomaly detection.\n"
+        "- **Notification Engine** — in-app + WhatsApp proactive alerts.\n"
+        "- **Cold-Chain Compliance** — temperature monitoring + excursion logging.\n"
+        "- **Syndromic Surveillance** — privacy-safe OTC sales trend detection.\n"
+        "- **Supply Chain Trust Score** — distributor reliability scoring.\n\n"
+        "All endpoints require a Bearer JWT except `/health` and `POST /v1/auth/login`.\n"
+        "Obtain tokens via `POST /v1/auth/login` → `{access_token, refresh_token}`.\n"
     ),
-    version="3.0.0",
+    version="3.1.0",
+    openapi_url="/api/openapi.json",   # served at /api/openapi.json for Vite proxy compatibility
+    docs_url="/api/docs",
+    redoc_url="/api/redoc",
+    contact={"name": "Kush Medical Hall", "email": "admin@kushmedical.local"},
+    license_info={"name": "Private — All Rights Reserved"},
+    openapi_tags=[
+        {"name": "auth",           "description": "Login, token refresh, logout, user management."},
+        {"name": "bills",          "description": "OCR invoice upload, review queue, line-item editing, confirmation."},
+        {"name": "medicines",      "description": "Medicine master list — browse, barcode, composition."},
+        {"name": "stock",          "description": "Stock snapshots, ledger, reorder list, smart thresholds."},
+        {"name": "expiry",         "description": "Expiry tracking dashboard, missing-date filler."},
+        {"name": "analytics",      "description": "Financial analytics — monthly spend, top medicines (owner only)."},
+        {"name": "gst",            "description": "GST report generation and PDF export (owner only)."},
+        {"name": "dashboard",      "description": "High-level summary KPIs for the home screen."},
+        {"name": "substitutes",    "description": "Same-salt substitute search and availability check."},
+        {"name": "graph",          "description": "PharmaGraph — medicine knowledge graph, interaction checker."},
+        {"name": "copilot",        "description": "PharmaCopilot — AI assistant powered by Groq (owner only)."},
+        {"name": "pos",            "description": "Point-of-Sale — cart safety check and sale recording."},
+        {"name": "audit",          "description": "TrustChain audit ledger — tamper-evidence verification (owner only)."},
+        {"name": "customers",      "description": "Customer credit ledger, adherence alerts, outstanding balances."},
+        {"name": "network",        "description": "Inter-pharmacy network — listings, claims, fulfilment."},
+        {"name": "symptom-bot",    "description": "Symptom-to-stock chatbot — finds in-stock medicines for a symptom."},
+        {"name": "forecast",       "description": "Demand forecast — Holt-Winters smoothing per medicine."},
+        {"name": "anomalies",      "description": "Price-jump and stock-adjustment anomaly detection."},
+        {"name": "notifications",  "description": "Notification centre — in-app alerts, mark-read, digest trigger."},
+        {"name": "cold-chain",     "description": "Cold-chain compliance — units, temperature readings, excursion report."},
+        {"name": "surveillance",   "description": "Syndromic surveillance — OTC trend conditions, spike detection (owner only)."},
+        {"name": "trust-score",    "description": "Supply chain trust scores per distributor (owner only)."},
+        {"name": "health",         "description": "System health check — DB, Redis, Celery worker status."},
+    ],
 )
 
 # ---------------------------------------------------------------------------
 # Priority 2a: Rate limiting via slowapi
-# 5 login attempts per minute per IP — applied only to POST /auth/login
-# (not globally, to avoid throttling legitimate high-frequency API calls
-# from the frontend like the nav badge unread-count poll).
+# Applied only to POST /v1/auth/login — 5 attempts per minute per IP.
 # ---------------------------------------------------------------------------
 try:
-    from slowapi import Limiter, _rate_limit_exceeded_handler
-    from slowapi.util import get_remote_address
+    from slowapi import _rate_limit_exceeded_handler
     from slowapi.errors import RateLimitExceeded
     from slowapi.middleware import SlowAPIMiddleware
+    from app.core.rate_limit import limiter
 
-    limiter = Limiter(key_func=get_remote_address, default_limits=[])
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
     app.add_middleware(SlowAPIMiddleware)
 
-    # Apply rate limit specifically to login endpoint
-    @app.middleware("http")
-    async def rate_limit_login(request: Request, call_next):
-        if request.url.path == "/api/auth/login" and request.method == "POST":
-            try:
-                await limiter._check_request_limit(request, "5/minute")
-            except RateLimitExceeded:
-                return JSONResponse(
-                    status_code=429,
-                    content={"detail": "Too many login attempts. Please wait 1 minute before trying again."},
-                    headers={"Retry-After": "60"},
-                )
-        return await call_next(request)
-
 except ImportError:
-    # slowapi not installed — log warning, don't crash. Rate limiting is
-    # a hardening feature, not a core correctness requirement.
     import logging
     logging.getLogger("main").warning(
         "slowapi not installed — login rate limiting is disabled. "
@@ -68,7 +113,6 @@ except ImportError:
 
 # ---------------------------------------------------------------------------
 # Priority 2e: Sentry error tracking
-# Empty-string-safe no-op — exact same pattern as Groq/Twilio.
 # ---------------------------------------------------------------------------
 if settings.sentry_dsn:
     try:
@@ -79,7 +123,7 @@ if settings.sentry_dsn:
         sentry_sdk.init(
             dsn=settings.sentry_dsn,
             integrations=[FastApiIntegration(), CeleryIntegration()],
-            traces_sample_rate=0.1,      # 10% of requests traced
+            traces_sample_rate=0.1,
             environment="production",
         )
     except ImportError:
@@ -110,42 +154,92 @@ app.add_middleware(
 )
 
 # ---------------------------------------------------------------------------
-# Routers
+# Routers — versioned (/v1/...) + unversioned legacy (/...) shims
+#
+# Strategy:
+#   1. v1_router — all business routers under /v1 prefix.  This is the
+#      canonical, forward-compatible API surface.
+#   2. health.router — mounted at / (bare) for load-balancer probes AND
+#      as part of v1_router so /v1/health also works.
+#   3. Legacy shim — same routers mounted at bare paths for backward
+#      compatibility. Tagged "deprecated" in OpenAPI.  Removed in v2.
 # ---------------------------------------------------------------------------
-app.include_router(health.router)
-app.include_router(bills.router)
-app.include_router(medicines.router)
-app.include_router(dashboard.router)
-app.include_router(stock.router)
-app.include_router(expiry.router)
-app.include_router(analytics.router)
-app.include_router(auth.router)
-app.include_router(gst.router)
-app.include_router(substitutes.router)
-app.include_router(graph.router)
-app.include_router(copilot.router)
-app.include_router(pos.router)
-app.include_router(audit.router)
-app.include_router(customers.router)
-app.include_router(network.router)
-app.include_router(symptom_bot.router)
-app.include_router(forecast.router)
-app.include_router(anomalies.router)
-# Priority 1: Notification Engine
-app.include_router(notifications.router)
-app.include_router(cold_chain.router)
-app.include_router(surveillance.router)
-app.include_router(trust_score.router)
+
+# ----- V1 versioned router --------------------------------------------------
+v1_router = APIRouter(prefix="/v1")
+
+v1_router.include_router(health.router)        # → /v1/health
+v1_router.include_router(auth.router)          # → /v1/auth/...
+v1_router.include_router(bills.router)         # → /v1/bills/...
+v1_router.include_router(medicines.router)     # → /v1/medicines/...
+v1_router.include_router(dashboard.router)     # → /v1/dashboard/...
+v1_router.include_router(stock.router)         # → /v1/stock/...
+v1_router.include_router(expiry.router)        # → /v1/expiry/...
+v1_router.include_router(analytics.router)     # → /v1/analytics/...
+v1_router.include_router(gst.router)           # → /v1/gst/...
+v1_router.include_router(substitutes.router)   # → /v1/substitutes/...
+v1_router.include_router(graph.router)         # → /v1/graph/...
+v1_router.include_router(copilot.router)       # → /v1/copilot/...
+v1_router.include_router(pos.router)           # → /v1/pos/...
+v1_router.include_router(audit.router)         # → /v1/audit/...
+v1_router.include_router(customers.router)     # → /v1/customers/...
+v1_router.include_router(network.router)       # → /v1/network/...
+v1_router.include_router(symptom_bot.router)   # → /v1/symptom-bot/...
+v1_router.include_router(forecast.router)      # → /v1/forecast/...
+v1_router.include_router(anomalies.router)     # → /v1/anomalies/...
+v1_router.include_router(notifications.router) # → /v1/notifications/...
+v1_router.include_router(cold_chain.router)    # → /v1/cold-chain/...
+v1_router.include_router(surveillance.router)  # → /v1/surveillance/...
+v1_router.include_router(trust_score.router)   # → /v1/trust-score/...
+
+app.include_router(v1_router)
+
+# ----- Health at root (for load-balancer probes) ----------------------------
+app.include_router(health.router)              # → /health  (no version prefix)
+
+# ----- Legacy shim — bare paths for backward compatibility ------------------
+# These were the original unversioned paths. They remain functional so that
+# existing scripts/tests/integrations keep working. They will be removed in v2.
+_legacy = APIRouter(deprecated=True)
+_legacy.include_router(auth.router)
+_legacy.include_router(bills.router)
+_legacy.include_router(medicines.router)
+_legacy.include_router(dashboard.router)
+_legacy.include_router(stock.router)
+_legacy.include_router(expiry.router)
+_legacy.include_router(analytics.router)
+_legacy.include_router(gst.router)
+_legacy.include_router(substitutes.router)
+_legacy.include_router(graph.router)
+_legacy.include_router(copilot.router)
+_legacy.include_router(pos.router)
+_legacy.include_router(audit.router)
+_legacy.include_router(customers.router)
+_legacy.include_router(network.router)
+_legacy.include_router(symptom_bot.router)
+_legacy.include_router(forecast.router)
+_legacy.include_router(anomalies.router)
+_legacy.include_router(notifications.router)
+_legacy.include_router(cold_chain.router)
+_legacy.include_router(surveillance.router)
+_legacy.include_router(trust_score.router)
+
+app.include_router(_legacy)  # bare paths still work — tests pass, scripts work
 
 
-
-@app.get("/")
+# ---------------------------------------------------------------------------
+# Root endpoint
+# ---------------------------------------------------------------------------
+@app.get("/", tags=["health"])
 def root():
     return {
         "status": "ok",
         "service": "kush-medical-backend",
         "architecture": "event-driven-pipeline",
-        "version": "3.0.0",
+        "api_version": "v1",
+        "versioned_base": "/v1",
+        "docs": "/api/docs",
+        "openapi": "/api/openapi.json",
         "pillars": [
             "PharmaGraph", "PharmaCopilot", "SafetyGuardrail-POS",
             "TrustChain", "CustomerHealthCompanion+Network",

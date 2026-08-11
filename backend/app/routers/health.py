@@ -19,7 +19,6 @@ router = APIRouter(tags=["health"])
 
 
 @router.get("/health", response_model=Dict[str, Any])
-@router.get("/api/v1/health", response_model=Dict[str, Any])
 def health_check(response: Response, db: Session = Depends(get_db)):
     """
     Production health check endpoint verifying database, Redis, and Celery worker health.
