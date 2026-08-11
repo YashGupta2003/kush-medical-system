@@ -308,3 +308,145 @@ export function NotificationBell() {
     </div>
   );
 }
+
+// ---------------------------------------------------------------------------
+// Full-page Notification Center — rendered at /notifications route
+// ---------------------------------------------------------------------------
+export default function NotificationCenter() {
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [unreadOnly, setUnreadOnly] = useState(false);
+  const [digestSending, setDigestSending] = useState(false);
+  const [digestMsg, setDigestMsg] = useState(null);
+
+  function loadNotifications() {
+    setLoading(true);
+    api
+      .getNotifications({ unread_only: unreadOnly, limit: 50, offset: 0 })
+      .then(setNotifications)
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }
+
+  useEffect(() => {
+    loadNotifications();
+  }, [unreadOnly]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleMarkRead(id) {
+    api.markNotificationRead(id).then(() => {
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n))
+      );
+    });
+  }
+
+  function handleMarkAllRead() {
+    api.markAllNotificationsRead().then(() => {
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
+    });
+  }
+
+  function handleSendDigest() {
+    setDigestSending(true);
+    setDigestMsg(null);
+    api
+      .sendDigestNow()
+      .then(() => setDigestMsg("Daily digest sent!"))
+      .catch(() => setDigestMsg("Failed to send digest."))
+      .finally(() => setDigestSending(false));
+  }
+
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
+
+  return (
+    <div style={{ maxWidth: 720, margin: "0 auto", padding: "32px 16px" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24, flexWrap: "wrap", gap: 12 }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: "1.6rem", fontWeight: 800, color: "var(--text-main)" }}>
+            Notifications
+          </h1>
+          {unreadCount > 0 && (
+            <p style={{ margin: "4px 0 0", color: "var(--text-muted)", fontSize: 14 }}>
+              {unreadCount} unread notification{unreadCount > 1 ? "s" : ""}
+            </p>
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14, color: "var(--text-muted)", cursor: "pointer", fontWeight: 500 }}>
+            <input
+              type="checkbox"
+              checked={unreadOnly}
+              onChange={(e) => setUnreadOnly(e.target.checked)}
+              style={{ accentColor: "var(--primary-500)", width: 16, height: 16 }}
+            />
+            Unread only
+          </label>
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllRead}
+              className="btn btn-secondary"
+              style={{ fontSize: 13, padding: "8px 16px" }}
+            >
+              <CheckCircle2 size={14} style={{ marginRight: 6 }} />
+              Mark all read
+            </button>
+          )}
+          <button
+            onClick={handleSendDigest}
+            disabled={digestSending}
+            className="btn btn-primary"
+            style={{ fontSize: 13, padding: "8px 16px" }}
+          >
+            {digestSending ? "Sending…" : "Send Digest Now"}
+          </button>
+          <button
+            onClick={loadNotifications}
+            className="btn btn-ghost"
+            style={{ fontSize: 13, padding: "8px 12px" }}
+            title="Refresh"
+          >
+            <CheckCircle2 size={14} />
+          </button>
+        </div>
+      </div>
+
+      {digestMsg && (
+        <div
+          className="card"
+          style={{
+            padding: "12px 16px",
+            marginBottom: 16,
+            background: digestMsg.includes("Failed") ? "var(--danger-50)" : "var(--success-50)",
+            color: digestMsg.includes("Failed") ? "var(--danger-700)" : "var(--success-700)",
+            border: `1px solid ${digestMsg.includes("Failed") ? "var(--danger-200)" : "var(--success-200)"}`,
+            borderRadius: "var(--radius-md)",
+            fontSize: 14,
+          }}
+        >
+          {digestMsg}
+        </div>
+      )}
+
+      {/* Notification list */}
+      {loading ? (
+        <div style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-muted)" }}>
+          <Bell size={32} style={{ opacity: 0.3, marginBottom: 12 }} />
+          <div>Loading notifications…</div>
+        </div>
+      ) : notifications.length === 0 ? (
+        <div className="card" style={{ textAlign: "center", padding: "60px 20px", color: "var(--text-muted)" }}>
+          <Bell size={48} style={{ opacity: 0.2, marginBottom: 16 }} />
+          <div style={{ fontSize: 18, fontWeight: 600, marginBottom: 8 }}>You're all caught up!</div>
+          <div style={{ fontSize: 14 }}>{unreadOnly ? "No unread notifications." : "No notifications yet."}</div>
+        </div>
+      ) : (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {notifications.map((n) => (
+            <NotifItem key={n.id} notif={n} onRead={handleMarkRead} />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

@@ -37,6 +37,8 @@ import CommandPalette from "./components/CommandPalette.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
 
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
+import NotificationCenter from "./pages/NotificationCenter.jsx";
+
 
 const NAV_GROUPS = [
   {
@@ -353,7 +355,7 @@ export default function App() {
             <Route path="/cold-chain" element={<RequireAuth><PageWrapper><ColdChain isOwner={isOwner} /></PageWrapper></RequireAuth>} />
             <Route path="/surveillance" element={<RequireOwner><PageWrapper><Surveillance /></PageWrapper></RequireOwner>} />
             <Route path="/trust-score" element={<RequireOwner><PageWrapper><TrustScore /></PageWrapper></RequireOwner>} />
-            <Route path="/notifications" element={<RequireAuth><PageWrapper><div /></PageWrapper></RequireAuth>} />
+            <Route path="/notifications" element={<RequireAuth><PageWrapper><NotificationCenter /></PageWrapper></RequireAuth>} />
           </Routes>
         </AnimatePresence>
       </div>

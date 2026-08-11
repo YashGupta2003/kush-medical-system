@@ -59,17 +59,18 @@ def test_smart_threshold_hand_computed(db_session, sample_medicine):
     assert res["avg_daily_sales"] == 1.0
     assert res["total_units_sold_in_window"] == 30.0
 
-    # Hand calculation:
-    # avg = 1.0
-    # 6 days have 5, 24 days have 0.
-    # variance = (6*(5-1)^2 + 24*(0-1)^2) / 30 = (96 + 24) / 30 = 4.0
-    # std_dev = sqrt(4.0) = 2.0
-    # lead_time = 3 (default)
+    # Hand calculation (BUG FIX #7 — active-days-only variance):
+    # avg_daily_sales  = 30 / 30 = 1.0  (window denominator: overall demand rate)
+    # active_sales     = [5, 5, 5, 5, 5, 5]
+    # active_mean      = 5.0
+    # variance         = sum((5-5)^2 for 6 values) / 6 = 0.0 (perfectly consistent)
+    # std_dev          = sqrt(0.0) = 0.0
+    # lead_time        = 3 (default)
     # lead_time_demand = 1.0 * 3 = 3.0
-    # safety_stock = 1.65 * 2.0 * sqrt(3) = 1.65 * 2.0 * 1.7320508 = 5.715767
-    # raw = 3.0 + 5.715767 = 8.715767 -> ceil = 9
-    assert res["std_dev_daily_sales"] == 2.0
-    assert res["suggested_threshold"] == 9
+    # safety_stock     = 1.65 * 0.0 * sqrt(3) = 0.0
+    # raw              = 3.0 + 0.0 = 3.0 -> ceil = 3
+    assert res["std_dev_daily_sales"] == 0.0
+    assert res["suggested_threshold"] == 3
 
 
 def test_lead_time_override(db_session, sample_medicine):

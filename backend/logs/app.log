@@ -1049,3 +1049,149 @@ message: "This API method requires billing to be enabled. Please enable billing 
 [2026-08-11 00:28:29] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 0 subscriber(s) (transactional=False)
 [2026-08-11 00:50:41] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
 [2026-08-11 01:11:50] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:19:36] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:19:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:19:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:237]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-08-11 11:19:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-08-11 11:19:43] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-08-11 11:19:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:19:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:19:46] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:19:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-08-11 11:19:47] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-08-11 11:19:49] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:49] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:50] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:50] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-08-11 11:19:50] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-08-11 11:19:52] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-08-11 11:19:52] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:19:52] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:52] [INFO] [event_subscribers] [subscribers.py:269]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-08-11 11:19:52] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:19:52] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:19:57] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:57] [INFO] [event_subscribers] [subscribers.py:269]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-08-11 11:19:57] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:19:57] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:23:06] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:26:26] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:27:28] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:27:34] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:27:34] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:237]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-08-11 11:27:34] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-08-11 11:27:34] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-08-11 11:27:38] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-08-11 11:27:38] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:131]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:151]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:168]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:185]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:200]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-08-11 11:27:38] [INFO] [event_subscribers] [subscribers.py:216]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-08-11 11:27:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:41] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:41] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-08-11 11:27:41] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-08-11 11:27:43] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-08-11 11:27:43] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:27:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:43] [INFO] [event_subscribers] [subscribers.py:269]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-08-11 11:27:43] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:27:43] [INFO] [event_subscribers] [subscribers.py:465]: All domain event subscribers successfully registered with EventBus.
+[2026-08-11 11:27:48] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:48] [INFO] [event_subscribers] [subscribers.py:269]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-08-11 11:27:48] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-11 11:27:48] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
