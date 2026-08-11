@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -17,24 +17,102 @@ def _mask_cost_for_staff(medicines: List[models.Medicine], current_user: models.
     return medicines
 
 
-@router.get("", response_model=schemas.PaginatedMedicines)
+@router.get(
+    "",
+    summary="List / search medicines",
+    description=(
+        "Returns a paginated list of medicines.\n\n"
+        "**Cursor (keyset) mode** — preferred for large catalogs:\n"
+        "Pass `after_id=<last_id>` to fetch the next page. Uses "
+        "`WHERE id > after_id LIMIT n` — hits the PK index directly, "
+        "O(log N) regardless of depth.  Response includes `next_cursor` "
+        "(None when no more pages).\n\n"
+        "**Offset mode** — legacy, default when `after_id` is omitted:\n"
+        "Use `page` + `page_size`.  Works fine for small catalogs but "
+        "degrades for deep pages on large tables."
+    ),
+)
 def list_or_search_medicines(
-    q: Optional[str] = Query(None, description="Optional partial name filter"),
-    page: int = 1,
-    page_size: int = 50,
+    q: Optional[str] = Query(None, description="Optional partial name/composition filter"),
+    # --- Cursor pagination params ---
+    after_id: Optional[int] = Query(
+        None,
+        description="Cursor: fetch medicines with id > after_id. Enables keyset pagination.",
+    ),
+    limit: int = Query(
+        50,
+        ge=1,
+        le=500,
+        description="Number of items per page (cursor mode). Max 500.",
+    ),
+    # --- Legacy offset pagination params ---
+    page: int = Query(1, ge=1, description="Page number (offset mode, ignored when after_id is set)."),
+    page_size: int = Query(50, ge=1, le=500, description="Items per page (offset mode, ignored when after_id is set)."),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    query = db.query(models.Medicine)
-    if q:
-        query = query.filter(models.Medicine.particulars.ilike(f"%{q}%"))
-    query = query.order_by(models.Medicine.particulars)
+    """
+    GET /medicines — supports both cursor and offset pagination.
 
-    total = query.count()
-    items = query.offset((page - 1) * page_size).limit(page_size).all()
-    items = _mask_cost_for_staff(items, current_user)
+    Cursor mode (after_id provided):
+        GET /medicines?after_id=4532&limit=50
+        Returns up to `limit` medicines with id > after_id, ordered by id ASC.
+        Use `next_cursor` from the response as the next `after_id`.
+        Response schema: CursorPaginatedMedicines
 
-    return schemas.PaginatedMedicines(items=items, total=total, page=page, page_size=page_size)
+    Offset mode (after_id absent, default):
+        GET /medicines?page=2&page_size=50
+        Returns the Nth page using OFFSET arithmetic.
+        Response schema: PaginatedMedicines
+    """
+    if after_id is not None:
+        # ----------------------------------------------------------------
+        # CURSOR (KEYSET) MODE
+        # Query: WHERE id > after_id [AND particulars ILIKE %q%] ORDER BY id
+        # This is a single index scan on the primary key — extremely fast
+        # regardless of how many rows exist before the cursor position.
+        # ----------------------------------------------------------------
+        base_query = db.query(models.Medicine).filter(models.Medicine.id > after_id)
+        if q:
+            base_query = base_query.filter(models.Medicine.particulars.ilike(f"%{q}%"))
+
+        # Fetch limit+1 rows so we can detect whether there's a next page
+        # without a separate COUNT(*) query.
+        rows = (
+            base_query
+            .order_by(models.Medicine.id.asc())
+            .limit(limit + 1)
+            .all()
+        )
+
+        has_next = len(rows) > limit
+        items = rows[:limit]
+        items = _mask_cost_for_staff(items, current_user)
+
+        next_cursor = items[-1].id if has_next and items else None
+
+        return schemas.CursorPaginatedMedicines(
+            items=items,
+            next_cursor=next_cursor,
+            limit=limit,
+        )
+
+    else:
+        # ----------------------------------------------------------------
+        # OFFSET MODE (legacy — backward compatible)
+        # Kept so that existing frontend code and tests continue to work
+        # without any changes.
+        # ----------------------------------------------------------------
+        query = db.query(models.Medicine)
+        if q:
+            query = query.filter(models.Medicine.particulars.ilike(f"%{q}%"))
+        query = query.order_by(models.Medicine.particulars)
+
+        total = query.count()
+        items = query.offset((page - 1) * page_size).limit(page_size).all()
+        items = _mask_cost_for_staff(items, current_user)
+
+        return schemas.PaginatedMedicines(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/barcode/{code}", response_model=schemas.BarcodeLookupResult)

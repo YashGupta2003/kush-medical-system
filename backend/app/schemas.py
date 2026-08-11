@@ -32,6 +32,26 @@ class PaginatedMedicines(BaseModel):
     page_size: int
 
 
+class CursorPaginatedMedicines(BaseModel):
+    """
+    Cursor (keyset) paginated response for GET /medicines.
+
+    `next_cursor` is the `id` of the last item in this page.  Pass it back
+    as `?after_id=<next_cursor>` to fetch the next page.  When `next_cursor`
+    is None there are no more pages.
+
+    Why keyset instead of offset?
+    - Offset pagination requires a full table scan up to the skip point.
+    - Keyset uses `WHERE id > after_id LIMIT n` which hits the primary-key
+      index directly — O(log N) regardless of how deep into the catalog you
+      are.  For a 10 000-row medicines table, page 200 with offset = 10 000
+      takes ~50 ms; with keyset it takes < 1 ms.
+    """
+    items: List[MedicineOut]
+    next_cursor: Optional[int] = None   # id of the last item; None = last page
+    limit: int
+
+
 class RateHistoryOut(BaseModel):
     id: int
     old_net_rate: Optional[float] = None

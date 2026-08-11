@@ -18,6 +18,7 @@ API Versioning:
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from app.core.idempotency import IdempotencyMiddleware
 
 from app.routers import (
     bills, medicines, dashboard, stock, expiry, analytics, auth, gst,
@@ -152,6 +153,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ---------------------------------------------------------------------------
+# Priority 4: Idempotency middleware
+# Protects POST/PATCH/DELETE from double-execution on client retries.
+# Clients send `Idempotency-Key: <uuid4>` header; the middleware caches the
+# response in Redis for 24 h and replays it on duplicate requests.
+# Starlette processes middlewares in LIFO order, so IdempotencyMiddleware is
+# added AFTER CORSMiddleware to run *inside* CORS (correct layering).
+# ---------------------------------------------------------------------------
+app.add_middleware(IdempotencyMiddleware)
 
 # ---------------------------------------------------------------------------
 # Routers — versioned (/v1/...) + unversioned legacy (/...) shims
