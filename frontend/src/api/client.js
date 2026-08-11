@@ -318,4 +318,20 @@ export const api = {
   },
   getBatchCollisions: (days = 365) => apiFetch(`/trust-score/batch-collisions?days=${days}`),
   getRateConsistency: (medicineId) => apiFetch(`/trust-score/medicine/${medicineId}/rate-consistency`),
+
+  // --- Smart Purchase AI (Feature 12, owner only) ---
+  getSmartPurchaseOrder: () => apiFetch("/smart-purchase/order"),
+  getSmartPurchaseDetail: (medicineId) => apiFetch(`/smart-purchase/order/${medicineId}`),
+  sendSmartPurchaseWhatsApp: (payload) =>
+    apiFetch("/smart-purchase/send-whatsapp", { method: "POST", ...jsonBody(payload) }),
+
+  // --- Profit Margin Optimizer (Feature 13, owner only) ---
+  getProfitMargins: () => apiFetch("/profit/margins"),
+  getProfitCompression: ({ severity = null, days = 90 } = {}) => {
+    const params = new URLSearchParams({ days });
+    if (severity) params.set("severity", severity);
+    return apiFetch(`/profit/compression?${params.toString()}`);
+  },
+  getBestMarginSubstitutes: (medicineId) => apiFetch(`/profit/substitutes/${medicineId}`),
+  getDistributorNegotiationReport: () => apiFetch("/profit/distributor-report"),
 };

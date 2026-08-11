@@ -32,6 +32,8 @@ import Predictive from "./pages/Predictive.jsx";
 import ColdChain from "./pages/ColdChain.jsx";
 import Surveillance from "./pages/Surveillance.jsx";
 import TrustScore from "./pages/TrustScore.jsx";
+import SmartPurchase from "./pages/SmartPurchase.jsx";
+import ProfitOptimizer from "./pages/ProfitOptimizer.jsx";
 import MedicalBackground from "./components/MedicalBackground.jsx";
 import CommandPalette from "./components/CommandPalette.jsx";
 import ThemeToggle from "./components/ThemeToggle.jsx";
@@ -51,6 +53,7 @@ const NAV_GROUPS = [
       { to: "/predictive", label: "Predictive Intel", icon: <Lightbulb size={16} />, ownerOnly: true },
       { to: "/surveillance", label: "Health Surveillance", icon: <TrendingUp size={16} />, ownerOnly: true },
       { to: "/graph", label: "PharmaGraph", icon: <NetworkIcon size={16} /> },
+      { to: "/smart-purchase", label: "Smart Purchase AI", icon: <ShoppingCart size={16} />, ownerOnly: true },
     ]
   },
   {
@@ -80,6 +83,7 @@ const NAV_GROUPS = [
       { to: "/upload", label: "Upload Bill", icon: <Upload size={16} /> },
       { to: "/bills", label: "Review Queue", icon: <FileStack size={16} /> },
       { to: "/gst", label: "GST Summary", icon: <FileText size={16} />, ownerOnly: true },
+      { to: "/profit", label: "Profit Optimizer", icon: <TrendingUp size={16} />, ownerOnly: true },
     ]
   },
   {
@@ -356,6 +360,8 @@ export default function App() {
             <Route path="/surveillance" element={<RequireOwner><PageWrapper><Surveillance /></PageWrapper></RequireOwner>} />
             <Route path="/trust-score" element={<RequireOwner><PageWrapper><TrustScore /></PageWrapper></RequireOwner>} />
             <Route path="/notifications" element={<RequireAuth><PageWrapper><NotificationCenter /></PageWrapper></RequireAuth>} />
+            <Route path="/smart-purchase" element={<RequireOwner><PageWrapper><SmartPurchase /></PageWrapper></RequireOwner>} />
+            <Route path="/profit" element={<RequireOwner><PageWrapper><ProfitOptimizer /></PageWrapper></RequireOwner>} />
           </Routes>
         </AnimatePresence>
       </div>

@@ -510,3 +510,21 @@ def run_surveillance_scan_task() -> dict:
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+
+@celery_app.task(name='generate_smart_purchase_order')
+def generate_smart_purchase_order_task() -> dict:
+    import json
+    from app.services.smart_purchase_service import generate_purchase_order
+    from app.core.cache import get_redis_client
+    db = SessionLocal()
+    try:
+        result = generate_purchase_order(db)
+        r = get_redis_client()
+        if r:
+            r.setex("smart_purchase:latest", 7 * 24 * 60 * 60, json.dumps(result))
+        return {"status": "ok", "items_count": result.get("items_count")}
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()

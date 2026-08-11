@@ -942,3 +942,93 @@ class SurveillanceSpikeAlert(BaseModel):
     count: int
     z_score: float
     avg_count: float
+
+# ---------------------------------------------------------------------------
+# Feature 13: Profit Margin Optimizer
+# ---------------------------------------------------------------------------
+class MarginsItem(BaseModel):
+    medicine_id: int
+    name: str
+    margin_pct: float
+    mrp: float
+    net_rate: float
+    status: str
+
+class MarginCompressionItem(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    current_margin_pct: Optional[float] = None
+    previous_margin_pct: Optional[float] = None
+    margin_delta_pct: Optional[float] = None
+    compression_type: str
+    compression_severity: str
+
+class BestMarginSubstituteItem(BaseModel):
+    medicine_id: int
+    name: str
+    company: Optional[str] = None
+    current_stock: float
+    margin_pct: Optional[float] = None
+    mrp: Optional[float] = None
+    net_rate: Optional[float] = None
+    is_in_stock: bool
+
+class BestMarginSubstituteResult(BaseModel):
+    medicine_id: int
+    name: str
+    substitutes: List[BestMarginSubstituteItem]
+    unpriced_count: int
+
+class DistributorDealItem(BaseModel):
+    distributor_id: int
+    distributor_name: str
+    avg_margin_across_medicines: Optional[float] = None
+    best_medicine: Optional[str] = None
+    worst_medicine: Optional[str] = None
+    price_trend: Optional[float] = None
+    deal_score: Optional[float] = None
+
+
+# ---------------------------------------------------------------------------
+# Smart Purchasing AI (Feature 12)
+# ---------------------------------------------------------------------------
+class SmartPurchaseItem(BaseModel):
+    medicine_id: int
+    medicine_name: str
+    order_qty: float
+    unit: Optional[str] = None
+    last_net_rate: float
+    estimated_cost: float
+    priority_score: float
+    priority_label: str
+    reason: str
+    last_distributor_name: str
+    demand_14d: float
+    usable_stock: float
+    near_expiry_qty: float
+    days_of_stock_remaining: float
+
+class SmartPurchaseGroup(BaseModel):
+    distributor_name: str
+    items: List[SmartPurchaseItem]
+
+class SmartPurchaseOrder(BaseModel):
+    generated_at: str
+    total_estimated_cost: float
+    items_count: int
+    groups: List[SmartPurchaseGroup]
+
+class WhatsAppOrderItem(BaseModel):
+    medicine_name: str
+    order_qty: float
+    unit: Optional[str] = None
+
+class WhatsAppOrderRequest(BaseModel):
+    distributor_name: str
+    items: List[WhatsAppOrderItem]
+    phone: str
+
+class WhatsAppOrderResponse(BaseModel):
+    status: str
+    message_id: Optional[str] = None
+    error: Optional[str] = None

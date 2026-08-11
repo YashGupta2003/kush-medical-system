@@ -116,6 +116,12 @@ celery_app.conf.update(
             "task": "cleanup_old_upload_files",
             "schedule": crontab(hour=3, minute=0),  # 3am IST nightly
         },
+
+        # Feature 12: Smart Purchase Order — runs Monday 7am IST
+        "generate-weekly-purchase-order": {
+            "task": "generate_smart_purchase_order",
+            "schedule": crontab(hour=7, minute=0, day_of_week=1),
+        },
     },
 )
 

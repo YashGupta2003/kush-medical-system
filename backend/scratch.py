@@ -1,13 +1,8 @@
-"""
-Profit margin analytics - a NEW, small, focused service (Pillar 2 addition).
-No existing function computed profit margin, so this is added as its own
-module rather than bolted inline into copilot_service.py, matching this
-codebase's one-module-per-concern convention (see cost_calculator.py,
-matcher.py, etc. for the same pattern).
-"""
+from datetime import datetime, timedelta
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy import func
 
 from app import models
 from app.services import graph_service
@@ -20,15 +15,6 @@ def _margin_pct(mrp, net_rate) -> Optional[float]:
 
 
 def get_profit_margin_analysis(db: Session, condition: Optional[str] = None) -> dict:
-    """
-    Average profit margin % ((MRP - net_rate) / MRP) across the whole shop's
-    priced catalog, and optionally for medicines associated with a specific
-    condition (via PharmaGraph's TREATS edges - e.g. condition="Bacterial
-    Infection" as a proxy for "antibiotics") so the two can be compared.
-
-    Medicines missing an MRP or net_rate are excluded rather than treated as
-    zero margin - a missing price isn't a 0% margin, it's just unknown.
-    """
     all_medicines = db.query(models.Medicine).filter(
         models.Medicine.mrp.isnot(None),
         models.Medicine.net_rate.isnot(None),
@@ -57,12 +43,11 @@ def get_profit_margin_analysis(db: Session, condition: Optional[str] = None) -> 
 
     return result
 
-from datetime import datetime, timedelta
-
 def detect_margin_compression(db: Session, days: int = 90, severity_filter: Optional[str] = None) -> list[dict]:
     # For each medicine: check last 2 RateHistory entries within days.
     cutoff_date = datetime.utcnow() - timedelta(days=days)
     
+    # Let's get medicines that have had at least one rate change in the last N days.
     medicines = db.query(models.Medicine).all()
     results = []
     
@@ -72,19 +57,21 @@ def detect_margin_compression(db: Session, days: int = 90, severity_filter: Opti
             models.RateHistory.changed_at >= cutoff_date
         ).order_by(models.RateHistory.changed_at.desc()).limit(2).all()
         
-        if len(history) < 2:
-            # Check if there is at least one history entry where old and new are different
-            # But the prompt says "For each medicine: check last 2 RateHistory entries."
-            # Actually, a single RateHistory entry contains old_net_rate and new_net_rate, so one entry is enough if we look at the row itself!
-            latest_history = db.query(models.RateHistory).filter(
-                models.RateHistory.medicine_id == med.id,
-                models.RateHistory.changed_at >= cutoff_date
-            ).order_by(models.RateHistory.changed_at.desc()).first()
-            
-            if not latest_history:
-                continue
-        else:
-            latest_history = history[0]
+        if len(history) < 1:
+            # Need at least one history entry where something changed from an old value
+            pass
+        
+        # Actually, RateHistory already contains old_net_rate, new_net_rate, old_mrp, new_mrp in EACH entry.
+        # So we just look at the latest RateHistory for the medicine in the timeframe.
+        # Or should we look at the last 2 entries? "For each medicine: check last 2 RateHistory entries."
+        # If we just look at the most recent RateHistory entry, it has old and new values.
+        latest_history = db.query(models.RateHistory).filter(
+            models.RateHistory.medicine_id == med.id,
+            models.RateHistory.changed_at >= cutoff_date
+        ).order_by(models.RateHistory.changed_at.desc()).first()
+        
+        if not latest_history:
+            continue
             
         old_net = float(latest_history.old_net_rate) if latest_history.old_net_rate else None
         new_net = float(latest_history.new_net_rate) if latest_history.new_net_rate else None
@@ -96,14 +83,13 @@ def detect_margin_compression(db: Session, days: int = 90, severity_filter: Opti
             
         compression_type = None
         
+        # If new_net_rate > old_net_rate AND (new_mrp == old_mrp OR new_mrp is None): COMPRESSION
         if new_net > old_net and (old_mrp == new_mrp or new_mrp is None):
             compression_type = 'buy_rate_up'
             
+        # If new_mrp < old_mrp AND new_net_rate >= old_net_rate: MRP_DROP
         elif old_mrp and new_mrp and new_mrp < old_mrp and new_net >= old_net:
             compression_type = 'mrp_drop'
-            
-        elif new_net > old_net and old_mrp and new_mrp and new_mrp < old_mrp:
-            compression_type = 'both'
             
         if not compression_type:
             continue
@@ -172,6 +158,7 @@ def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
             "is_in_stock": (sub_med.current_stock or 0) > 0
         })
         
+    # Sort by margin desc, putting None at the end
     results.sort(key=lambda x: x["margin_pct"] if x["margin_pct"] is not None else -9999, reverse=True)
     
     return {
@@ -182,6 +169,7 @@ def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
     }
 
 def get_distributor_negotiation_report(db: Session) -> list[dict]:
+    # For each distributor (from bill_items joined to bills with status='confirmed'):
     distributors = db.query(models.Distributor).all()
     results = []
     
@@ -225,6 +213,9 @@ def get_distributor_negotiation_report(db: Session) -> list[dict]:
                     
         avg_margin = sum(margins) / len(margins) if margins else None
         
+        # price_trend: average rate_change_pct across their last 6 months of RateHistory
+        # But wait, RateHistory doesn't directly link to distributor, except through bill_item_id
+        # Let's get all RateHistory where bill_item_id is in their bills
         bill_ids = [b.id for b in bills]
         bill_items = db.query(models.BillItem).filter(models.BillItem.bill_id.in_(bill_ids)).all()
         bill_item_ids = [bi.id for bi in bill_items]
@@ -246,6 +237,7 @@ def get_distributor_negotiation_report(db: Session) -> list[dict]:
         if avg_margin is not None:
             trend = price_trend if price_trend is not None else 0
             score = avg_margin - (0.5 * trend)
+            # scale 0-100 roughly
             score = max(0, min(100, score))
             deal_score = round(score, 2)
             
