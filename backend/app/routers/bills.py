@@ -1,6 +1,6 @@
 import os
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
@@ -61,7 +61,7 @@ def _create_queued_bill(db: Session, file_bytes: bytes, filename: str,
             inv_date = datetime.strptime(invoice_date, "%Y-%m-%d")
         except ValueError:
             inv_date = None
-    now = inv_date or datetime.utcnow()
+    now = inv_date or datetime.now(timezone.utc)
 
     bill = models.Bill(
         distributor_id=distributor.id if distributor else None,
@@ -140,11 +140,11 @@ async def upload_bills_batch(
         bill.celery_task_id = task.id
         db.commit()
 
-        dup_bill = duplicate_service.find_confirmed_duplicate(db, bill.distributor_id, bill.invoice_no)
+        # BUG FIX: At batch-upload time invoice_no is always None — the OCR task
+        # hasn't run yet. A duplicate check against None invoice_no is meaningless.
+        # Skip it here; the confirm_bill flow (which runs post-OCR) will do the
+        # real duplicate check once the invoice number is known.
         dup_warning = None
-        if dup_bill:
-            conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
-            dup_warning = f"Warning: Bill #{dup_bill.id} from this distributor with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}."
 
         responses.append(schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status, duplicate_warning=dup_warning))
 
@@ -160,7 +160,7 @@ def get_bill_status(bill_id: int, db: Session = Depends(get_db), current_user: m
     time. Once status is 'pending_review' or 'needs_attention', switch to
     fetching the full bill via GET /bills/{bill_id}.
     """
-    bill = db.query(models.Bill).get(bill_id)
+    bill = db.get(models.Bill, bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
     return schemas.BillStatusOut(
@@ -173,7 +173,7 @@ def get_bill_status(bill_id: int, db: Session = Depends(get_db), current_user: m
 
 @router.get("/{bill_id}", response_model=schemas.BillOut)
 def get_bill(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    bill = db.query(models.Bill).get(bill_id)
+    bill = db.get(models.Bill, bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
     return _bill_to_out(db, bill)
@@ -182,7 +182,7 @@ def get_bill(bill_id: int, db: Session = Depends(get_db), current_user: models.U
 @router.get("/{bill_id}/image")
 def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user_flexible)):
     from fastapi.responses import FileResponse
-    bill = db.query(models.Bill).get(bill_id)
+    bill = db.get(models.Bill, bill_id)
     if not bill or not bill.image_path or not os.path.exists(bill.image_path):
         raise HTTPException(404, "Bill image not found")
     return FileResponse(bill.image_path)
@@ -199,7 +199,7 @@ def add_manual_item(bill_id: int, db: Session = Depends(get_db), current_user: m
     here on: it goes through the same medicine-link, cost-calc, and
     /bills/confirm code paths, no special-casing needed anywhere else.
     """
-    bill = db.query(models.Bill).get(bill_id)
+    bill = db.get(models.Bill, bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
     if bill.status == "confirmed":
@@ -221,7 +221,7 @@ def add_manual_item(bill_id: int, db: Session = Depends(get_db), current_user: m
 @router.delete("/{bill_id}/items/{item_id}")
 def remove_bill_item(bill_id: int, item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """Removes a line item before confirming - a manually-added row entered by mistake, or a bad OCR extraction."""
-    bill = db.query(models.Bill).get(bill_id)
+    bill = db.get(models.Bill, bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
     if bill.status == "confirmed":
@@ -252,27 +252,27 @@ def list_bills(
     BUG FIX #1: Uses joinedload(Bill.items) to eliminate N+1 query trap.
     BUG FIX #2: Pagination prevents loading all bills into RAM at once.
     """
+    # Build the base filter query (no joinedload yet, so COUNT is accurate)
+    base_q = db.query(models.Bill)
+    if year:
+        base_q = base_q.filter(models.Bill.year == year)
+    if month:
+        base_q = base_q.filter(models.Bill.month == month)
+    if status:
+        base_q = base_q.filter(models.Bill.status == status)
+    if distributor_name:
+        base_q = base_q.join(models.Distributor).filter(models.Distributor.name == distributor_name.upper())
+
+    # BUG FIX: COUNT before applying joinedload (joinedload generates JOINs that can
+    # inflate the row count when a bill has multiple items — use the clean base query).
+    total = base_q.count()
+
     # BUG FIX #1: eager-load items + distributor in ONE query — eliminates
     # the 1+N SQL queries that were fired per bill in _bill_to_out()
-    q = (
-        db.query(models.Bill)
-        .options(
-            joinedload(models.Bill.items).joinedload(models.BillItem.medicine),
-            joinedload(models.Bill.distributor),
-        )
+    q = base_q.options(
+        joinedload(models.Bill.items).joinedload(models.BillItem.medicine),
+        joinedload(models.Bill.distributor),
     )
-    if year:
-        q = q.filter(models.Bill.year == year)
-    if month:
-        q = q.filter(models.Bill.month == month)
-    if status:
-        q = q.filter(models.Bill.status == status)
-    if distributor_name:
-        q = q.join(models.Distributor).filter(models.Distributor.name == distributor_name.upper())
-
-    # BUG FIX #2: get total count before applying pagination
-    total = q.count()
-
     bills = q.order_by(models.Bill.uploaded_at.desc()).offset(offset).limit(limit).all()
     return schemas.PaginatedBills(
         items=[_bill_to_out(db, b) for b in bills],
@@ -295,7 +295,7 @@ def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Sessio
     to feel instant in the UI - FastAPI runs sync 'def' endpoints in a
     thread pool automatically, so this doesn't block other requests.
     """
-    bill = db.query(models.Bill).get(bill_id)
+    bill = db.get(models.Bill, bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
 
@@ -316,7 +316,7 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
     Decoupled subscribers automatically process stock increments, batch/expiry creation,
     learned distributor mappings, rate history auditing, and cache invalidation.
     """
-    bill = db.query(models.Bill).get(payload.bill_id)
+    bill = db.get(models.Bill, payload.bill_id)
     if not bill:
         raise HTTPException(404, "Bill not found")
 

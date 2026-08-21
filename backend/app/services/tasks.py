@@ -14,6 +14,7 @@ Design decision — deduplication for adherence/anomaly alerts:
   This prevents re-alerting for the same condition daily without a separate dedup
   table — the notifications table itself IS the dedup state.
 """
+from datetime import datetime, timedelta, timezone
 import traceback
 
 from app.celery_app import celery_app
@@ -43,7 +44,7 @@ def process_bill_task(self, bill_id: int):
 def reprocess_region_task(bill_id: int, x0: int, y0: int, x1: int, y1: int) -> dict:
     db = SessionLocal()
     try:
-        bill = db.query(models.Bill).get(bill_id)
+        bill = db.get(models.Bill, bill_id)
         if not bill:
             return {"status": "error", "detail": "Bill not found"}
         with open(bill.image_path, "rb") as f:
@@ -327,8 +328,8 @@ def compute_smart_thresholds_bulk_task() -> dict:
                 if result.get("has_sufficient_data"):
                     medicine.suggested_low_stock_threshold = result.get("suggested_threshold")
                     medicine.avg_daily_sales_30d = result.get("avg_daily_sales_30d")
-                    from datetime import datetime
-                    medicine.suggestion_computed_at = datetime.utcnow()
+                    # BUG FIX: 'from datetime import datetime' was inside the loop — moved to module top
+                    medicine.suggestion_computed_at = datetime.now(timezone.utc)
                     updated += 1
             except Exception:
                 errors += 1
@@ -350,7 +351,10 @@ def compute_smart_thresholds_bulk_task() -> dict:
 # 'Processing...' for eternity. This task marks those stale bills as 'failed'
 # after ZOMBIE_BILL_TIMEOUT_MINUTES so the user knows to re-upload.
 
-ZOMBIE_BILL_TIMEOUT_MINUTES = 10  # bills older than this are considered zombie
+# BUG FIX: 10 minutes was too aggressive — a large bill image with many line
+# items can legitimately take more than 10 minutes for OCR + parsing on a
+# slow server. 30 minutes is a safer threshold to avoid false failure marking.
+ZOMBIE_BILL_TIMEOUT_MINUTES = 30
 
 
 @celery_app.task(name="cleanup_zombie_bills")
@@ -365,7 +369,6 @@ def cleanup_zombie_bills_task() -> dict:
     killed mid-execution (OOM, Redis crash, SIGKILL), the bill.status is never
     updated from 'processing' and stays frozen in that state permanently.
     """
-    from datetime import timedelta, datetime
     from app.core.logging import get_logger
     log = get_logger("cleanup_zombie_bills")
 
@@ -374,7 +377,7 @@ def cleanup_zombie_bills_task() -> dict:
     errors = 0
 
     try:
-        cutoff = datetime.utcnow() - timedelta(minutes=ZOMBIE_BILL_TIMEOUT_MINUTES)
+        cutoff = datetime.now(timezone.utc) - timedelta(minutes=ZOMBIE_BILL_TIMEOUT_MINUTES)
 
         zombie_bills = (
             db.query(models.Bill)
@@ -444,7 +447,6 @@ def cleanup_old_upload_files_task() -> dict:
     a typical 256GB server disk in under 2 years.
     """
     import os
-    from datetime import timedelta, datetime
     from app.core.logging import get_logger
     log = get_logger("cleanup_old_upload_files")
 
@@ -454,7 +456,7 @@ def cleanup_old_upload_files_task() -> dict:
     errors = 0
 
     try:
-        cutoff = datetime.utcnow() - timedelta(days=UPLOAD_RETENTION_DAYS)
+        cutoff = datetime.now(timezone.utc) - timedelta(days=UPLOAD_RETENTION_DAYS)
 
         old_bills = (
             db.query(models.Bill)

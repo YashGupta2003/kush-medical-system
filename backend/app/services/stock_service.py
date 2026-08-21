@@ -7,7 +7,7 @@ detection (old_balance >= threshold AND new_balance < threshold) ensures
 the event fires exactly once at the moment of crossing, not on every
 subsequent sale while already below threshold — preventing notification spam.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
@@ -76,7 +76,7 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
 def add_stock_from_confirmed_bill_item(db: Session, bill_item: models.BillItem) -> None:
     if not bill_item.medicine_id:
         return
-    medicine = db.query(models.Medicine).get(bill_item.medicine_id)
+    medicine = db.get(models.Medicine, bill_item.medicine_id)
     if not medicine:
         return
     received = Decimal(str(bill_item.qty or 0)) + Decimal(str(bill_item.free_qty or 0))
@@ -112,7 +112,7 @@ def get_last_purchase_info(db: Session, medicine_id: int) -> Optional[dict]:
 
 
 def get_stock_snapshot(db: Session, medicine_id: int) -> Optional[dict]:
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         return None
     return {
@@ -132,11 +132,11 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
     profile and no captured staff identity works exactly as before, fully
     backward compatible with every existing caller.
     """
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise ValueError("Medicine not found")
 
-    sale = models.Sale(medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.utcnow(), customer_id=customer_id)
+    sale = models.Sale(medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.now(timezone.utc), customer_id=customer_id)
     db.add(sale)
     db.flush()
 
@@ -148,7 +148,9 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
 
     # --- Feature 1: Syndromic Surveillance Hook ---
     try:
-        surveillance_service.record_sale_signal(db, medicine_id, int(qty_sold))
+        # BUG FIX: int(qty_sold) silently truncates float quantities (1.5 → 1).
+        # Use round() to get the nearest integer unit count for OTC surveillance.
+        surveillance_service.record_sale_signal(db, medicine_id, round(qty_sold))
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Surveillance hook failed: {e}")
@@ -254,7 +256,7 @@ def add_manual_reorder_item(
 
 
 def mark_reorder_item_fulfilled(db: Session, reorder_item_id: int) -> bool:
-    item = db.query(models.ReorderItem).get(reorder_item_id)
+    item = db.get(models.ReorderItem, reorder_item_id)
     if not item:
         return False
     item.fulfilled = True
@@ -276,7 +278,7 @@ def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, not
     detect_stock_adjustment_anomalies reads this exact field to flag a
     disproportionate share of adjustments coming from one account).
     """
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise ValueError("Medicine not found")
     current = Decimal(str(medicine.current_stock or 0))
@@ -288,7 +290,7 @@ def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, not
     )
 
     # --- TrustChain (Pillar 4) ---
-    performer = db.query(models.User).get(created_by_user_id) if created_by_user_id else None
+    performer = db.get(models.User, created_by_user_id) if created_by_user_id else None
     audit_service.log_event(db, "stock_adjustment", ledger_entry.id, {
         "medicine_id": medicine.id,
         "medicine_name": medicine.particulars,

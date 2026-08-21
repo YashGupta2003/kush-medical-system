@@ -33,7 +33,7 @@ def apply_smart_threshold(medicine_id: int, db: Session = Depends(get_db)):
 
 @router.patch("/medicine/{medicine_id}/lead-time", response_model=schemas.MedicineOut)
 def update_lead_time(medicine_id: int, payload: schemas.LeadTimeUpdate, db: Session = Depends(get_db)):
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise HTTPException(404, "Medicine not found")
     medicine.lead_time_days = payload.lead_time_days
@@ -57,7 +57,7 @@ def record_sale(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    medicine = db.query(models.Medicine).get(payload.medicine_id)
+    medicine = db.get(models.Medicine, payload.medicine_id)
     if not medicine:
         raise HTTPException(404, "Medicine not found")
     try:
@@ -140,7 +140,7 @@ def record_adjustment(
 
 @router.patch("/medicine/{medicine_id}/threshold", response_model=schemas.MedicineOut)
 def update_threshold(medicine_id: int, payload: schemas.ThresholdUpdate, db: Session = Depends(get_db)):
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise HTTPException(404, "Medicine not found")
     medicine.low_stock_threshold = payload.low_stock_threshold

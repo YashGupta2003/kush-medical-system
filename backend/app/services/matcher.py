@@ -100,7 +100,7 @@ def find_learned_mapping(db: Session, raw_name: str, distributor_id: Optional[in
             .first()
         )
         if mapping:
-            return db.query(Medicine).get(mapping.medicine_id)
+            return db.get(Medicine, mapping.medicine_id)
 
     general_mapping = (
         db.query(UserMapping)
@@ -108,7 +108,7 @@ def find_learned_mapping(db: Session, raw_name: str, distributor_id: Optional[in
         .first()
     )
     if general_mapping:
-        return db.query(Medicine).get(general_mapping.medicine_id)
+        return db.get(Medicine, general_mapping.medicine_id)
 
     return None
 
@@ -165,5 +165,5 @@ def find_best_match(
     if best_medicine_id is None or best_score < settings.fuzzy_match_threshold:
         return None, max(best_score, 0.0), "unmatched"
 
-    medicine = db.query(Medicine).get(best_medicine_id)
+    medicine = db.get(Medicine, best_medicine_id)
     return medicine, best_score, "auto"

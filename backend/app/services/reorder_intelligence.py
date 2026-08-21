@@ -4,7 +4,7 @@ Data-driven inventory reorder threshold calculation based on rolling sales histo
 lead time demand, and safety stock.
 """
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func
@@ -17,7 +17,7 @@ def compute_daily_sales_series(db: Session, medicine_id: int, window_days: int =
     """
     Zero-filled daily units-sold series for the last `window_days` days, oldest first.
     """
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     start_date = today - timedelta(days=window_days - 1)
 
     sales = (
@@ -75,7 +75,7 @@ def compute_smart_threshold(
     avg_daily_sales still uses `window_days` as the denominator (correct, for
     overall demand rate), but variability is measured among active selling days.
     """
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise ValueError(f"Medicine with id {medicine_id} not found")
 
@@ -119,7 +119,7 @@ def compute_smart_threshold(
     # Cache last-computed suggestion on the Medicine model
     medicine.avg_daily_sales_30d = round(avg_daily_sales, 2)
     medicine.suggested_low_stock_threshold = suggested_threshold
-    medicine.suggestion_computed_at = datetime.utcnow()
+    medicine.suggestion_computed_at = datetime.now(timezone.utc)
     db.commit()
 
     return {
@@ -155,7 +155,7 @@ def compute_smart_thresholds_bulk(
     medicines = db.query(models.Medicine).filter(models.Medicine.id.in_(sale_med_ids)).all()
     med_map = {m.id: m for m in medicines}
 
-    today = datetime.utcnow().date()
+    today = datetime.now(timezone.utc).date()
     start_date = today - timedelta(days=window_days - 1)
 
     window_sales = (
@@ -179,7 +179,7 @@ def compute_smart_thresholds_bulk(
         sales_by_med[m_id][d_str] = float(qty or 0.0)
 
     results = []
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
 
     for m_id in sale_med_ids:
         med = med_map.get(m_id)
@@ -251,7 +251,7 @@ def apply_suggested_threshold(db: Session, medicine_id: int) -> models.Medicine:
     compute_smart_threshold inline first if needed).
     This is the ONLY function that writes to low_stock_threshold.
     """
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise ValueError(f"Medicine with id {medicine_id} not found")
 

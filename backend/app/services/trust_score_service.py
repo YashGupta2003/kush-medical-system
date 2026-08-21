@@ -38,13 +38,13 @@ class DistributorTrustScore(Base):
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=False, unique=True, index=True)
     score = Column(Numeric(5, 2), nullable=False)
     confidence = Column(String(20), nullable=False)
-    last_computed_at = Column(DateTime, default=datetime.utcnow)
+    last_computed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     
     distributor = relationship("Distributor")
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 from typing import Optional
 
@@ -68,7 +68,7 @@ def detect_batch_collisions(db: Session, days: int = 365) -> list[dict]:
     Find every (normalized_batch_no, medicine_id) pair from MedicineBatch that
     appears across 2+ distinct distributor_ids within the confirmed bills window.
     """
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     query = (
         db.query(models.MedicineBatch, models.Bill, models.Medicine)
@@ -128,7 +128,7 @@ def compute_rate_consistency(db: Session, medicine_id: int, days: int = 365) -> 
     Groups confirmed BillItem computed cost by distributor_id and computes the average rate.
     Flags outliers using a leave-one-out z-score to identify consistent rate anomalies.
     """
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     
     query = (
         db.query(models.BillItem, models.Bill)
@@ -191,7 +191,7 @@ def compute_trust_score(db: Session, distributor_id: int, medicine_id: Optional[
     score = 100
     contributing_factors = []
     
-    dist = db.query(models.Distributor).get(distributor_id)
+    dist = db.get(models.Distributor, distributor_id)
     dist_name = dist.name if dist else "Unknown"
     
     bill_count = (
@@ -242,7 +242,7 @@ def compute_trust_score(db: Session, distributor_id: int, medicine_id: Optional[
         if rc["has_sufficient_data"]:
             for d in rc["distributor_averages"]:
                 if d["distributor_id"] == distributor_id and d["is_outlier"]:
-                    med = db.query(models.Medicine).get(mid)
+                    med = db.get(models.Medicine, mid)
                     med_name = med.particulars if med else "Unknown"
                     if d["direction"] == "low":
                         rate_penalty += 15
@@ -273,7 +273,7 @@ def compute_trust_score(db: Session, distributor_id: int, medicine_id: Optional[
         else:
             ts.score = score
             ts.confidence = confidence
-            ts.computed_at = datetime.utcnow()
+            ts.computed_at = datetime.now(timezone.utc)
             
         db.flush()
         

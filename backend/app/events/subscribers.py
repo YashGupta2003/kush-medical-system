@@ -9,7 +9,7 @@ Priority 1 additions (Notification Engine):
   - handle_anomaly_flagged      — creates an anomaly flag notification for owners
   - handle_credit_overdue       — creates a credit overdue notification
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 from app.core.logging import get_logger
 from app.events.bus import event_bus
@@ -45,7 +45,7 @@ def handle_bill_confirmed_rate_history(event: BillConfirmedEvent) -> None:
     """
     logger.info(f"[SUBSCRIBER: RateHistory] Processing rate updates for Bill #{event.bill_id}")
     db = event.db
-    bill = db.query(models.Bill).get(event.bill_id)
+    bill = db.get(models.Bill, event.bill_id)
     if not bill:
         return
 
@@ -74,10 +74,13 @@ def handle_bill_confirmed_rate_history(event: BillConfirmedEvent) -> None:
             item.medicine_id = edit.medicine_id
             item.match_status = "manual"
 
-        item.match_status = "confirmed" if item.match_status != "unmatched" else "unmatched"
+        # Promote any matched status (auto / learned / manual) → "confirmed".
+        # Items that remain "unmatched" are left as-is — the user didn't link them.
+        if item.match_status != "unmatched":
+            item.match_status = "confirmed"
 
         if edit.apply_to_master_list and item.medicine_id:
-            medicine = db.query(models.Medicine).get(item.medicine_id)
+            medicine = db.get(models.Medicine, item.medicine_id)
             if medicine:
                 old_rate, old_mrp = medicine.net_rate, medicine.mrp
                 new_rate = item.computed_cost_per_unit
@@ -130,7 +133,7 @@ def handle_bill_confirmed_learning(event: BillConfirmedEvent) -> None:
     """
     logger.info(f"[SUBSCRIBER: Learning] Updating learned mappings for Bill #{event.bill_id}")
     db = event.db
-    bill = db.query(models.Bill).get(event.bill_id)
+    bill = db.get(models.Bill, event.bill_id)
     if not bill:
         return
 
@@ -150,7 +153,7 @@ def handle_bill_confirmed_stock(event: BillConfirmedEvent) -> None:
     """
     logger.info(f"[SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #{event.bill_id}")
     db = event.db
-    bill = db.query(models.Bill).get(event.bill_id)
+    bill = db.get(models.Bill, event.bill_id)
     if not bill:
         return
 
@@ -167,7 +170,7 @@ def handle_bill_confirmed_expiry(event: BillConfirmedEvent) -> None:
     """
     logger.info(f"[SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #{event.bill_id}")
     db = event.db
-    bill = db.query(models.Bill).get(event.bill_id)
+    bill = db.get(models.Bill, event.bill_id)
     if not bill:
         return
 
@@ -184,7 +187,7 @@ def handle_bill_confirmed_graph_sync(event: BillConfirmedEvent) -> None:
     """
     logger.info(f"[SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #{event.bill_id}")
     db = event.db
-    bill = db.query(models.Bill).get(event.bill_id)
+    bill = db.get(models.Bill, event.bill_id)
     if not bill:
         return
 
@@ -215,7 +218,7 @@ def handle_bill_confirmed_audit_log(event: BillConfirmedEvent) -> None:
     """
     logger.info(f"[SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #{event.bill_id}")
     db = event.db
-    bill = db.query(models.Bill).get(event.bill_id)
+    bill = db.get(models.Bill, event.bill_id)
     if not bill:
         return
 
@@ -226,7 +229,7 @@ def handle_bill_confirmed_audit_log(event: BillConfirmedEvent) -> None:
         "total_amount": float(bill.total_amount) if bill.total_amount is not None else None,
         "item_count": len(bill.items),
         "matched_item_count": sum(1 for i in bill.items if i.medicine_id),
-        "confirmed_at": datetime.utcnow().isoformat(),
+        "confirmed_at": datetime.now(timezone.utc).isoformat(),
     })
 
 

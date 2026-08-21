@@ -122,7 +122,7 @@ def deactivate_user(
     db: Session = Depends(get_db),
 ):
     """Owner-only: disable a Staff account (e.g. employee left) without deleting their history."""
-    user = db.query(models.User).get(user_id)
+    user = db.get(models.User, user_id)
     if not user:
         raise HTTPException(404, "User not found")
     if user.id == current_user.id:

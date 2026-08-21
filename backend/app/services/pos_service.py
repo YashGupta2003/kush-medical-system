@@ -106,7 +106,7 @@ def check_cart_interactions(db: Session, items: list[dict]) -> dict:
     item_details = []
 
     for entry in items:
-        medicine = db.query(models.Medicine).get(entry["medicine_id"])
+        medicine = db.get(models.Medicine, entry["medicine_id"])
         if not medicine:
             continue
         salts = _medicine_salts(db, medicine.id)
@@ -158,7 +158,7 @@ def record_cart_sale(
         )
         results.append(snapshot)
 
-        medicine = db.query(models.Medicine).get(entry["medicine_id"])
+        medicine = db.get(models.Medicine, entry["medicine_id"])
         if medicine and medicine.mrp is not None:
             total_value += float(medicine.mrp) * float(entry["qty_sold"])
 

@@ -31,7 +31,7 @@ entries to TrustChain (see app/services/audit_service.py), the same
 ledger already used for rate changes, batch receipts, and stock
 adjustments.
 """
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -49,7 +49,7 @@ def get_or_create_self_node(db: Session) -> models.PharmacyNode:
     node = db.query(models.PharmacyNode).filter_by(is_self=True).first()
     if node:
         return node
-    node = models.PharmacyNode(shop_name=SELF_SHOP_NAME, is_self=True, opted_in=True, joined_at=datetime.utcnow())
+    node = models.PharmacyNode(shop_name=SELF_SHOP_NAME, is_self=True, opted_in=True, joined_at=datetime.now(timezone.utc))
     db.add(node)
     db.flush()
     return node
@@ -62,7 +62,7 @@ def list_nodes(db: Session) -> list[models.PharmacyNode]:
 def add_node(db: Session, shop_name: str, api_base_url: Optional[str] = None, contact_phone: Optional[str] = None) -> models.PharmacyNode:
     node = models.PharmacyNode(
         shop_name=shop_name.strip(), api_base_url=api_base_url, contact_phone=contact_phone,
-        is_self=False, opted_in=True, joined_at=datetime.utcnow(),
+        is_self=False, opted_in=True, joined_at=datetime.now(timezone.utc),
     )
     db.add(node)
     db.commit()
@@ -149,7 +149,7 @@ def claim_listing(db: Session, listing_id: int, claiming_node_id: int) -> models
     parties is exactly the kind of fact neither side should be able to
     quietly deny later.
     """
-    listing = db.query(models.NetworkListing).get(listing_id)
+    listing = db.get(models.NetworkListing, listing_id)
     if not listing:
         raise ValueError("Listing not found")
     if listing.status != "open":
@@ -157,13 +157,13 @@ def claim_listing(db: Session, listing_id: int, claiming_node_id: int) -> models
     if listing.pharmacy_node_id == claiming_node_id:
         raise ValueError("A pharmacy cannot claim its own listing")
 
-    claiming_node = db.query(models.PharmacyNode).get(claiming_node_id)
+    claiming_node = db.get(models.PharmacyNode, claiming_node_id)
     if not claiming_node:
         raise ValueError("Claiming pharmacy node not found")
 
     listing.status = "claimed"
     listing.claimed_by_node_id = claiming_node_id
-    listing.updated_at = datetime.utcnow()
+    listing.updated_at = datetime.now(timezone.utc)
     db.flush()
 
     # --- TrustChain (Pillar 4) ---
@@ -181,14 +181,14 @@ def claim_listing(db: Session, listing_id: int, claiming_node_id: int) -> models
 
 def fulfill_listing(db: Session, listing_id: int) -> models.NetworkListing:
     """Marks a claimed listing as physically completed. Logs 'network_transfer_fulfilled' to TrustChain."""
-    listing = db.query(models.NetworkListing).get(listing_id)
+    listing = db.get(models.NetworkListing, listing_id)
     if not listing:
         raise ValueError("Listing not found")
     if listing.status != "claimed":
         raise ValueError(f"Listing is '{listing.status}', not claimed — it must be claimed before it can be fulfilled")
 
     listing.status = "fulfilled"
-    listing.updated_at = datetime.utcnow()
+    listing.updated_at = datetime.now(timezone.utc)
     db.flush()
 
     # --- TrustChain (Pillar 4) ---
@@ -204,14 +204,14 @@ def fulfill_listing(db: Session, listing_id: int) -> models.NetworkListing:
 
 def withdraw_listing(db: Session, listing_id: int) -> models.NetworkListing:
     """The posting shop cancels their own still-open listing."""
-    listing = db.query(models.NetworkListing).get(listing_id)
+    listing = db.get(models.NetworkListing, listing_id)
     if not listing:
         raise ValueError("Listing not found")
     if listing.status != "open":
         raise ValueError(f"Listing is '{listing.status}', not open — only open listings can be withdrawn")
 
     listing.status = "withdrawn"
-    listing.updated_at = datetime.utcnow()
+    listing.updated_at = datetime.now(timezone.utc)
     db.commit()
     db.refresh(listing)
     return listing

@@ -29,7 +29,13 @@ def _summary_or_404(db: Session, customer_id: int) -> schemas.CustomerOut:
 @router.get("", response_model=list[schemas.CustomerOut])
 def search_customers(q: Optional[str] = Query(None), db: Session = Depends(get_db)):
     customers = customer_service.search_customers(db, q=q)
-    return [_summary_or_404(db, c.id) for c in customers]
+    # Build summaries directly — avoids N+1 re-query via _summary_or_404
+    summaries = []
+    for c in customers:
+        summary = customer_service.get_customer_summary(db, c.id)
+        if summary:
+            summaries.append(schemas.CustomerOut(**summary))
+    return summaries
 
 
 @router.post("", response_model=schemas.CustomerOut)

@@ -129,7 +129,7 @@ def sync_substitute_edges_for_medicine(db: Session, medicine_id: int) -> int:
         source_type="medicine", source_id=str(medicine_id), edge_type="SUBSTITUTES",
     ).delete()
 
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine or not medicine.composition:
         return 0
 
@@ -265,7 +265,7 @@ def get_medicines_for_condition(db: Session, condition_name: str, in_stock_only:
 # Full neighborhood view for one medicine - powers the Graph Explorer page.
 # ---------------------------------------------------------------------------
 def get_medicine_graph(db: Session, medicine_id: int) -> Optional[dict]:
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         return None
 

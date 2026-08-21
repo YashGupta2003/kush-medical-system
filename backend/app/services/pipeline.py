@@ -35,7 +35,7 @@ class BillProcessingPipeline:
     def run(self) -> Dict[str, Any]:
         """Executes all pipeline stages sequentially."""
         logger.info(f"Starting BillProcessingPipeline for Bill #{self.bill_id}")
-        bill = self.db.query(models.Bill).get(self.bill_id)
+        bill = self.db.get(models.Bill, self.bill_id)
         if not bill:
             logger.error(f"Pipeline failed: Bill #{self.bill_id} not found in database")
             return {"status": "error", "detail": f"Bill {self.bill_id} not found"}
@@ -156,7 +156,7 @@ class BillProcessingPipeline:
 
         except Exception as e:
             self.db.rollback()
-            bill = self.db.query(models.Bill).get(self.bill_id)
+            bill = self.db.get(models.Bill, self.bill_id)
             if bill:
                 bill.status = "failed"
                 bill.processing_error = f"{e}\n{traceback.format_exc()[-2000:]}"

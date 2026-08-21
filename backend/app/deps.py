@@ -4,7 +4,7 @@ any route that needs a logged-in user, or `Depends(require_owner)` to any
 route that only the shop Owner should be able to use (Analytics, GST
 reports, editing rate-list thresholds, viewing cost prices, etc).
 """
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Query, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,8 @@ def get_current_user(
     if payload is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired or invalid, please log in again")
 
-    user = db.query(models.User).get(int(payload["sub"]))
+    # BUG FIX: db.get(Model, ) is deprecated in SQLAlchemy 2.x — use db.get()
+    user = db.get(models.User, int(payload["sub"]))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Account not found or disabled")
 
@@ -47,7 +48,10 @@ def require_owner(current_user: models.User = Depends(get_current_user)) -> mode
 
 
 def get_current_user_flexible(
-    token: str = None,
+    # BUG FIX: `token: str = None` without Query(None) means FastAPI treats
+    # this as a request body field, not a query param. Query(None) is required
+    # so FastAPI correctly extracts ?token= from the URL for <img src> tags.
+    token: str = Query(None, description="JWT token passed as URL query parameter (for image endpoints only)"),
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db),
 ) -> models.User:
@@ -65,7 +69,8 @@ def get_current_user_flexible(
     if payload is None:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Session expired or invalid, please log in again")
 
-    user = db.query(models.User).get(int(payload["sub"]))
+    # BUG FIX: db.get(Model, ) is deprecated in SQLAlchemy 2.x — use db.get()
+    user = db.get(models.User, int(payload["sub"]))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Account not found or disabled")
 

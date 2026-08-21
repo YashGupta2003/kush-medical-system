@@ -29,9 +29,6 @@ from app.database import ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
 from app.config import settings
 
-# Auto-sync DB schema and initialize Event Bus Subscribers on startup
-ensure_database_schema_synced()
-register_all_subscribers()
 
 # ---------------------------------------------------------------------------
 # OpenAPI / FastAPI app definition
@@ -91,6 +88,19 @@ app = FastAPI(
     ],
 )
 
+
+@app.on_event("startup")
+async def on_startup():
+    """
+    BUG FIX: Run DB schema sync and event subscriber registration on FastAPI
+    startup rather than at module import time. This prevents these side-effects
+    from running during test collection, module imports in REPL, or hot-reload
+    cycles where the DB may not yet be available.
+    """
+    ensure_database_schema_synced()
+    register_all_subscribers()
+
+
 # ---------------------------------------------------------------------------
 # Priority 2a: Rate limiting via slowapi
 # Applied only to POST /v1/auth/login — 5 attempts per minute per IP.
@@ -147,11 +157,29 @@ except ImportError:
         "Install with: pip install prometheus-fastapi-instrumentator==7.0.0"
     )
 
+# BUG FIX: allow_origins=["*"] is insecure in production — any website could
+# send credentialed requests to this API. Since we use JWT in Authorization
+# header (not cookies), allow_credentials is not needed. For production,
+# set ALLOWED_ORIGINS env var to your frontend's actual domain.
+_cors_origins_raw = getattr(settings, "allowed_origins", "")
+if _cors_origins_raw:
+    _allowed_origins = [o.strip() for o in _cors_origins_raw.split(",") if o.strip()]
+else:
+    # Development fallback — Vite dev server and common localhost ports only.
+    _allowed_origins = [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:3000",
+    ]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=_allowed_origins,
+    allow_credentials=False,  # not needed; we use Authorization header, not cookies
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Requested-With"],
 )
 
 # ---------------------------------------------------------------------------

@@ -15,7 +15,7 @@ from app.schemas import (
 from app.services import cold_chain_service
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/cold-chain", tags=["Cold Chain"])
+router = APIRouter(prefix="/cold-chain", tags=["cold-chain"])
 
 @router.post("/units", response_model=ColdChainUnitOut)
 def create_unit(unit: ColdChainUnitCreate, db: Session = Depends(get_db), current_user = Depends(require_owner)):

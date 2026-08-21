@@ -51,7 +51,7 @@ def _flat_average_forecast(series: list[float], history_days: int, periods: int)
 
 
 def get_demand_forecast(db: Session, medicine_id: int, periods: int = 14, history_days: int = 180) -> dict:
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise ValueError(f"Medicine with id {medicine_id} not found")
 

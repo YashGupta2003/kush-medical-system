@@ -7,7 +7,7 @@ produces trackable numbers (a new ledger, a new event table, etc.) should
 get a corresponding aggregation added here and surfaced on /analytics/overview,
 so the dashboard keeps growing alongside the app instead of going stale.
 """
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -90,7 +90,7 @@ def get_price_changes(db: Session, days: int = 90, limit: int = 10) -> list[dict
     its EARLIEST old_net_rate to its LATEST new_net_rate in that window -
     i.e. the true net movement over the period, not just one single edit.
     """
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     history = (
         db.query(models.RateHistory)
         .filter(models.RateHistory.changed_at >= since)
@@ -110,7 +110,7 @@ def get_price_changes(db: Session, days: int = 90, limit: int = 10) -> list[dict
         if baseline <= 0:
             continue
         pct_change = ((final - baseline) / baseline) * 100
-        medicine = db.query(models.Medicine).get(medicine_id)
+        medicine = db.get(models.Medicine, medicine_id)
         if not medicine:
             continue
         results.append({
@@ -147,7 +147,7 @@ def get_top_medicines_by_spend(db: Session, year: Optional[int] = None, month: O
 
 def get_top_selling(db: Session, days: int = 30, limit: int = 10) -> list[dict]:
     """Top sellers by quantity, from the Sales table (the 'Record a Sale' feature)."""
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     rows = (
         db.query(models.Medicine.id, models.Medicine.particulars, func.sum(models.Sale.qty_sold))
         .join(models.Sale, models.Sale.medicine_id == models.Medicine.id)

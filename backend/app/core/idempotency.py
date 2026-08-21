@@ -119,7 +119,8 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                 # the response to be cached, then return it.
                 waited = 0.0
                 while waited < _LOCK_MAX_WAIT:
-                    time.sleep(_LOCK_POLL_INTERVAL)
+                    import asyncio
+                    await asyncio.sleep(_LOCK_POLL_INTERVAL)
                     waited += _LOCK_POLL_INTERVAL
                     cached = r.get(cache_key)
                     if cached:
@@ -165,11 +166,23 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                         logger.warning(f"Idempotency: could not cache non-JSON response for key '{idem_key}': {e}")
 
                 # Re-stream the buffered body back to the client
-                return JSONResponse(
-                    status_code=status_code,
-                    content=json.loads(raw_body) if raw_body else None,
-                    headers={k: v for k, v in response.headers.items() if k.lower() != "content-length"},
-                )
+                # BUG FIX: raw_body may be non-JSON (e.g. a PDF blob from GST
+                # report download). Fall back to streaming the raw bytes if
+                # json.loads fails, preserving the original Content-Type.
+                try:
+                    body_json = json.loads(raw_body) if raw_body else None
+                    return JSONResponse(
+                        status_code=status_code,
+                        content=body_json,
+                        headers={k: v for k, v in response.headers.items() if k.lower() != "content-length"},
+                    )
+                except (json.JSONDecodeError, ValueError):
+                    from starlette.responses import Response as RawResponse
+                    return RawResponse(
+                        content=raw_body,
+                        status_code=status_code,
+                        headers={k: v for k, v in response.headers.items() if k.lower() != "content-length"},
+                    )
 
             finally:
                 # Always release the lock so that a failed first-request

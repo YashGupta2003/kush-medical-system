@@ -9,7 +9,7 @@ Priority 1 additions (Notification Engine):
   - CreditOverdueEvent         — fired by Celery credit overdue scan task
 """
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 from sqlalchemy.orm import Session
 
@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 @dataclass(frozen=True, kw_only=True)
 class DomainEvent:
     """Base class for all domain events."""
-    timestamp: datetime = field(default_factory=datetime.utcnow)
+    timestamp: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
 
 @dataclass(frozen=True, kw_only=True)

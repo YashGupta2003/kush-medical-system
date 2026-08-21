@@ -122,27 +122,41 @@ def get_expiry_dashboard(db: Session, days: int = 90) -> list[dict]:
 def get_expiry_summary(db: Session) -> dict:
     """Small counts used for the nav-bar badge and dashboard stat cards."""
     today = date.today()
-    all_dated = (
-        db.query(models.MedicineBatch)
+
+    # BUG FIX: Previous code loaded all batch rows into Python memory and counted
+    # buckets in a loop. For large inventories this is O(N) RAM. Use SQL
+    # conditional aggregates (CASE WHEN) to count in the database instead.
+    from sqlalchemy import case, func
+
+    expired_count, critical_count, warning_count = (
+        db.query(
+            func.sum(case((models.MedicineBatch.expiry_date < today, 1), else_=0)),
+            func.sum(case(
+                (models.MedicineBatch.expiry_date >= today,
+                 case((models.MedicineBatch.expiry_date <= today + timedelta(days=7), 1), else_=0)),
+                else_=0
+            )),
+            func.sum(case(
+                (models.MedicineBatch.expiry_date > today + timedelta(days=7),
+                 case((models.MedicineBatch.expiry_date <= today + timedelta(days=30), 1), else_=0)),
+                else_=0
+            )),
+        )
         .filter(models.MedicineBatch.expiry_date.isnot(None))
-        .all()
+        .one()
     )
-    expired = critical = warning = 0
-    for b in all_dated:
-        d = (b.expiry_date - today).days
-        if d < 0:
-            expired += 1
-        elif d <= 7:
-            critical += 1
-        elif d <= 30:
-            warning += 1
 
     missing_count = (
         db.query(models.MedicineBatch)
         .filter(models.MedicineBatch.expiry_date.is_(None))
         .count()
     )
-    return {"expired": expired, "critical": critical, "warning": warning, "missing_expiry": missing_count}
+    return {
+        "expired": int(expired_count or 0),
+        "critical": int(critical_count or 0),
+        "warning": int(warning_count or 0),
+        "missing_expiry": missing_count,
+    }
 
 
 def get_missing_expiry_batches(db: Session) -> list[dict]:
@@ -172,7 +186,7 @@ def get_missing_expiry_batches(db: Session) -> list[dict]:
 
 
 def fill_missing_expiry(db: Session, batch_id: int, expiry_date: date) -> bool:
-    batch = db.query(models.MedicineBatch).get(batch_id)
+    batch = db.get(models.MedicineBatch, batch_id)
     if not batch:
         return False
     batch.expiry_date = expiry_date

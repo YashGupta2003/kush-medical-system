@@ -35,7 +35,7 @@ graph_service.py).
 """
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -106,7 +106,7 @@ def log_event(db: Session, event_type: str, reference_id: Optional[int], payload
         payload_hash=payload_hash,
         previous_hash=previous_hash,
         entry_hash=entry_hash,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(entry)
     db.flush()
@@ -171,7 +171,7 @@ def verify_chain(db: Session) -> dict:
         "total_entries": len(entries),
         "is_valid": len(broken_at) == 0,
         "broken_entries": broken_at,
-        "verified_at": datetime.utcnow().isoformat(),
+        "verified_at": datetime.now(timezone.utc).isoformat(),
     }
 
 

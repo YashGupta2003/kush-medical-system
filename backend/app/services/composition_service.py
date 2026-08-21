@@ -109,7 +109,7 @@ def set_medicine_composition(db: Session, medicine_id: int, raw_composition: str
     old salt rows are deleted before the new ones are inserted rather than
     appended.
     """
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         return None
 
@@ -250,7 +250,7 @@ def get_medicine_substitutes(db: Session, medicine_id: int, in_stock_only: bool 
     works" - looks up the medicine's own composition (works even if THIS
     medicine has zero stock) and searches from there, excluding itself.
     """
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         return {"medicine": None, "substitutes": []}
 

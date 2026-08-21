@@ -129,7 +129,7 @@ def lookup_by_barcode(code: str, db: Session = Depends(get_db)):
 
 @router.patch("/{medicine_id}/barcode", response_model=schemas.MedicineOut)
 def assign_barcode(medicine_id: int, payload: schemas.BarcodeAssignRequest, db: Session = Depends(get_db)):
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise HTTPException(404, "Medicine not found")
 
@@ -158,7 +158,7 @@ def update_composition(medicine_id: int, payload: schemas.CompositionUpdate, db:
 
 @router.get("/{medicine_id}", response_model=schemas.MedicineOut)
 def get_medicine(medicine_id: int, db: Session = Depends(get_db)):
-    medicine = db.query(models.Medicine).get(medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise HTTPException(404, "Medicine not found")
     return medicine

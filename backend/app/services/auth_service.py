@@ -15,7 +15,7 @@ Priority 2a additions:
 """
 import hashlib
 import uuid
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from jose import jwt, JWTError
@@ -46,7 +46,7 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[mod
 
 
 def create_access_token(user: models.User) -> str:
-    expire = datetime.utcnow() + timedelta(minutes=settings.jwt_expire_minutes)
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.jwt_expire_minutes)
     payload = {
         "sub": str(user.id),
         "username": user.username,
@@ -81,7 +81,7 @@ def create_refresh_token(db: Session, user: models.User) -> str:
     doesn't immediately yield usable refresh tokens.
     """
     raw = str(uuid.uuid4())
-    expires = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    expires = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
 
     token_row = models.RefreshToken(
         user_id=user.id,
@@ -110,14 +110,14 @@ def verify_refresh_token(db: Session, raw_token: str) -> Optional[models.User]:
         .filter(
             models.RefreshToken.token_hash == token_hash,
             models.RefreshToken.revoked.is_(False),
-            models.RefreshToken.expires_at > datetime.utcnow(),
+            models.RefreshToken.expires_at > datetime.now(timezone.utc),
         )
         .first()
     )
     if not token_row:
         return None
 
-    user = db.query(models.User).get(token_row.user_id)
+    user = db.get(models.User, token_row.user_id)
     if not user or not user.is_active:
         return None
     return user
@@ -147,14 +147,6 @@ def revoke_all_tokens_for_user(db: Session, user_id: int) -> int:
     or explicit "log out all devices" action. Returns count revoked.
     """
     count = (
-        db.query(models.RefreshToken)
-        .filter(
-            models.RefreshToken.user_id == user_id,
-            models.RefreshToken.revoked.is_(False),
-        )
-        .count()
-    )
-    (
         db.query(models.RefreshToken)
         .filter(
             models.RefreshToken.user_id == user_id,

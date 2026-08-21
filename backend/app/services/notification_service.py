@@ -31,7 +31,7 @@ Deduplication strategy for adherence alerts:
   for adherence alerts encode "customer:{customer_id}:medicine:{medicine_id}" —
   no separate dedup table needed.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -80,7 +80,7 @@ def create_notification(
         related_entity_id=str(related_entity_id) if related_entity_id is not None else None,
         channel=channel,
         is_read=False,
-        created_at=datetime.utcnow(),
+        created_at=datetime.now(timezone.utc),
     )
     db.add(notif)
     db.flush()   # assigns notif.id, consistent with audit_service.log_event pattern
@@ -88,13 +88,13 @@ def create_notification(
     if send_whatsapp and recipient_user_id:
         try:
             from app.services import whatsapp_service
-            user = db.query(models.User).get(recipient_user_id)
+            user = db.get(models.User, recipient_user_id)
             if user and user.whatsapp_number:
                 whatsapp_service.send_message(
                     to=user.whatsapp_number,
                     body=f"*{title}*\n{body}",
                 )
-                notif.sent_at = datetime.utcnow()
+                notif.sent_at = datetime.now(timezone.utc)
                 db.flush()
         except Exception as exc:
             # Never crash the caller because of an optional delivery channel.
@@ -116,7 +116,7 @@ def has_recent_notification(
     for the same related entity was already created within the given window.
     Used by Celery tasks to avoid re-alerting for the same condition daily.
     """
-    cutoff = datetime.utcnow() - timedelta(hours=within_hours)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=within_hours)
     existing = (
         db.query(models.Notification)
         .filter(
@@ -191,7 +191,7 @@ def mark_read(db: Session, notification_id: int, user: models.User) -> Optional[
     no-op, since the frontend can only call this for notifications it
     already fetched for the user).
     """
-    notif = db.query(models.Notification).get(notification_id)
+    notif = db.get(models.Notification, notification_id)
     if not notif:
         return None
 
@@ -275,7 +275,7 @@ def build_daily_digest(db: Session, user_id: int) -> dict:
         anomaly_count = 0
 
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "user_id": user_id,
         "adherence_overdue_count": len(adherence_alerts),
         "adherence_alerts_sample": adherence_alerts[:5],    # first 5 for the digest message

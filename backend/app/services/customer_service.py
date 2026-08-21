@@ -26,7 +26,7 @@ opt-in), but NOT the credit ledger (a debt is a factual record either
 party can already reference regardless of consent to health tracking) -
 these are deliberately kept as separate concerns, not one blanket flag.
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from statistics import mean
 from typing import Optional
@@ -55,13 +55,13 @@ def get_or_create_customer(db: Session, phone: str, name: Optional[str] = None, 
         if name and not customer.name:
             customer.name = name
         if consented and not customer.consent_given_at:
-            customer.consent_given_at = datetime.utcnow()
+            customer.consent_given_at = datetime.now(timezone.utc)
         db.flush()
         return customer
 
     customer = models.Customer(
         phone=phone, name=name,
-        consent_given_at=datetime.utcnow() if consented else None,
+        consent_given_at=datetime.now(timezone.utc) if consented else None,
     )
     db.add(customer)
     db.flush()
@@ -77,7 +77,7 @@ def search_customers(db: Session, q: Optional[str] = None, limit: int = 20) -> l
 
 
 def get_customer_summary(db: Session, customer_id: int) -> Optional[dict]:
-    customer = db.query(models.Customer).get(customer_id)
+    customer = db.get(models.Customer, customer_id)
     if not customer:
         return None
 
@@ -132,7 +132,7 @@ def charge_credit(db: Session, customer_id: int, amount: float, note: Optional[s
     """Records a sale given "on credit" (udhaar) - increases what this customer owes."""
     if amount <= 0:
         raise ValueError("Credit amount must be greater than 0")
-    customer = db.query(models.Customer).get(customer_id)
+    customer = db.get(models.Customer, customer_id)
     if not customer:
         raise ValueError("Customer not found")
 
@@ -152,7 +152,7 @@ def record_payment(db: Session, customer_id: int, amount: float, note: Optional[
     """Records a payment against an outstanding udhaar balance."""
     if amount <= 0:
         raise ValueError("Payment amount must be greater than 0")
-    customer = db.query(models.Customer).get(customer_id)
+    customer = db.get(models.Customer, customer_id)
     if not customer:
         raise ValueError("Customer not found")
 
@@ -180,14 +180,43 @@ def get_credit_ledger(db: Session, customer_id: int, limit: int = 50) -> list[mo
 
 def list_customers_with_outstanding_balance(db: Session, limit: int = 100) -> list[dict]:
     """The 'who owes us money' screen - sorted highest balance first."""
-    customers = db.query(models.Customer).all()
-    results = []
-    for c in customers:
-        balance = get_customer_balance(db, c.id)
-        if balance > 0:
-            results.append({"customer_id": c.id, "phone": c.phone, "name": c.name, "current_balance": float(balance)})
-    results.sort(key=lambda r: -r["current_balance"])
-    return results[:limit]
+    # BUG FIX: previous code ran one query per customer (N+1).
+    # Now: a single query fetches the latest CustomerCredit row per customer
+    # using a correlated subquery, then filters for positive balances.
+    from sqlalchemy import func
+    from sqlalchemy.orm import aliased
+
+    # Subquery: max(id) per customer_id (the most recent ledger row)
+    latest_id_sub = (
+        db.query(func.max(models.CustomerCredit.id))
+        .filter(models.CustomerCredit.customer_id == models.Customer.id)
+        .correlate(models.Customer)
+        .scalar_subquery()
+    )
+
+    rows = (
+        db.query(
+            models.Customer.id,
+            models.Customer.phone,
+            models.Customer.name,
+            models.CustomerCredit.resulting_balance,
+        )
+        .join(models.CustomerCredit, models.CustomerCredit.id == latest_id_sub)
+        .filter(models.CustomerCredit.resulting_balance > 0)
+        .order_by(models.CustomerCredit.resulting_balance.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "customer_id": r[0],
+            "phone": r[1],
+            "name": r[2],
+            "current_balance": float(r[3]),
+        }
+        for r in rows
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -234,7 +263,7 @@ def compute_adherence_alerts(db: Session, customer_id: Optional[int] = None) -> 
             continue
         groups.setdefault((s.customer_id, s.medicine_id), []).append(s.sold_at)
 
-    today = datetime.utcnow()
+    today = datetime.now(timezone.utc)
     alerts = []
 
     for (cust_id, med_id), dates in groups.items():
@@ -251,8 +280,8 @@ def compute_adherence_alerts(db: Session, customer_id: Optional[int] = None) -> 
         if days_since <= avg_gap * OVERDUE_MULTIPLIER:
             continue
 
-        customer = db.query(models.Customer).get(cust_id)
-        medicine = db.query(models.Medicine).get(med_id)
+        customer = db.get(models.Customer, cust_id)
+        medicine = db.get(models.Medicine, med_id)
         if not customer or not medicine:
             continue
 

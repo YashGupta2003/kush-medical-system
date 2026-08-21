@@ -29,7 +29,7 @@ If scikit-learn itself isn't installed, the leave-one-out z-score
 fallback is used automatically rather than the endpoint erroring.
 """
 import math
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -69,7 +69,8 @@ def _leave_one_out_zscores(values: list[float]) -> dict[int, float]:
         if len(others) < 2:
             continue
         mean_o = sum(others) / len(others)
-        variance_o = sum((o - mean_o) ** 2 for o in others) / len(others)
+        # BUG FIX: Use sample variance (Bessel's correction) instead of population variance
+        variance_o = sum((o - mean_o) ** 2 for o in others) / (len(others) - 1)
         std_o = math.sqrt(variance_o) or 1e-9
         scores[i] = (v - mean_o) / std_o
     return scores
@@ -85,7 +86,7 @@ def detect_price_jump_anomalies(db: Session, days: int = 180) -> dict:
     OTHER price change in the same window - a routine 3% GST-driven
     adjustment looks nothing like an accidental (or deliberate) 400% typo.
     """
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     raw_entries = (
         db.query(models.RateHistory)
         .filter(models.RateHistory.changed_at >= since)
@@ -125,7 +126,7 @@ def detect_price_jump_anomalies(db: Session, days: int = 180) -> dict:
     anomalies = []
     for i in sorted(flagged_indices, key=lambda idx: scores[idx]):
         e = entries[i]
-        medicine = db.query(models.Medicine).get(e.medicine_id)
+        medicine = db.get(models.Medicine, e.medicine_id)
         anomalies.append({
             "rate_history_id": e.id, "medicine_id": e.medicine_id,
             "medicine_name": medicine.particulars if medicine else "Unknown",
@@ -165,7 +166,7 @@ def detect_stock_adjustment_anomalies(db: Session, days: int = 90) -> dict:
          record - never off one or two corrections, which is completely
          normal.
     """
-    since = datetime.utcnow() - timedelta(days=days)
+    since = datetime.now(timezone.utc) - timedelta(days=days)
     rows = (
         db.query(models.StockLedger)
         .filter(models.StockLedger.reason == "manual_adjustment", models.StockLedger.created_at >= since)
@@ -203,8 +204,8 @@ def detect_stock_adjustment_anomalies(db: Session, days: int = 90) -> dict:
     flagged_adjustments = []
     for i in sorted(flagged_indices, key=lambda idx: -scores[idx]):
         r = rows[i]
-        medicine = db.query(models.Medicine).get(r.medicine_id)
-        user = db.query(models.User).get(r.created_by_user_id) if r.created_by_user_id else None
+        medicine = db.get(models.Medicine, r.medicine_id)
+        user = db.get(models.User, r.created_by_user_id) if r.created_by_user_id else None
         flagged_adjustments.append({
             "stock_ledger_id": r.id, "medicine_id": r.medicine_id,
             "medicine_name": medicine.particulars if medicine else "Unknown",
@@ -232,7 +233,7 @@ def detect_stock_adjustment_anomalies(db: Session, days: int = 90) -> dict:
                 others_total = total - count
                 avg_of_others = others_total / (active_staff - 1)
                 is_over = avg_of_others > 0 and count > avg_of_others * OVER_REPRESENTATION_MULTIPLIER
-            user = db.query(models.User).get(user_id)
+            user = db.get(models.User, user_id)
             staff_summary.append({
                 "user_id": user_id, "username": user.username if user else "Unknown",
                 "adjustment_count": count, "share_pct": round(share * 100, 1),

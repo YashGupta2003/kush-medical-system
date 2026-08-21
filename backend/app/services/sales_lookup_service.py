@@ -3,7 +3,7 @@ Recent sales lookup - a NEW, small service (Pillar 2 addition). No existing
 function exposed "what has been sold recently" directly (stock_service only
 has per-medicine snapshots), so this is added standalone.
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from sqlalchemy.orm import Session
 
@@ -12,7 +12,7 @@ from app import models
 
 def get_recent_sales(db: Session, hours: int = 24) -> list[dict]:
     """Every Sale row in the last `hours` hours, most recent first."""
-    since = datetime.utcnow() - timedelta(hours=hours)
+    since = datetime.now(timezone.utc) - timedelta(hours=hours)
     sales = (
         db.query(models.Sale)
         .filter(models.Sale.sold_at >= since)
@@ -22,7 +22,7 @@ def get_recent_sales(db: Session, hours: int = 24) -> list[dict]:
 
     results = []
     for sale in sales:
-        medicine = db.query(models.Medicine).get(sale.medicine_id)
+        medicine = db.get(models.Medicine, sale.medicine_id)
         results.append({
             "sale_id": sale.id,
             "medicine_id": sale.medicine_id,

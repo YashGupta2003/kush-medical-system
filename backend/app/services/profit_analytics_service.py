@@ -57,11 +57,11 @@ def get_profit_margin_analysis(db: Session, condition: Optional[str] = None) -> 
 
     return result
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 def detect_margin_compression(db: Session, days: int = 90, severity_filter: Optional[str] = None) -> list[dict]:
     # For each medicine: check last 2 RateHistory entries within days.
-    cutoff_date = datetime.utcnow() - timedelta(days=days)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
     
     medicines = db.query(models.Medicine).all()
     results = []
@@ -142,7 +142,7 @@ def detect_margin_compression(db: Session, days: int = 90, severity_filter: Opti
     return results
 
 def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
-    med = db.query(models.Medicine).get(medicine_id)
+    med = db.get(models.Medicine, medicine_id)
     if not med:
         return {}
         
@@ -155,7 +155,7 @@ def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
     results = []
     unpriced = 0
     for s in substitutes_data:
-        sub_med = db.query(models.Medicine).get(s["medicine_id"])
+        sub_med = db.get(models.Medicine, s["medicine_id"])
         margin = _margin_pct(sub_med.mrp, sub_med.net_rate)
         
         if margin is None:
@@ -185,7 +185,7 @@ def get_distributor_negotiation_report(db: Session) -> list[dict]:
     distributors = db.query(models.Distributor).all()
     results = []
     
-    cutoff_date = datetime.utcnow() - timedelta(days=180)
+    cutoff_date = datetime.now(timezone.utc) - timedelta(days=180)
     
     for dist in distributors:
         bills = db.query(models.Bill).filter(
@@ -212,7 +212,7 @@ def get_distributor_negotiation_report(db: Session) -> list[dict]:
         worst_margin = 9999
         
         for mid in med_ids:
-            med = db.query(models.Medicine).get(mid)
+            med = db.get(models.Medicine, mid)
             margin = _margin_pct(med.mrp, med.net_rate)
             if margin is not None:
                 margins.append(margin)

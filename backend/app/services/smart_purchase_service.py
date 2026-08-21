@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Dict, Any, List
 import math
 
@@ -18,7 +18,7 @@ def generate_purchase_order(db: Session) -> dict:
     sale_med_ids = [m_id for (m_id,) in db.query(models.Sale.medicine_id).distinct().all()]
     if not sale_med_ids:
         return {
-            "generated_at": datetime.utcnow().isoformat(),
+            "generated_at": datetime.now(timezone.utc).isoformat(),
             "total_estimated_cost": 0.0,
             "items_count": 0,
             "groups": []
@@ -140,7 +140,7 @@ def generate_purchase_order(db: Session) -> dict:
     result_groups = [{"distributor_name": k, "items": v} for k, v in groups_map.items()]
     
     return {
-        "generated_at": datetime.utcnow().isoformat(),
+        "generated_at": datetime.now(timezone.utc).isoformat(),
         "total_estimated_cost": round(total_cost, 2),
         "items_count": len(items),
         "groups": result_groups

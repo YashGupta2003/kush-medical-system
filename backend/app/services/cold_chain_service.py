@@ -17,7 +17,7 @@ Design decision: readings are staff-accessible (any logged-in user can
 log a temperature reading — this is a routine operational task). Compliance
 reporting and unit management are owner-only (financial/regulatory scope).
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
@@ -108,7 +108,7 @@ def record_reading(db: Session, unit_id: int, temp_c: float, recorded_by_user_id
     return reading
 
 def get_readings(db: Session, unit_id: int, hours: int = 24, limit: int = 100) -> List[Dict[str, Any]]:
-    cutoff = datetime.utcnow() - timedelta(hours=hours)
+    cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
     readings = db.query(ColdChainReading, User.username).join(
         User, ColdChainReading.recorded_by_user_id == User.id, isouter=True
     ).join(ColdChainUnit, ColdChainReading.unit_id == ColdChainUnit.id).filter(
@@ -131,7 +131,7 @@ def get_readings(db: Session, unit_id: int, hours: int = 24, limit: int = 100) -
     return result
 
 def get_compliance_report(db: Session, unit_id: Optional[int] = None, days: int = 30) -> Dict[str, Any]:
-    cutoff = datetime.utcnow() - timedelta(days=days)
+    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
     query = db.query(ColdChainReading).filter(ColdChainReading.recorded_at >= cutoff)
     if unit_id is not None:
         query = query.filter(ColdChainReading.unit_id == unit_id)

@@ -7,7 +7,7 @@ bills          -> one row per uploaded invoice photo
 bill_items     -> one row per line item on a bill (linked to a medicine once matched)
 rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import (
     UniqueConstraint,
     Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum, Boolean
@@ -28,8 +28,8 @@ class Medicine(Base):
     net_rate = Column(Numeric(10, 2))                          # current cost price to the shop
     company = Column(String(100))
     stockist = Column(String(100))
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     current_stock = Column(Numeric(10, 2), default=0, nullable=False)
     low_stock_threshold = Column(Numeric(10, 2), nullable=True)
@@ -76,7 +76,7 @@ class Bill(Base):
              "confirmed", "rejected", "failed", name="bill_status"),
         default="queued",
     )
-    uploaded_at = Column(DateTime, default=datetime.utcnow)
+    uploaded_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     raw_ocr_text = Column(Text)
 
     celery_task_id = Column(String(100), nullable=True, index=True)
@@ -132,7 +132,7 @@ class RateHistory(Base):
     new_net_rate = Column(Numeric(10, 2))
     old_mrp = Column(Numeric(10, 2))
     new_mrp = Column(Numeric(10, 2))
-    changed_at = Column(DateTime, default=datetime.utcnow)
+    changed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     medicine = relationship("Medicine", back_populates="rate_history")
 
@@ -147,8 +147,8 @@ class UserMapping(Base):
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True, index=True)
     raw_name = Column(String(255), nullable=False, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
@@ -159,7 +159,7 @@ class Sale(Base):
     id = Column(Integer, primary_key=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     qty_sold = Column(Numeric(10, 2), nullable=False)
-    sold_at = Column(DateTime, default=datetime.utcnow)
+    sold_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)   # NEW (Pillar 5)
 
     medicine = relationship("Medicine")
@@ -178,7 +178,7 @@ class StockLedger(Base):
     reference_sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
     note = Column(String(255), nullable=True)
     created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)   # NEW (Pillar 6)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     medicine = relationship("Medicine")
     created_by = relationship("User")
@@ -195,7 +195,7 @@ class ReorderItem(Base):
     note = Column(String(255), nullable=True)
     source = Column(Enum("auto_low_stock", "manual", name="reorder_source"), default="manual")
     fulfilled = Column(Boolean, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
@@ -211,7 +211,7 @@ class MedicineBatch(Base):
     bill_item_id = Column(Integer, ForeignKey("bill_items.id"), nullable=True, unique=True)
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True)
     is_cold_chain = Column(Boolean, nullable=True, default=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
@@ -226,7 +226,7 @@ class User(Base):
     full_name = Column(String(100), nullable=True)
     role = Column(Enum("owner", "staff", name="user_role"), nullable=False, default="staff")
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     # Priority 1: WhatsApp delivery column (migration 0013)
     whatsapp_number = Column(String(20), nullable=True)
 
@@ -255,7 +255,7 @@ class RefreshToken(Base):
     token_hash = Column(String(64), nullable=False, unique=True, index=True)
     expires_at = Column(DateTime, nullable=False)
     revoked = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     user = relationship("User", back_populates="refresh_tokens")
 
@@ -291,8 +291,8 @@ class GraphEdge(Base):
     target_id = Column(String(150), nullable=False, index=True)
     weight = Column(Numeric(5, 2), nullable=True)
     edge_metadata = Column(Text, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 class AuditLedgerEntry(Base):
     """
@@ -323,7 +323,7 @@ class AuditLedgerEntry(Base):
     previous_hash = Column(String(64), nullable=False)  # chains to the prior ledger entry's entry_hash
     entry_hash = Column(String(64), nullable=False, unique=True, index=True)  # SHA-256(payload_hash + previous_hash)
 
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
 
 class Customer(Base):
     """
@@ -343,7 +343,7 @@ class Customer(Base):
     phone = Column(String(15), nullable=False, unique=True, index=True)
     name = Column(String(100), nullable=True)
     consent_given_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     credit_entries = relationship("CustomerCredit", back_populates="customer", cascade="all, delete-orphan")
     sales = relationship("Sale", back_populates="customer")
@@ -367,7 +367,7 @@ class CustomerCredit(Base):
     reason = Column(Enum("credit_sale", "payment_received", "adjustment", name="credit_reason"), nullable=False)
     reference_sale_id = Column(Integer, ForeignKey("sales.id"), nullable=True)
     note = Column(String(255), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     customer = relationship("Customer", back_populates="credit_entries")
 
@@ -390,7 +390,7 @@ class PharmacyNode(Base):
     contact_phone = Column(String(50), nullable=True)
     is_self = Column(Boolean, default=False)
     opted_in = Column(Boolean, default=True)
-    joined_at = Column(DateTime, default=datetime.utcnow)
+    joined_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class NetworkListing(Base):
@@ -415,8 +415,8 @@ class NetworkListing(Base):
     status = Column(Enum("open", "claimed", "fulfilled", "withdrawn", name="listing_status"), nullable=False, default="open", index=True)
     claimed_by_node_id = Column(Integer, ForeignKey("pharmacy_nodes.id"), nullable=True)
     source_batch_id = Column(Integer, ForeignKey("medicine_batches.id"), nullable=True)   # links auto-published near_expiry listings back to their batch, for idempotent re-publishing
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     pharmacy_node = relationship("PharmacyNode", foreign_keys=[pharmacy_node_id])
     claimed_by_node = relationship("PharmacyNode", foreign_keys=[claimed_by_node_id])
@@ -469,7 +469,7 @@ class Notification(Base):
     )
     is_read = Column(Boolean, nullable=False, default=False)
     sent_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     recipient_user = relationship("User", foreign_keys=[recipient_user_id],
                                   back_populates="notifications")
@@ -493,8 +493,8 @@ class SurveillanceDailyCount(Base):
     condition_name = Column(String(150), nullable=False, index=True)
     count_date = Column(Date, nullable=False, index=True)
     otc_units = Column(Integer, nullable=False, default=0)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         UniqueConstraint('condition_name', 'count_date', name='uq_surveillance_daily_counts_cond_date'),
@@ -522,7 +522,7 @@ class ColdChainUnit(Base):
     min_temp_c = Column(Numeric(5, 2), nullable=False, default=2.0)
     max_temp_c = Column(Numeric(5, 2), nullable=False, default=8.0)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     readings = relationship("ColdChainReading", back_populates="unit", cascade="all, delete-orphan")
 
@@ -547,7 +547,7 @@ class ColdChainReading(Base):
     unit_id = Column(Integer, ForeignKey("cold_chain_units.id"), nullable=False, index=True)
     recorded_temp_c = Column(Numeric(5, 2), nullable=False)
     recorded_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    recorded_at = Column(DateTime, nullable=False, default=datetime.utcnow, index=True)
+    recorded_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc), index=True)
     note = Column(String(255), nullable=True)
     is_excursion = Column(Boolean, nullable=False, default=False)
 
@@ -571,7 +571,7 @@ class DistributorTrustScore(Base):
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True, index=True)
     score = Column(Numeric(5, 2), nullable=False)
     confidence = Column(String(20), nullable=False)
-    computed_at = Column(DateTime, default=datetime.utcnow)
+    computed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     distributor = relationship("Distributor")
 
