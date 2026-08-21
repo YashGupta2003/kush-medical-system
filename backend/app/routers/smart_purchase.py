@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from typing import Any
 
 from app.database import get_db
-from app.schemas import SmartPurchaseOrder, WhatsAppOrderRequest, WhatsAppOrderResponse
+from app.schemas import SmartPurchaseOrder, SmartPurchaseItem, WhatsAppOrderRequest, WhatsAppOrderResponse
 from app.services.smart_purchase_service import generate_purchase_order
-from app.routers.auth import get_current_user
+from app.deps import get_current_user
 from app.models import User
 
 router = APIRouter(prefix="/smart-purchase", tags=["smart-purchase"])
@@ -22,7 +22,7 @@ def get_smart_purchase_order(
     result = generate_purchase_order(db)
     return result
 
-@router.get("/order/{medicine_id}")
+@router.get("/order/{medicine_id}", response_model=SmartPurchaseItem)
 def get_single_medicine_purchase_detail(
     medicine_id: int,
     db: Session = Depends(get_db),

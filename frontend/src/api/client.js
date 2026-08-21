@@ -118,6 +118,7 @@ export const api = {
     apiFetch("/copilot/chat", { method: "POST", ...jsonBody({ message, history }) }),
 
   // --- Bills ---
+  // Note: Do not set Content-Type manually for FormData; fetch will set multipart/form-data with the correct boundary automatically.
   uploadBill: (formData) => apiFetch("/bills/upload", { method: "POST", body: formData }),
   uploadBillsBatch: (formData) => apiFetch("/bills/upload-batch", { method: "POST", body: formData }),
   getBillStatus: (id) => apiFetch(`/bills/${id}/status`),
@@ -128,8 +129,8 @@ export const api = {
     return apiFetch(`/bills${qs ? "?" + qs : ""}`);
   },
   confirmBill: (payload) => apiFetch("/bills/confirm", { method: "POST", ...jsonBody(payload) }),
-  reprocessRegion: (billId, box) =>
-    apiFetch(`/bills/${billId}/reprocess-region`, { method: "POST", ...jsonBody(box) }),
+  reprocessRegion: (billId, { x0, y0, x1, y1 }) =>
+    apiFetch(`/bills/${billId}/reprocess-region`, { method: "POST", ...jsonBody({ x0, y0, x1, y1 }) }),
   addBillItem: (billId) => apiFetch(`/bills/${billId}/items`, { method: "POST" }),
   removeBillItem: (billId, itemId) => apiFetch(`/bills/${billId}/items/${itemId}`, { method: "DELETE" }),
 
@@ -170,10 +171,18 @@ export const api = {
   getReorderList: () => apiFetch("/stock/reorder-list"),
   addManualReorderItem: (payload) => apiFetch("/stock/reorder-list/manual", { method: "POST", ...jsonBody(payload) }),
   removeReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}`, { method: "DELETE" }),
+  // FIX: Stock.jsx calls api.fulfillReorderItem — add the missing method (PATCH /stock/reorder-list/{id}/fulfill)
+  fulfillReorderItem: (id) => apiFetch(`/stock/reorder-list/${id}/fulfill`, { method: "PATCH" }),
   updateLowStockThreshold: (medicineId, threshold) =>
     apiFetch(`/stock/medicine/${medicineId}/threshold`, { method: "PATCH", ...jsonBody({ low_stock_threshold: threshold }) }),
+  // FIX: Stock.jsx calls api.recordAdjustment({medicine_id, new_total_stock, note})
+  // The backend POST /stock/adjustments accepts exactly those fields
+  recordAdjustment: ({ medicine_id, new_total_stock, note } = {}) =>
+    apiFetch("/stock/adjustments", { method: "POST", ...jsonBody({ medicine_id, new_total_stock, note }) }),
+  // Alias kept for any other callers using the old name
   recordStockAdjustment: (medicineId, newTotalStock, note) =>
     apiFetch("/stock/adjustments", { method: "POST", ...jsonBody({ medicine_id: medicineId, new_total_stock: newTotalStock, note }) }),
+
 
   // --- Expiry tracking ---
   getExpiryDashboard: (days = 90) => apiFetch(`/expiry/dashboard?days=${days}`),
@@ -327,6 +336,11 @@ export const api = {
 
   // --- Profit Margin Optimizer (Feature 13, owner only) ---
   getProfitMargins: () => apiFetch("/profit/margins"),
+  /**
+   * @param {Object} opts
+   * @param {"mild"|"moderate"|"severe"|null} opts.severity
+   * @param {number} opts.days
+   */
   getProfitCompression: ({ severity = null, days = 90 } = {}) => {
     const params = new URLSearchParams({ days });
     if (severity) params.set("severity", severity);

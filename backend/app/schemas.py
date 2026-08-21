@@ -219,6 +219,11 @@ class SaleCreate(BaseModel):
     medicine_id: int
     qty_sold: float = Field(gt=0, description="Must be greater than 0")
 
+class StockAdjustmentCreate(BaseModel):
+    medicine_id: int
+    new_total_stock: float = Field(ge=0, description="Cannot be negative")
+    note: Optional[str] = None
+
 
 class LastPurchaseInfo(BaseModel):
     distributor_id: Optional[int] = None

@@ -121,18 +121,13 @@ def get_ledger(limit: int = 50, db: Session = Depends(get_db)):
 
 @router.post("/adjustments")
 def record_adjustment(
-    payload: dict,
+    payload: schemas.StockAdjustmentCreate,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    med_id = payload.get("medicine_id")
-    target = payload.get("new_total_stock")
-    note = payload.get("note")
-    if not med_id or target is None:
-        raise HTTPException(422, "Missing medicine_id or new_total_stock")
     try:
         return stock_service.record_adjustment(
-            db, med_id, float(target), note, created_by_user_id=current_user.id,
+            db, payload.medicine_id, payload.new_total_stock, payload.note, created_by_user_id=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

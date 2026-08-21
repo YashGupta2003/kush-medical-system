@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from typing import List, Any
+from typing import List, Any, Optional
 from app.database import get_db
 from app.deps import get_current_user, require_owner
 from app.schemas import (
@@ -66,7 +66,7 @@ def get_readings(unit_id: int, hours: int = 24, db: Session = Depends(get_db), c
     return cold_chain_service.get_readings(db=db, unit_id=unit_id, hours=hours)
 
 @router.get("/compliance", response_model=ColdChainComplianceReport)
-def get_compliance(days: int = 30, unit_id: int = None, db: Session = Depends(get_db), current_user = Depends(require_owner)):
+def get_compliance(days: int = 30, unit_id: Optional[int] = None, db: Session = Depends(get_db), current_user = Depends(require_owner)):
     return cold_chain_service.get_compliance_report(db=db, unit_id=unit_id, days=days)
 
 @router.get("/compromised/{unit_id}", response_model=List[ColdChainBatchOut])

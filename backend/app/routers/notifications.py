@@ -21,7 +21,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 @router.get("", response_model=list[schemas.NotificationOut])
 def list_notifications(
     unread_only: bool = False,
-    limit: int = 50,
+    limit: int = 20,
     offset: int = 0,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
