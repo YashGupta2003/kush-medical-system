@@ -62,6 +62,13 @@ def reprocess_region_task(bill_id: int, x0: int, y0: int, x1: int, y1: int) -> d
 @celery_app.task(bind=True, name="rebuild_graph")
 def rebuild_graph_task(self):
     from app.services import graph_service
+    import redis
+
+    r = redis.from_url(settings.redis_url)
+    lock = r.lock("lock:rebuild_graph", timeout=600)
+    
+    if not lock.acquire(blocking=False):
+        return {"status": "skipped", "reason": "Another rebuild is currently in progress."}
 
     db = SessionLocal()
     try:
@@ -72,6 +79,10 @@ def rebuild_graph_task(self):
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+        try:
+            lock.release()
+        except redis.exceptions.LockError:
+            pass
 
 
 # ---------------------------------------------------------------------------

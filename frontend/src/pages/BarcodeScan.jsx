@@ -53,7 +53,7 @@ export default function BarcodeScan() {
       scannerRef.current = scanner;
       await scanner.start(
         { facingMode: "environment" },
-        { fps: 10, qrbox: { width: 260, height: 160 } },
+        { fps: 10, disableFlip: false },
         (decodedText) => handleScannedCode(decodedText),
         () => {} // ignore per-frame "not found" noise
       );
@@ -66,6 +66,7 @@ export default function BarcodeScan() {
   async function stopScanning() {
     if (scannerRef.current) {
       try { await scannerRef.current.stop(); } catch { /* already stopped */ }
+      try { scannerRef.current.clear(); } catch { }
     }
     setScanning(false);
   }

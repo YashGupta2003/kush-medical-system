@@ -140,6 +140,7 @@ export const api = {
     if (q) params.set("q", q);
     return apiFetch(`/medicines?${params.toString()}`);
   },
+  createMedicine: (payload) => apiFetch("/medicines", { method: "POST", ...jsonBody(payload) }),
   getMedicineHistory: (id) => apiFetch(`/medicines/${id}/history`),
   lookupBarcode: (code) => apiFetch(`/medicines/barcode/${encodeURIComponent(code)}`),
   assignBarcode: (medicineId, barcode) =>

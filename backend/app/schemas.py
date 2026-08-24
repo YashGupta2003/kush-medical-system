@@ -4,6 +4,17 @@ from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 T = TypeVar("T")
 
+class MedicineCreate(BaseModel):
+    particulars: str
+    unit: Optional[str] = None
+    mrp: Optional[float] = None
+    net_rate: Optional[float] = None
+    company: Optional[str] = None
+    stockist: Optional[str] = None
+    current_stock: Optional[float] = 0.0
+    low_stock_threshold: Optional[float] = None
+    barcode: Optional[str] = None
+    composition: Optional[str] = None
 
 class MedicineOut(BaseModel):
     id: int

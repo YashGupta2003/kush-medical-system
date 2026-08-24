@@ -707,6 +707,119 @@ function SmartReorderTab() {
 // ---------------------------------------------------------------------------
 // Main Stock Component with Tabs
 // ---------------------------------------------------------------------------
+// TAB X: Add New Medicine
+// ---------------------------------------------------------------------------
+function AddMedicineTab() {
+  const [formData, setFormData] = useState({
+    particulars: "",
+    unit: "",
+    mrp: "",
+    net_rate: "",
+    company: "",
+    stockist: "",
+    current_stock: "",
+    low_stock_threshold: "",
+    composition: "",
+  });
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState(null);
+  const [error, setError] = useState(null);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const payload = {
+        particulars: formData.particulars.trim(),
+        unit: formData.unit.trim() || undefined,
+        mrp: formData.mrp ? Number(formData.mrp) : undefined,
+        net_rate: formData.net_rate ? Number(formData.net_rate) : undefined,
+        company: formData.company.trim() || undefined,
+        stockist: formData.stockist.trim() || undefined,
+        current_stock: formData.current_stock ? Number(formData.current_stock) : 0,
+        low_stock_threshold: formData.low_stock_threshold ? Number(formData.low_stock_threshold) : undefined,
+        composition: formData.composition.trim() || undefined,
+      };
+      const res = await api.createMedicine(payload);
+      setMessage(`Medicine "${res.particulars}" added successfully with initial stock ${res.current_stock || 0}.`);
+      setFormData({
+        particulars: "", unit: "", mrp: "", net_rate: "", company: "",
+        stockist: "", current_stock: "", low_stock_threshold: "", composition: ""
+      });
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.2 }} className="card">
+      <h2 style={{ color: "var(--text-main)", marginTop: 0 }}>Add New Medicine to Inventory</h2>
+      <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
+        Manually add a new medicine to the system along with its initial stock. Usually, medicines are added automatically when uploading a purchase bill, but this allows for manual entry.
+      </p>
+      <form onSubmit={handleSubmit} style={{ display: "grid", gap: "16px", gridTemplateColumns: "1fr 1fr" }}>
+        <div style={{ gridColumn: "1 / -1" }}>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Medicine Name (Particulars) *</label>
+          <input required style={{ width: "100%" }} value={formData.particulars} onChange={(e) => setFormData({...formData, particulars: e.target.value})} placeholder="e.g. PARACETAMOL 500MG TABS" />
+        </div>
+        
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Composition (Salt)</label>
+          <input style={{ width: "100%" }} value={formData.composition} onChange={(e) => setFormData({...formData, composition: e.target.value})} placeholder="e.g. Paracetamol" />
+        </div>
+        
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Unit / Pack Size</label>
+          <input style={{ width: "100%" }} value={formData.unit} onChange={(e) => setFormData({...formData, unit: e.target.value})} placeholder="e.g. 1x10" />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>MRP (₹)</label>
+          <input type="number" step="0.01" style={{ width: "100%" }} value={formData.mrp} onChange={(e) => setFormData({...formData, mrp: e.target.value})} />
+        </div>
+        
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Net Rate (Cost Price ₹)</label>
+          <input type="number" step="0.01" style={{ width: "100%" }} value={formData.net_rate} onChange={(e) => setFormData({...formData, net_rate: e.target.value})} />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Company / Manufacturer</label>
+          <input style={{ width: "100%" }} value={formData.company} onChange={(e) => setFormData({...formData, company: e.target.value})} />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Stockist</label>
+          <input style={{ width: "100%" }} value={formData.stockist} onChange={(e) => setFormData({...formData, stockist: e.target.value})} />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Initial Physical Stock (Quantity)</label>
+          <input type="number" step="0.01" style={{ width: "100%" }} value={formData.current_stock} onChange={(e) => setFormData({...formData, current_stock: e.target.value})} placeholder="0" />
+        </div>
+
+        <div>
+          <label style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px", display: "block" }}>Low Stock Alert Threshold</label>
+          <input type="number" step="0.01" style={{ width: "100%" }} value={formData.low_stock_threshold} onChange={(e) => setFormData({...formData, low_stock_threshold: e.target.value})} />
+        </div>
+
+        <div style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
+          <button type="submit" className="button button-primary" disabled={saving}>
+            {saving ? "Saving..." : "Add Medicine & Stock"}
+          </button>
+        </div>
+      </form>
+      {error && <div className="error-message" style={{ marginTop: "16px" }}>{error}</div>}
+      {message && <div style={{ marginTop: "16px", padding: "12px", background: "rgba(16,185,129,0.1)", color: "#10B981", borderRadius: "8px", fontSize: "14px" }}>{message}</div>}
+    </motion.div>
+  );
+}
+
+// ---------------------------------------------------------------------------
 export default function Stock() {
   const [tab, setTab] = useState("sale");
 
@@ -718,6 +831,9 @@ export default function Stock() {
         </button>
         <button className={`tab-button ${tab === "adjustment" ? "active" : ""}`} onClick={() => setTab("adjustment")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <Edit3 size={18} /> Stock Adjustment
+        </button>
+        <button className={`tab-button ${tab === "add-medicine" ? "active" : ""}`} onClick={() => setTab("add-medicine")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          <Plus size={18} /> Add Medicine
         </button>
         <button className={`tab-button ${tab === "ledger" ? "active" : ""}`} onClick={() => setTab("ledger")} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <ClipboardList size={18} /> Stock Ledger
@@ -733,6 +849,7 @@ export default function Stock() {
       <div style={{ position: "relative", minHeight: "400px" }}>
         {tab === "sale" && <RecordSaleTab />}
         {tab === "adjustment" && <AdjustmentTab />}
+        {tab === "add-medicine" && <AddMedicineTab />}
         {tab === "ledger" && <StockLedgerTab />}
         {tab === "reorder" && <ReorderListTab />}
         {tab === "smart-reorder" && <SmartReorderTab />}

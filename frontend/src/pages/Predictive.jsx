@@ -4,7 +4,7 @@ import { api } from "../api/client.js";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   Lightbulb, BrainCircuit, Activity, TrendingUp, TrendingDown, 
-  Search, ShieldAlert, Sparkles, HelpCircle, Package, ArrowUpRight, ArrowDownRight
+  Search, ShieldAlert, Sparkles, HelpCircle, Package, ArrowUpRight, ArrowDownRight, ArrowRight
 } from "lucide-react";
 
 const METHOD_META = {

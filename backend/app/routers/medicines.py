@@ -6,7 +6,47 @@ from app.database import get_db
 from app import models, schemas
 from app.deps import get_current_user
 
+import re
+
 router = APIRouter(prefix="/medicines", dependencies=[Depends(get_current_user)], tags=["medicines"])
+
+@router.post("", response_model=schemas.MedicineOut)
+def create_medicine(
+    payload: schemas.MedicineCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    from app.services import stock_service
+
+    norm = re.sub(r'[^a-zA-Z0-9]', '', payload.particulars.upper())
+    existing = db.query(models.Medicine).filter(models.Medicine.normalized_name == norm).first()
+    if existing:
+        raise HTTPException(400, "Medicine with this name already exists")
+    
+    new_med = models.Medicine(
+        particulars=payload.particulars,
+        normalized_name=norm,
+        unit=payload.unit,
+        mrp=payload.mrp,
+        net_rate=payload.net_rate,
+        company=payload.company,
+        stockist=payload.stockist,
+        current_stock=payload.current_stock or 0,
+        low_stock_threshold=payload.low_stock_threshold,
+        barcode=payload.barcode,
+        composition=payload.composition
+    )
+    db.add(new_med)
+    db.commit()
+    db.refresh(new_med)
+
+    if new_med.current_stock > 0:
+        stock_service.record_adjustment(
+            db, new_med.id, new_med.current_stock, "Initial stock upon creation", created_by_user_id=current_user.id
+        )
+        db.refresh(new_med)
+
+    return new_med
 
 
 def _mask_cost_for_staff(medicines: List[models.Medicine], current_user: models.User):
@@ -115,7 +155,7 @@ def list_or_search_medicines(
         return schemas.PaginatedMedicines(items=items, total=total, page=page, page_size=page_size)
 
 
-@router.get("/barcode/{code}", response_model=schemas.BarcodeLookupResult)
+@router.get("/barcode/{code:path}", response_model=schemas.BarcodeLookupResult)
 def lookup_by_barcode(code: str, db: Session = Depends(get_db)):
     from app.services import stock_service
 

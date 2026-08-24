@@ -1988,3 +1988,155 @@ message: "This API method requires billing to be enabled. Please enable billing 
 [2026-08-19 10:08:13] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
 [2026-08-19 10:10:34] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
 [2026-08-19 10:11:24] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 21:19:01] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 21:59:45] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:00:10] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:25:34] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:30:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 22:30:40] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #21 (WhatsApp Image 2026-07-23 at 12.22.08.jpeg) distributor=HEALTHCARE PHARMA checksum=96981f01fb1e25125fd552c41b6f88c19956cfcfdd9cdafdab9319e333b12ecf
+[2026-08-24 22:30:40] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #21
+[2026-08-24 22:30:40] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #21 (./uploads/cebe6dfc5fe347cbbded1e7b4f75031d.jpeg)
+[2026-08-24 22:30:41] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #21
+[2026-08-24 22:30:43] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 22:30:48] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:30:48] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=24307.0)
+[2026-08-24 22:30:48] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=73.88%
+[2026-08-24 22:30:48] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 22:30:48] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 329
+[2026-08-24 22:30:48] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 30 rows
+[2026-08-24 22:30:48] [INFO] [bill_parser] [bill_parser.py:156]: final result: 6 usable line items out of 17 candidate rows
+[2026-08-24 22:30:48] [INFO] [bill_pipeline] [pipeline.py:73]: Parsed 6 line item rows from OCR text
+[2026-08-24 22:30:48] [INFO] [bill_pipeline] [pipeline.py:93]: Stage 4: Computing costs and linking items against master rate list
+[2026-08-24 22:30:49] [ERROR] [bill_pipeline] [pipeline.py:164]: Pipeline execution failed for Bill #21: (pymysql.err.DataError) (1406, "Data too long for column 'pack' at row 1")
+[SQL: INSERT INTO bill_items (bill_id, medicine_id, raw_name, pack, batch, exp_date, qty, free_qty, mrp, rate, discount_pct, special_discount_pct, gst_pct, amount, computed_cost_per_unit, match_confidence, match_status) VALUES (%(bill_id)s, %(medicine_id)s, %(raw_name)s, %(pack)s, %(batch)s, %(exp_date)s, %(qty)s, %(free_qty)s, %(mrp)s, %(rate)s, %(discount_pct)s, %(special_discount_pct)s, %(gst_pct)s, %(amount)s, %(computed_cost_per_unit)s, %(match_confidence)s, %(match_status)s)]
+[parameters: {'bill_id': 21, 'medicine_id': None, 'raw_name': '> 9 8 11 7 6 10 5 4 3 2 1 | | T-98 VIRILEX VILNIP-M NUCORT-M4 TELMIKIND-AMH AMLOPRESS-TL JUNIOR OMNACORTIL-5MG PRIMACORT-100MG AMLOKIND-AT TAB ZEROGRAIN-10-TABS ASCABIOL-EMULSION TABS TABS TABS (SOMG+500MG) TABS TABS', 'pack': "TABS 20'S 10S 10S 10'S 15'S 10'S 10S |15'S 18'S VIAL 6OML J,", 'batch': 'P15Z005 |C95Z008 |C052586 |5BA3214 E1HPZO002 =~ “3,', 'exp_date': '4/28 2/28 2/28 130 |10/27 10/27 1127 1/28 , +', 'qty': 3.0, 'free_qty': 0, 'mrp': 7.23, 'rate': 90.64, 'discount_pct': 8.0, 'special_discount_pct': 0, 'gst_pct': 5.0, 'amount': 465.64, 'computed_cost_per_unit': 87.56, 'match_confidence': 25.625, 'match_status': 'unmatched'}]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/cursors.py", line 153, in execute
+    result = self._query(query)
+             ^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/cursors.py", line 322, in _query
+    conn.query(q)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 563, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 825, in _read_query_result
+    result.read()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 1199, in read
+    first_packet = self.connection._read_packet()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+pymysql.err.DataError: (1406, "Data too long for column 'pack' at row 1")
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/pipeline.py", line 145, in run
+    self.db.commit()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 2028, in commit
+    trans.commit(_to_root=True)
+  File "<string>", line 2, in commit
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1313, in commit
+    self._prepare_impl()
+  File "<string>", line 2, in _prepare_impl
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/state_changes.py", line 139, in _go
+    ret_value = fn(self, *arg, **kw)
+                ^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 1288, in _prepare_impl
+    self.session.flush()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4352, in flush
+    self._flush(objects)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4487, in _flush
+    with util.safe_reraise():
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/util/langhelpers.py", line 146, in __exit__
+    raise exc_value.with_traceback(exc_tb)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/session.py", line 4448, in _flush
+    flush_context.execute()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 466, in execute
+    rec.execute(self)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/unitofwork.py", line 642, in execute
+    util.preloaded.orm_persistence.save_obj(
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 93, in save_obj
+    _emit_insert_statements(
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/orm/persistence.py", line 1233, in _emit_insert_statements
+    result = connection.execute(
+             ^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1418, in execute
+    return meth(
+           ^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/sql/elements.py", line 515, in _execute_on_connection
+    return connection._execute_clauseelement(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1640, in _execute_clauseelement
+    ret = self._execute_context(
+          ^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
+    return self._exec_single_context(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
+    self._handle_dbapi_exception(
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
+    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
+    self.dialect.do_execute(
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sqlalchemy/engine/default.py", line 941, in do_execute
+    cursor.execute(statement, parameters)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/cursors.py", line 153, in execute
+    result = self._query(query)
+             ^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/cursors.py", line 322, in _query
+    conn.query(q)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 563, in query
+    self._affected_rows = self._read_query_result(unbuffered=unbuffered)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 825, in _read_query_result
+    result.read()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 1199, in read
+    first_packet = self.connection._read_packet()
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/connections.py", line 775, in _read_packet
+    packet.raise_for_error()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/protocol.py", line 219, in raise_for_error
+    err.raise_mysql_exception(self._data)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/pymysql/err.py", line 150, in raise_mysql_exception
+    raise errorclass(errno, errval)
+sqlalchemy.exc.DataError: (pymysql.err.DataError) (1406, "Data too long for column 'pack' at row 1")
+[SQL: INSERT INTO bill_items (bill_id, medicine_id, raw_name, pack, batch, exp_date, qty, free_qty, mrp, rate, discount_pct, special_discount_pct, gst_pct, amount, computed_cost_per_unit, match_confidence, match_status) VALUES (%(bill_id)s, %(medicine_id)s, %(raw_name)s, %(pack)s, %(batch)s, %(exp_date)s, %(qty)s, %(free_qty)s, %(mrp)s, %(rate)s, %(discount_pct)s, %(special_discount_pct)s, %(gst_pct)s, %(amount)s, %(computed_cost_per_unit)s, %(match_confidence)s, %(match_status)s)]
+[parameters: {'bill_id': 21, 'medicine_id': None, 'raw_name': '> 9 8 11 7 6 10 5 4 3 2 1 | | T-98 VIRILEX VILNIP-M NUCORT-M4 TELMIKIND-AMH AMLOPRESS-TL JUNIOR OMNACORTIL-5MG PRIMACORT-100MG AMLOKIND-AT TAB ZEROGRAIN-10-TABS ASCABIOL-EMULSION TABS TABS TABS (SOMG+500MG) TABS TABS', 'pack': "TABS 20'S 10S 10S 10'S 15'S 10'S 10S |15'S 18'S VIAL 6OML J,", 'batch': 'P15Z005 |C95Z008 |C052586 |5BA3214 E1HPZO002 =~ “3,', 'exp_date': '4/28 2/28 2/28 130 |10/27 10/27 1127 1/28 , +', 'qty': 3.0, 'free_qty': 0, 'mrp': 7.23, 'rate': 90.64, 'discount_pct': 8.0, 'special_discount_pct': 0, 'gst_pct': 5.0, 'amount': 465.64, 'computed_cost_per_unit': 87.56, 'match_confidence': 25.625, 'match_status': 'unmatched'}]
+(Background on this error at: https://sqlalche.me/e/20/9h9h)
