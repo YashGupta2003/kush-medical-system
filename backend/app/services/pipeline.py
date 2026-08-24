@@ -69,7 +69,8 @@ class BillProcessingPipeline:
 
             # Stage 3: Row & Table Parsing
             logger.info(f"Stage 3: Parsing OCR word bounding boxes into structured rows")
-            parsed_rows = parse_bill_words(ocr_result.words)
+            from app.services.bill_parser import parse_bill_advanced
+            parsed_rows = parse_bill_advanced(bill.raw_ocr_text, ocr_result.words)
             logger.info(f"Parsed {len(parsed_rows)} line item rows from OCR text")
 
             low_confidence = ocr_result.avg_confidence < settings.ocr_confidence_threshold
@@ -117,10 +118,10 @@ class BillProcessingPipeline:
                 item = models.BillItem(
                     bill_id=bill.id,
                     medicine_id=medicine.id if medicine else None,
-                    raw_name=f.get("name", "").strip(),
-                    pack=f.get("pack"),
-                    batch=f.get("batch"),
-                    exp_date=f.get("exp_date"),
+                    raw_name=str(f.get("name", "") or "")[:255].strip(),
+                    pack=str(f.get("pack") or "")[:50],
+                    batch=str(f.get("batch") or "")[:50],
+                    exp_date=str(f.get("exp_date") or "")[:20],
                     qty=qty, free_qty=free_qty,
                     mrp=f.get("mrp"), rate=rate,
                     discount_pct=discount_pct, special_discount_pct=special_discount_pct,

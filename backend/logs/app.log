@@ -2140,3 +2140,337 @@ sqlalchemy.exc.DataError: (pymysql.err.DataError) (1406, "Data too long for colu
 [SQL: INSERT INTO bill_items (bill_id, medicine_id, raw_name, pack, batch, exp_date, qty, free_qty, mrp, rate, discount_pct, special_discount_pct, gst_pct, amount, computed_cost_per_unit, match_confidence, match_status) VALUES (%(bill_id)s, %(medicine_id)s, %(raw_name)s, %(pack)s, %(batch)s, %(exp_date)s, %(qty)s, %(free_qty)s, %(mrp)s, %(rate)s, %(discount_pct)s, %(special_discount_pct)s, %(gst_pct)s, %(amount)s, %(computed_cost_per_unit)s, %(match_confidence)s, %(match_status)s)]
 [parameters: {'bill_id': 21, 'medicine_id': None, 'raw_name': '> 9 8 11 7 6 10 5 4 3 2 1 | | T-98 VIRILEX VILNIP-M NUCORT-M4 TELMIKIND-AMH AMLOPRESS-TL JUNIOR OMNACORTIL-5MG PRIMACORT-100MG AMLOKIND-AT TAB ZEROGRAIN-10-TABS ASCABIOL-EMULSION TABS TABS TABS (SOMG+500MG) TABS TABS', 'pack': "TABS 20'S 10S 10S 10'S 15'S 10'S 10S |15'S 18'S VIAL 6OML J,", 'batch': 'P15Z005 |C95Z008 |C052586 |5BA3214 E1HPZO002 =~ “3,', 'exp_date': '4/28 2/28 2/28 130 |10/27 10/27 1127 1/28 , +', 'qty': 3.0, 'free_qty': 0, 'mrp': 7.23, 'rate': 90.64, 'discount_pct': 8.0, 'special_discount_pct': 0, 'gst_pct': 5.0, 'amount': 465.64, 'computed_cost_per_unit': 87.56, 'match_confidence': 25.625, 'match_status': 'unmatched'}]
 (Background on this error at: https://sqlalche.me/e/20/9h9h)
+[2026-08-24 22:44:23] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:45:35] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:45:53] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:46:07] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:47:50] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #21, status: failed)
+[2026-08-24 22:47:50] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #21, status: failed)
+[2026-08-24 22:47:50] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 22:47:50] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #22 (WhatsApp Image 2026-07-23 at 12.22.08.jpeg) distributor=VERMA BROS checksum=96981f01fb1e25125fd552c41b6f88c19956cfcfdd9cdafdab9319e333b12ecf
+[2026-08-24 22:47:50] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #22
+[2026-08-24 22:47:50] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #22 (./uploads/db26e00853704b129e779bd8e794d6d2.jpeg)
+[2026-08-24 22:47:51] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #22
+[2026-08-24 22:47:52] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 22:47:57] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=24307.0)
+[2026-08-24 22:47:57] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=73.88%
+[2026-08-24 22:47:57] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 22:47:57] [ERROR] [bill_pipeline] [pipeline.py:165]: Pipeline execution failed for Bill #22: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/pipeline.py", line 72, in run
+    from app.services.bill_parser import parse_bill_advanced
+ImportError: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+[2026-08-24 22:48:27] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 22:48:27] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #23 (test_sample_bill.png) distributor=None checksum=5a5abbb04152ed213726f8b493706e3ac14a2512a262867475597a2cc575e972
+[2026-08-24 22:48:27] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #23
+[2026-08-24 22:48:27] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #23 (./uploads/2009f29e8b164f08ad7c01c8318c5387.png)
+[2026-08-24 22:48:27] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #23
+[2026-08-24 22:48:28] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 22:48:29] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5493.0)
+[2026-08-24 22:48:29] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.05%
+[2026-08-24 22:48:29] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 22:48:29] [ERROR] [bill_pipeline] [pipeline.py:165]: Pipeline execution failed for Bill #23: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/pipeline.py", line 72, in run
+    from app.services.bill_parser import parse_bill_advanced
+ImportError: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+[2026-08-24 22:55:24] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 22:55:24] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 22:55:24] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 22:55:24] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #24 (test_sample_bill.png) distributor=None checksum=5a5abbb04152ed213726f8b493706e3ac14a2512a262867475597a2cc575e972
+[2026-08-24 22:55:24] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #24
+[2026-08-24 22:55:24] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #24 (./uploads/7a437caac0a6421cbb2384f25545ca28.png)
+[2026-08-24 22:55:25] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #24
+[2026-08-24 22:55:25] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 22:55:26] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5493.0)
+[2026-08-24 22:55:26] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.05%
+[2026-08-24 22:55:26] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 22:55:26] [ERROR] [bill_pipeline] [pipeline.py:165]: Pipeline execution failed for Bill #24: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/pipeline.py", line 72, in run
+    from app.services.bill_parser import parse_bill_advanced
+ImportError: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+[2026-08-24 22:56:47] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 22:56:47] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 22:56:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 22:56:47] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #25 (test_sample_bill.png) distributor=None checksum=5a5abbb04152ed213726f8b493706e3ac14a2512a262867475597a2cc575e972
+[2026-08-24 22:56:47] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #25
+[2026-08-24 22:56:47] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #25 (./uploads/fe42f2c4957641249679ee75a308c979.png)
+[2026-08-24 22:56:47] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #25
+[2026-08-24 22:56:48] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 22:56:48] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5493.0)
+[2026-08-24 22:56:48] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.05%
+[2026-08-24 22:56:48] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 22:56:48] [ERROR] [bill_pipeline] [pipeline.py:165]: Pipeline execution failed for Bill #25: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/pipeline.py", line 72, in run
+    from app.services.bill_parser import parse_bill_advanced
+ImportError: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+[2026-08-24 22:57:20] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-24 22:57:32] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 22:57:32] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 22:57:32] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 22:57:32] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #26 (test_sample_bill.png) distributor=None checksum=5a5abbb04152ed213726f8b493706e3ac14a2512a262867475597a2cc575e972
+[2026-08-24 22:57:32] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #26
+[2026-08-24 22:57:32] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #26 (./uploads/53f7ecdccf74440f8b392678e537e446.png)
+[2026-08-24 22:57:32] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #26
+[2026-08-24 22:57:33] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 22:57:34] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5493.0)
+[2026-08-24 22:57:34] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.05%
+[2026-08-24 22:57:34] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 22:57:34] [ERROR] [bill_pipeline] [pipeline.py:165]: Pipeline execution failed for Bill #26: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/pipeline.py", line 72, in run
+    from app.services.bill_parser import parse_bill_advanced
+ImportError: cannot import name 'parse_bill_advanced' from 'app.services.bill_parser' (/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py)
+[2026-08-24 23:02:23] [WARNING] [database] [database.py:74]: SLOW QUERY detected (204.6 ms > 200 ms threshold). SQL: 'SELECT medicines.id AS medicines_id, medicines.particulars AS medicines_particulars, medicines.normalized_name AS medicines_normalized_name, medicines.unit AS medicines_unit, medicines.mrp AS medicines_mrp, medicines.net_rate AS medicines_net_rate, medicines.company AS medicines_company, medicines.s'  |  Params: {'mrp_1': 0}
+[2026-08-24 23:02:23] [WARNING] [database] [database.py:74]: SLOW QUERY detected (277.5 ms > 200 ms threshold). SQL: 'SELECT medicines.id AS medicines_id, medicines.particulars AS medicines_particulars, medicines.normalized_name AS medicines_normalized_name, medicines.unit AS medicines_unit, medicines.mrp AS medicines_mrp, medicines.net_rate AS medicines_net_rate, medicines.company AS medicines_company, medicines.s'  |  Params: 
+[2026-08-24 23:02:23] [WARNING] [database] [database.py:74]: SLOW QUERY detected (285.4 ms > 200 ms threshold). SQL: 'SELECT medicines.id AS medicines_id, medicines.particulars AS medicines_particulars, medicines.normalized_name AS medicines_normalized_name, medicines.unit AS medicines_unit, medicines.mrp AS medicines_mrp, medicines.net_rate AS medicines_net_rate, medicines.company AS medicines_company, medicines.s'  |  Params: 
+[2026-08-24 23:06:52] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 23:06:52] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #23, status: failed)
+[2026-08-24 23:06:52] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 23:06:52] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #27 (test_sample_bill.png) distributor=None checksum=5a5abbb04152ed213726f8b493706e3ac14a2512a262867475597a2cc575e972
+[2026-08-24 23:08:02] [WARNING] [duplicate_checker] [duplicate_checker.py:36]: Duplicate bill image detected (matches Bill #21, status: failed)
+[2026-08-24 23:08:02] [WARNING] [bills_router] [bills.py:49]: [DUPLICATE CHECK] Duplicate bill image detected (matches Bill #21, status: failed)
+[2026-08-24 23:08:02] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-08-24 23:08:02] [INFO] [event_subscribers] [subscribers.py:240]: [EVENT: BillUploaded] Bill #28 (WhatsApp Image 2026-07-23 at 12.22.08.jpeg) distributor=None checksum=96981f01fb1e25125fd552c41b6f88c19956cfcfdd9cdafdab9319e333b12ecf
+[2026-08-24 23:10:19] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #27
+[2026-08-24 23:10:19] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #28
+[2026-08-24 23:10:19] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #28 (./uploads/c902ce2fbc254f369ad84131a4bb218a.jpeg)
+[2026-08-24 23:10:19] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #27 (./uploads/bb602f0ed20d4210a61a1fed3d103681.png)
+[2026-08-24 23:10:19] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #27
+[2026-08-24 23:10:19] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #28
+[2026-08-24 23:10:24] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 23:10:26] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-24 23:10:27] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5493.0)
+[2026-08-24 23:10:27] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.05%
+[2026-08-24 23:10:27] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 23:10:28] [ERROR] [bill_parser] [bill_parser.py:231]: LLM bill parsing failed: Error code: 400 - {'error': {'message': 'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.', 'type': 'invalid_request_error', 'code': 'model_decommissioned'}}
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py", line 198, in parse_bill_advanced
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/resources/chat/completions.py", line 287, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1244, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 936, in request
+    return self._request(
+           ^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1039, in _request
+    raise self._make_status_error_from_response(err.response) from None
+groq.BadRequestError: Error code: 400 - {'error': {'message': 'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.', 'type': 'invalid_request_error', 'code': 'model_decommissioned'}}
+[2026-08-24 23:10:28] [WARNING] [bill_parser] [bill_parser.py:232]: Falling back to heuristic parser
+[2026-08-24 23:10:28] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 61
+[2026-08-24 23:10:28] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 7 rows
+[2026-08-24 23:10:28] [INFO] [bill_parser] [bill_parser.py:156]: final result: 3 usable line items out of 4 candidate rows
+[2026-08-24 23:10:28] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-08-24 23:10:28] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-08-24 23:10:28] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-08-24 23:10:28] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #27 in 9.66s
+[2026-08-24 23:10:31] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=24307.0)
+[2026-08-24 23:10:31] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=73.88%
+[2026-08-24 23:10:31] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-24 23:10:33] [ERROR] [bill_parser] [bill_parser.py:231]: LLM bill parsing failed: Error code: 400 - {'error': {'message': 'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.', 'type': 'invalid_request_error', 'code': 'model_decommissioned'}}
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py", line 198, in parse_bill_advanced
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/resources/chat/completions.py", line 287, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1244, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 936, in request
+    return self._request(
+           ^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1039, in _request
+    raise self._make_status_error_from_response(err.response) from None
+groq.BadRequestError: Error code: 400 - {'error': {'message': 'The model `llama-3.1-70b-versatile` has been decommissioned and is no longer supported. Please refer to https://console.groq.com/docs/deprecations for a recommendation on which model to use instead.', 'type': 'invalid_request_error', 'code': 'model_decommissioned'}}
+[2026-08-24 23:10:33] [WARNING] [bill_parser] [bill_parser.py:232]: Falling back to heuristic parser
+[2026-08-24 23:10:33] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 329
+[2026-08-24 23:10:33] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 30 rows
+[2026-08-24 23:10:33] [INFO] [bill_parser] [bill_parser.py:156]: final result: 6 usable line items out of 17 candidate rows
+[2026-08-24 23:10:33] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 6 line item rows from OCR text
+[2026-08-24 23:10:33] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-08-24 23:10:33] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-08-24 23:10:33] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #28 in 14.73s
+[2026-08-24 23:23:15] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:46]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #28
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:134]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #28
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:154]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #28
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:171]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #28
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:188]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #28
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:203]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #28
+[2026-08-24 23:23:15] [INFO] [event_subscribers] [subscribers.py:219]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #28

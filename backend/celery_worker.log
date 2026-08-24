@@ -1,0 +1,46 @@
+ 
+ -------------- celery@yashs-MacBook-Air.local v5.4.0 (opalescent)
+--- ***** ----- 
+-- ******* ---- macOS-26.6.2-arm64-arm-64bit 2026-08-24 23:11:07
+- *** --- * --- 
+- ** ---------- [config]
+- ** ---------- .> app:         kush_medical:0x1072cd210
+- ** ---------- .> transport:   redis://localhost:6379/0
+- ** ---------- .> results:     redis://localhost:6379/0
+- *** --- * --- .> concurrency: 10 (prefork)
+-- ******* ---- .> task events: OFF (enable -E to monitor tasks in this worker)
+--- ***** ----- 
+ -------------- [queues]
+                .> celery           exchange=celery(direct) key=celery
+                
+
+[tasks]
+  . cleanup_old_upload_files
+  . cleanup_zombie_bills
+  . compute_smart_thresholds_bulk
+  . generate_smart_purchase_order
+  . process_bill
+  . publish_near_expiry_listings
+  . rebuild_graph
+  . reprocess_region
+  . run_adherence_check
+  . run_anomaly_scan
+  . run_surveillance_scan
+  . send_daily_digest
+
+[2026-08-24 23:11:08,111: WARNING/MainProcess] /Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-08-24 23:11:08,114: INFO/MainProcess] Connected to redis://localhost:6379/0
+[2026-08-24 23:11:08,115: WARNING/MainProcess] /Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-08-24 23:11:08,116: INFO/MainProcess] mingle: searching for neighbors
+[2026-08-24 23:11:09,121: INFO/MainProcess] mingle: all alone
+[2026-08-24 23:11:09,129: INFO/MainProcess] celery@yashs-MacBook-Air.local ready.

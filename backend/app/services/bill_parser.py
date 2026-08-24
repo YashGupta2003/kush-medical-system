@@ -155,3 +155,81 @@ def parse_bill_words(words: List[Word]) -> List[ParsedRow]:
 
     logger.info(f"final result: {len(parsed_rows)} usable line items out of {len(rows) - header_idx - 1} candidate rows")
     return parsed_rows
+
+def parse_bill_advanced(raw_text: str, words: List[Word]) -> List[ParsedRow]:
+    from app.config import settings
+    if settings.groq_api_key:
+        try:
+            import json
+            from groq import Groq
+            client = Groq(api_key=settings.groq_api_key)
+            prompt = f"""
+You are a highly accurate pharmacy bill OCR extraction system.
+Extract all the medicine line items from the following OCR text of a purchase bill.
+Return a valid JSON object with a single key "items" which is an array of objects.
+Do not include markdown formatting, backticks, or any explanations.
+
+The JSON should look exactly like this:
+{{
+  "items": [
+    {{
+      "name": "PARACETAMOL 500MG TABS",
+      "pack": "10x10",
+      "batch": "B1234",
+      "exp_date": "10/26",
+      "qty": 10,
+      "free_qty": 0,
+      "mrp": 50.0,
+      "rate": 35.0,
+      "discount_pct": 10.0,
+      "special_discount_pct": 0,
+      "gst_pct": 12.0,
+      "amount": 315.0
+    }}
+  ]
+}}
+
+Extract ONLY the line items. Ignore headers, subtotals, footers, terms, and bank details.
+If a numeric field is not present, omit it or set to 0.
+
+OCR Text:
+{raw_text[:4000]}
+"""
+            response = client.chat.completions.create(
+                messages=[{"role": "user", "content": prompt}],
+                model=settings.groq_model,
+                temperature=0.0,
+                response_format={"type": "json_object"}
+            )
+            content = response.choices[0].message.content.strip()
+            data = json.loads(content)
+            items = data.get("items", [])
+            
+            parsed = []
+            for item in items:
+                # Basic validation: must have name and (qty or rate)
+                name = item.get("name")
+                if not name:
+                    continue
+                qty = item.get("qty", 0)
+                rate = item.get("rate", 0)
+                if not (qty or rate):
+                    continue
+                    
+                pr = ParsedRow()
+                for k, v in item.items():
+                    if v is not None and str(v).strip() != "":
+                        pr.fields[k] = v
+                parsed.append(pr)
+                
+            if parsed:
+                logger.info(f"LLM successfully extracted {len(parsed)} items from bill")
+                return parsed
+            else:
+                logger.warning("LLM returned 0 items, falling back to heuristic parser")
+        except Exception as e:
+            logger.error(f"LLM bill parsing failed: {e}", exc_info=True)
+            logger.warning("Falling back to heuristic parser")
+            
+    # Fallback
+    return parse_bill_words(words)
