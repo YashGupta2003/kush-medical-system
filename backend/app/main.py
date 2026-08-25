@@ -23,7 +23,8 @@ from app.core.idempotency import IdempotencyMiddleware
 from app.routers import (
     bills, medicines, dashboard, stock, expiry, analytics, auth, gst,
     health, substitutes, graph, copilot, pos, audit, customers, network,
-    symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance, trust_score, smart_purchase, profit
+    symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance, trust_score, smart_purchase, profit,
+    prescriptions
 )
 from app.database import ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
@@ -232,6 +233,7 @@ v1_router.include_router(surveillance.router)  # → /v1/surveillance/...
 v1_router.include_router(trust_score.router)   # → /v1/trust-score/...
 v1_router.include_router(smart_purchase.router) # → /v1/smart-purchase/...
 v1_router.include_router(profit.router)         # → /v1/profit/...
+v1_router.include_router(prescriptions.router) # → /v1/prescriptions/...
 
 app.include_router(v1_router)
 
@@ -266,6 +268,7 @@ _legacy.include_router(surveillance.router)
 _legacy.include_router(trust_score.router)
 _legacy.include_router(smart_purchase.router)
 _legacy.include_router(profit.router)
+_legacy.include_router(prescriptions.router)
 
 app.include_router(_legacy)  # bare paths still work — tests pass, scripts work
 

@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShoppingCart, Search, User, UserPlus, AlertTriangle, AlertCircle, Info, CheckCircle, X, Trash2, Maximize, Minimize } from "lucide-react";
+import { ShoppingCart, Search, User, UserPlus, AlertTriangle, AlertCircle, Info, CheckCircle, X, Trash2, Maximize, Minimize, Stethoscope } from "lucide-react";
 import { api } from "../api/client.js";
+import { useLocation } from "react-router-dom";
+
 
 const SEVERITY_META = {
   high: { color: "var(--danger)", bg: "rgba(220, 38, 38, 0.1)", border: "var(--danger)", label: "High risk", icon: <AlertCircle size={16} /> },
@@ -220,7 +222,7 @@ function EmptyCartState() {
 }
 
 export default function PointOfSale() {
-  const [cart, setCart] = useState([]);           // [{medicine, qty}]
+  const [cart, setCart] = useState([]);
   const [checking, setChecking] = useState(false);
   const [checkResult, setCheckResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
@@ -229,7 +231,65 @@ export default function PointOfSale() {
   const [customer, setCustomer] = useState(null);
   const [paymentMode, setPaymentMode] = useState("cash");
   const [focusMode, setFocusMode] = useState(false);
+  const [prefillBanner, setPrefillBanner] = useState(null); // prescription source banner
   const topRef = useRef(null);
+
+  // ── Prescription pre-fill ────────────────────────────────────────────────
+  // Reads location.state set by Prescriptions page "Send to POS" button.
+  // Fetches each medicine_id so we have the full medicine object for the cart.
+  const location = useLocation();
+  useEffect(() => {
+    const state = location.state;
+    if (!state?.prefillCart?.length) return;
+
+    async function prefill() {
+      try {
+        const cartItems = await Promise.all(
+          state.prefillCart.map(async (item) => {
+            try {
+              const res = await api.browseMedicines({ q: "", page: 1, page_size: 1 });
+              // Fetch the specific medicine by searching for its ID via the snapshot endpoint
+              const snapshot = await api.getStockSnapshot(item.medicine_id);
+              // Build a minimal medicine object from what the API returns
+              const medicine = {
+                id: item.medicine_id,
+                particulars: snapshot.medicine_name || `Medicine #${item.medicine_id}`,
+                mrp: snapshot.mrp ?? null,
+                current_stock: snapshot.current_stock ?? 0,
+                unit: snapshot.unit ?? null,
+              };
+              return { medicine, qty: item.qty_sold || 1 };
+            } catch {
+              return null;
+            }
+          })
+        );
+        const validItems = cartItems.filter(Boolean);
+        if (validItems.length > 0) {
+          setCart(validItems);
+          setPrefillBanner({
+            prescriptionId: state.prescriptionId,
+            customerName: state.customerName,
+            customerPhone: state.customerPhone,
+            itemCount: validItems.length,
+          });
+        }
+
+        // Auto-populate customer if phone was passed
+        if (state.customerPhone) {
+          try {
+            const customers = await api.searchCustomers(state.customerPhone);
+            if (customers?.length > 0) setCustomer(customers[0]);
+          } catch { /* not critical */ }
+        }
+      } catch (e) {
+        console.error("Prescription pre-fill failed:", e);
+      }
+    }
+    prefill();
+    // Clear location state so a page refresh doesn't re-fill
+    window.history.replaceState({}, "");
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setCheckResult(null);
@@ -325,6 +385,38 @@ export default function PointOfSale() {
           </div>
           <button className="btn btn-secondary pos-success-dismiss" onClick={() => setSuccess(null)}>Dismiss</button>
         </div>
+      )}
+
+      {/* Prescription pre-fill banner */}
+      {prefillBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+          style={{
+            background: "var(--primary-50)", border: "1px solid var(--primary-400)",
+            borderRadius: "var(--radius-lg)", padding: "12px 18px", marginBottom: 16,
+            display: "flex", alignItems: "center", gap: 12,
+          }}
+        >
+          <Stethoscope size={18} color="var(--primary-600)" style={{ flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 700, color: "var(--primary-700)", fontSize: 14 }}>
+              Cart pre-filled from Prescription #{prefillBanner.prescriptionId}
+            </div>
+            <div style={{ fontSize: 12, color: "var(--primary-600)", marginTop: 2 }}>
+              {prefillBanner.itemCount} medicine{prefillBanner.itemCount !== 1 ? "s" : ""} added
+              {(prefillBanner.customerName || prefillBanner.customerPhone) && (
+                <> · Patient: <strong>{prefillBanner.customerName || prefillBanner.customerPhone}</strong></>
+              )}
+              {" · "}Review quantities below, then record the sale.
+            </div>
+          </div>
+          <button
+            onClick={() => setPrefillBanner(null)}
+            style={{ background: "none", border: "none", cursor: "pointer", color: "var(--primary-600)", display: "flex", padding: 4 }}
+          >
+            <X size={15} />
+          </button>
+        </motion.div>
       )}
 
       <div className="card pos-header-card" style={{ background: "var(--bg-card)", position: "relative" }}>

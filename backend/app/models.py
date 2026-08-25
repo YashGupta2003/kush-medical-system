@@ -578,3 +578,76 @@ class DistributorTrustScore(Base):
     __table_args__ = (
         UniqueConstraint('distributor_id', 'medicine_id', name='uq_distributor_trust_score'),
     )
+
+
+class Prescription(Base):
+    """
+    Prescription Intelligence Engine (PIE) — one row per scanned prescription.
+
+    Links OCR → PharmaGraph → Customer → POS in a single document:
+    - image_path: saved prescription photo
+    - customer_id: optional, linked by phone at scan time
+    - status: queued → processing → ready → converted / abandoned
+    - converted_to_sale: True once a POS cart sale was recorded from this prescription
+    - purchased_at: timestamp of the POS sale (to compute 'uncollected' after 30 min)
+    - raw_ocr_text: full OCR dump for debugging
+    - doctor_name / clinic_name: extracted from OCR header, nullable
+    """
+    __tablename__ = "prescriptions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    image_path = Column(String(500), nullable=False)
+    status = Column(
+        Enum("queued", "processing", "ready", "converted", "abandoned", name="prescription_status"),
+        default="queued", nullable=False, index=True
+    )
+    converted_to_sale = Column(Boolean, default=False, nullable=False)
+    purchased_at = Column(DateTime, nullable=True)
+    raw_ocr_text = Column(Text, nullable=True)
+    ocr_confidence = Column(Numeric(5, 2), nullable=True)
+    doctor_name = Column(String(150), nullable=True)
+    clinic_name = Column(String(200), nullable=True)
+    processing_error = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+    customer = relationship("Customer")
+    items = relationship("PrescriptionItem", back_populates="prescription", cascade="all, delete-orphan")
+
+
+class PrescriptionItem(Base):
+    """
+    One drug line on a scanned prescription.
+
+    - raw_name: exactly as OCR read it
+    - medicine_id: resolved by fuzzy matcher (nullable until matched)
+    - match_confidence / match_status: same semantics as BillItem
+    - qty_prescribed: dosage quantity extracted from prescription
+    - in_stock: snapshot at scan time (True/False)
+    - substitute_medicine_id: if OOS, the best in-stock substitute found by composition_service
+    - added_to_cart: True once the pharmacist added this line to a POS cart
+    """
+    __tablename__ = "prescription_items"
+
+    id = Column(Integer, primary_key=True, index=True)
+    prescription_id = Column(Integer, ForeignKey("prescriptions.id"), nullable=False, index=True)
+    medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True, index=True)
+    substitute_medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)
+
+    raw_name = Column(String(255), nullable=False)
+    qty_prescribed = Column(Numeric(10, 2), nullable=True)
+    dosage_instructions = Column(String(255), nullable=True)
+    match_confidence = Column(Numeric(5, 2), nullable=True)
+    match_status = Column(
+        Enum("auto", "learned", "manual", "unmatched", name="rx_match_status"),
+        default="unmatched"
+    )
+    in_stock = Column(Boolean, nullable=True)
+    current_stock_qty = Column(Numeric(10, 2), nullable=True)
+    added_to_cart = Column(Boolean, default=False, nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    prescription = relationship("Prescription", back_populates="items")
+    medicine = relationship("Medicine", foreign_keys=[medicine_id])
+    substitute_medicine = relationship("Medicine", foreign_keys=[substitute_medicine_id])

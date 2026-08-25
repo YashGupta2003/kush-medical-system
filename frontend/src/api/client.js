@@ -349,4 +349,25 @@ export const api = {
   },
   getBestMarginSubstitutes: (medicineId) => apiFetch(`/profit/substitutes/${medicineId}`),
   getDistributorNegotiationReport: () => apiFetch("/profit/distributor-report"),
+
+  // --- Prescription Intelligence Engine (PIE) ---
+  uploadPrescription: (formData) =>
+    apiFetch("/prescriptions/upload", { method: "POST", body: formData }),
+  listPrescriptions: ({ status, customer_id, limit = 50, offset = 0 } = {}) => {
+    const params = new URLSearchParams({ limit, offset });
+    if (status) params.set("status", status);
+    if (customer_id) params.set("customer_id", customer_id);
+    return apiFetch(`/prescriptions?${params.toString()}`);
+  },
+  getPrescription: (id) => apiFetch(`/prescriptions/${id}`),
+  getUncollectedPrescriptions: (minutes = 30) =>
+    apiFetch(`/prescriptions/uncollected?minutes=${minutes}`),
+  markPrescriptionItemAddedToCart: (prescriptionId, itemId) =>
+    apiFetch(`/prescriptions/${prescriptionId}/items/${itemId}/add-to-cart`, { method: "PATCH" }),
+  linkPrescriptionItemMedicine: (prescriptionId, itemId, medicineId) =>
+    apiFetch(`/prescriptions/${prescriptionId}/items/${itemId}/link`, { method: "PATCH", ...jsonBody({ medicine_id: medicineId }) }),
+  convertPrescription: (prescriptionId) =>
+    apiFetch("/prescriptions/convert", { method: "POST", ...jsonBody({ prescription_id: prescriptionId }) }),
+  abandonPrescription: (prescriptionId) =>
+    apiFetch(`/prescriptions/${prescriptionId}/abandon`, { method: "POST" }),
 };

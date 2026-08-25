@@ -154,6 +154,12 @@ def _tool_get_recent_sales(db: Session, hours: int = 24):
     return sales_lookup_service.get_recent_sales(db, hours=hours)
 
 
+def _tool_get_uncollected_prescriptions(db: Session, minutes: int = 30):
+    # NEW — PIE integration: flag prescriptions scanned but not converted to sale
+    from app.services import prescription_service
+    return prescription_service.get_uncollected_prescriptions(db, minutes=minutes)
+
+
 TOOL_HANDLERS = {
     "get_expiring_medicines": _tool_get_expiring_medicines,
     "get_gst_report": _tool_get_gst_report,
@@ -172,6 +178,7 @@ TOOL_HANDLERS = {
     "get_medicine_graph": _tool_get_medicine_graph,
     "get_profit_margin_analysis": _tool_get_profit_margin_analysis,
     "get_recent_sales": _tool_get_recent_sales,
+    "get_uncollected_prescriptions": _tool_get_uncollected_prescriptions,
 }
 
 
@@ -341,6 +348,16 @@ TOOLS = [
         "input_schema": {
             "type": "object",
             "properties": {"hours": {"type": "integer", "description": "Default 24"}},
+        },
+    },
+    {
+        "name": "get_uncollected_prescriptions",
+        "description": "Returns prescriptions that were scanned and processed but NOT converted to a sale within N minutes (default 30) — flags potential revenue leakage where a patient scanned a prescription but didn't buy.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "minutes": {"type": "integer", "description": "How many minutes to wait before flagging a prescription as uncollected. Default 30."},
+            },
         },
     },
 ]

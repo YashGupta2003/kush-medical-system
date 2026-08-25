@@ -44,3 +44,127 @@ you should set broker_connection_retry_on_startup to True.
 [2026-08-24 23:11:08,116: INFO/MainProcess] mingle: searching for neighbors
 [2026-08-24 23:11:09,121: INFO/MainProcess] mingle: all alone
 [2026-08-24 23:11:09,129: INFO/MainProcess] celery@yashs-MacBook-Air.local ready.
+[2026-08-25 20:50:57,889: INFO/MainProcess] Task process_bill[6327a35b-67e4-4411-a556-d99deaeea70e] received
+[2026-08-25 20:50:57,973: WARNING/ForkPoolWorker-7] [2026-08-25 20:50:57] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #29
+[2026-08-25 20:50:57,998: WARNING/ForkPoolWorker-7] [2026-08-25 20:50:57] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #29 (./uploads/e3e124745f77469ea6c2cee528b33484.png)
+[2026-08-25 20:50:58,162: WARNING/ForkPoolWorker-7] [2026-08-25 20:50:58] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #29
+[2026-08-25 20:50:59] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+I0825 20:50:59.758881 1207255 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+I0825 20:50:59.947626 1207288 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+I0825 20:51:00.218277 1207332 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+I0825 20:51:00.489023 1207369 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+[2026-08-25 20:51:00] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5493.0)
+[2026-08-25 20:51:00,667: WARNING/ForkPoolWorker-7] [2026-08-25 20:51:00] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.05%
+[2026-08-25 20:51:00,667: WARNING/ForkPoolWorker-7] [2026-08-25 20:51:00] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-25 20:51:01,543: INFO/ForkPoolWorker-7] HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 404 Not Found"
+[2026-08-25 20:51:01] [ERROR] [bill_parser] [bill_parser.py:231]: LLM bill parsing failed: Error code: 404 - {'error': {'message': 'The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py", line 198, in parse_bill_advanced
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/resources/chat/completions.py", line 287, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1244, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 936, in request
+    return self._request(
+           ^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1039, in _request
+    raise self._make_status_error_from_response(err.response) from None
+groq.NotFoundError: Error code: 404 - {'error': {'message': 'The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}
+[2026-08-25 20:51:01] [WARNING] [bill_parser] [bill_parser.py:232]: Falling back to heuristic parser
+[2026-08-25 20:51:01] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 61
+[2026-08-25 20:51:01] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 7 rows
+[2026-08-25 20:51:01] [INFO] [bill_parser] [bill_parser.py:156]: final result: 3 usable line items out of 4 candidate rows
+[2026-08-25 20:51:01,555: WARNING/ForkPoolWorker-7] [2026-08-25 20:51:01] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-08-25 20:51:01,556: WARNING/ForkPoolWorker-7] [2026-08-25 20:51:01] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-08-25 20:51:01,703: WARNING/ForkPoolWorker-7] [2026-08-25 20:51:01] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-08-25 20:51:01,703: WARNING/ForkPoolWorker-7] [2026-08-25 20:51:01] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #29 in 3.73s
+[2026-08-25 20:51:01,704: INFO/ForkPoolWorker-7] Task process_bill[6327a35b-67e4-4411-a556-d99deaeea70e] succeeded in 3.811745040991809s: {'status': 'pending_review', 'bill_id': 29, 'items_extracted': 3}
+[2026-08-25 20:52:32,189: INFO/MainProcess] Task process_bill[5d176aaf-a5a8-4c16-9cba-c6368dd883c7] received
+[2026-08-25 20:52:32,190: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:32] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #30
+[2026-08-25 20:52:32,199: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:32] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #30 (./uploads/b90ec1d68565448fb20a9dc8c7b2e1c3.jpeg)
+[2026-08-25 20:52:32,483: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:32] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #30
+[2026-08-25 20:52:33] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+I0825 20:52:33.385596 1208917 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+I0825 20:52:33.844849 1208960 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+I0825 20:52:34.633769 1208997 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+I0825 20:52:35.274678 1209056 ev_poll_posix.cc:593] FD from fork parent still in poll list: fd(77, generation: 1)
+[2026-08-25 20:52:35] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=10218.0)
+[2026-08-25 20:52:35,695: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:35] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=79.83%
+[2026-08-25 20:52:35,696: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:35] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-08-25 20:52:36,073: INFO/ForkPoolWorker-7] HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 404 Not Found"
+[2026-08-25 20:52:36] [ERROR] [bill_parser] [bill_parser.py:231]: LLM bill parsing failed: Error code: 404 - {'error': {'message': 'The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/app/services/bill_parser.py", line 198, in parse_bill_advanced
+    response = client.chat.completions.create(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/resources/chat/completions.py", line 287, in create
+    return self._post(
+           ^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1244, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 936, in request
+    return self._request(
+           ^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/groq/_base_client.py", line 1039, in _request
+    raise self._make_status_error_from_response(err.response) from None
+groq.NotFoundError: Error code: 404 - {'error': {'message': 'The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}
+[2026-08-25 20:52:36] [WARNING] [bill_parser] [bill_parser.py:232]: Falling back to heuristic parser
+[2026-08-25 20:52:36] [INFO] [bill_parser] [bill_parser.py:109]: total OCR words detected: 128
+[2026-08-25 20:52:36] [INFO] [bill_parser] [bill_parser.py:111]: words clustered into 21 rows
+[2026-08-25 20:52:36] [WARNING] [bill_parser] [bill_parser.py:114]: FAILED: no header row found.
+[2026-08-25 20:52:36,082: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:36] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 0 line item rows from OCR text
+[2026-08-25 20:52:36,092: WARNING/ForkPoolWorker-7] [2026-08-25 20:52:36] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-08-25 20:52:36,095: INFO/ForkPoolWorker-7] Task process_bill[5d176aaf-a5a8-4c16-9cba-c6368dd883c7] succeeded in 3.90520833300252s: {'status': 'needs_attention', 'bill_id': 30, 'reason': 'no_rows_found'}

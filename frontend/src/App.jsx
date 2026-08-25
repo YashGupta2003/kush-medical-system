@@ -40,7 +40,7 @@ import ThemeToggle from "./components/ThemeToggle.jsx";
 
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 import NotificationCenter from "./pages/NotificationCenter.jsx";
-
+import Prescriptions from "./pages/Prescriptions.jsx";
 
 const NAV_GROUPS = [
   {
@@ -61,6 +61,7 @@ const NAV_GROUPS = [
     icon: <Box size={16} />,
     items: [
       { to: "/pos", label: "Point of Sale", icon: <ShoppingCart size={16} /> },
+      { to: "/prescriptions", label: "Prescriptions", icon: <FileText size={16} /> },
       { to: "/scan", label: "Barcode Scan", icon: <Scan size={16} /> },
       { to: "/substitutes", label: "Substitutes", icon: <RefreshCw size={16} /> },
       { to: "/customers", label: "Customers", icon: <UserCircle size={16} /> },
@@ -352,6 +353,7 @@ export default function App() {
             <Route path="/users" element={<RequireOwner><PageWrapper><Users /></PageWrapper></RequireOwner>} />
             <Route path="/copilot" element={<RequireOwner><PageWrapper><Copilot /></PageWrapper></RequireOwner>} />
             <Route path="/pos" element={<RequireAuth><PageWrapper><PointOfSale /></PageWrapper></RequireAuth>} />
+            <Route path="/prescriptions" element={<RequireAuth><PageWrapper><Prescriptions /></PageWrapper></RequireAuth>} />
             <Route path="/customers" element={<RequireAuth><PageWrapper><Customers /></PageWrapper></RequireAuth>} />
             <Route path="/network" element={<RequireAuth><PageWrapper><Network isOwner={isOwner} /></PageWrapper></RequireAuth>} />
             <Route path="/predictive" element={<RequireOwner><PageWrapper><Predictive /></PageWrapper></RequireOwner>} />
