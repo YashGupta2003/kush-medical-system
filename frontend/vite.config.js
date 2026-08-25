@@ -14,6 +14,18 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          react: ["react", "react-dom", "react-router-dom"],
+          recharts: ["recharts"],
+          motion: ["framer-motion"]
+        }
+      }
+    }
+  },
   test: {
     environment: "jsdom",
     globals: true,

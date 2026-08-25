@@ -34,6 +34,7 @@ from app.config import settings
 from app.services import (
     analytics_service, expiry_service, gst_report_service, stock_service,
     graph_service, composition_service, profit_analytics_service, sales_lookup_service,
+    anomaly_explainer_service,
 )
 
 logger = logging.getLogger("app.copilot")
@@ -160,6 +161,10 @@ def _tool_get_uncollected_prescriptions(db: Session, minutes: int = 30):
     return prescription_service.get_uncollected_prescriptions(db, minutes=minutes)
 
 
+def _tool_explain_anomaly(db: Session, anomaly_data: dict):
+    # Pass the JSON representation to the anomaly explainer
+    return {"explanation": anomaly_explainer_service.explain_anomaly(anomaly_data)}
+
 TOOL_HANDLERS = {
     "get_expiring_medicines": _tool_get_expiring_medicines,
     "get_gst_report": _tool_get_gst_report,
@@ -179,6 +184,7 @@ TOOL_HANDLERS = {
     "get_profit_margin_analysis": _tool_get_profit_margin_analysis,
     "get_recent_sales": _tool_get_recent_sales,
     "get_uncollected_prescriptions": _tool_get_uncollected_prescriptions,
+    "explain_anomaly": _tool_explain_anomaly,
 }
 
 
@@ -358,6 +364,20 @@ TOOLS = [
             "properties": {
                 "minutes": {"type": "integer", "description": "How many minutes to wait before flagging a prescription as uncollected. Default 30."},
             },
+        },
+    },
+    {
+        "name": "explain_anomaly",
+        "description": "Generates a plain-English explanation for an anomaly flagged by the system. Use this to help the owner understand why something was flagged as unusual.",
+        "input_schema": {
+            "type": "object",
+            "properties": {
+                "anomaly_data": {
+                    "type": "object", 
+                    "description": "The raw JSON data of the anomaly to explain, containing fields like pct_change, medicine_name, etc."
+                },
+            },
+            "required": ["anomaly_data"]
         },
     },
 ]

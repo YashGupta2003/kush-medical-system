@@ -276,6 +276,8 @@ def compute_adherence_alerts(db: Session, customer_id: Optional[int] = None) -> 
             continue
 
         last_purchase = dates[-1]
+        if last_purchase.tzinfo is None:
+            last_purchase = last_purchase.replace(tzinfo=timezone.utc)
         days_since = (today - last_purchase).days
         if days_since <= avg_gap * OVERDUE_MULTIPLIER:
             continue

@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Search, Command, ArrowRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 const MODULES = [
   { id: "analytics", name: "Analytics Dashboard", path: "/analytics", icon: "📊" },
   { id: "central", name: "Central Command", path: "/", icon: "🔍" },
