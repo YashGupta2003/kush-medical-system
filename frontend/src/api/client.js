@@ -366,6 +366,8 @@ export const api = {
     apiFetch(`/prescriptions/${prescriptionId}/items/${itemId}/add-to-cart`, { method: "PATCH" }),
   linkPrescriptionItemMedicine: (prescriptionId, itemId, medicineId) =>
     apiFetch(`/prescriptions/${prescriptionId}/items/${itemId}/link`, { method: "PATCH", ...jsonBody({ medicine_id: medicineId }) }),
+  addPrescriptionItem: (prescriptionId, payload) =>
+    apiFetch(`/prescriptions/${prescriptionId}/items`, { method: "POST", ...jsonBody(payload) }),
   convertPrescription: (prescriptionId) =>
     apiFetch("/prescriptions/convert", { method: "POST", ...jsonBody({ prescription_id: prescriptionId }) }),
   abandonPrescription: (prescriptionId) =>

@@ -300,13 +300,84 @@ function SkeletonCard() {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Inline Medicine Search (for manual linking/adding)
+// ─────────────────────────────────────────────────────────────────────────────
+function InlineMedicineSearch({ onSelect, onCancel, placeholder = "Search medicine..." }) {
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState([]);
+  const [searching, setSearching] = useState(false);
+
+  useEffect(() => {
+    if (query.trim().length < 2) { setResults([]); setSearching(false); return; }
+    setSearching(true);
+    const t = setTimeout(() => {
+      api.browseMedicines({ q: query, page: 1, page_size: 5 }).then((d) =>
+        setResults(d.items || [])
+      ).finally(() => setSearching(false));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [query]);
+
+  return (
+    <div style={{ position: "relative", flex: 1 }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          autoFocus
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder={placeholder}
+          style={{
+            flex: 1, padding: "6px 10px", fontSize: 13,
+            border: "1px solid var(--primary-400)", borderRadius: "var(--radius-md)",
+            background: "var(--bg-surface)", color: "var(--text-main)",
+            outline: "none", boxShadow: "0 0 0 2px var(--primary-50)"
+          }}
+        />
+        <button onClick={onCancel} style={{ padding: "6px 10px", background: "var(--bg-surface)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)", cursor: "pointer", fontSize: 12 }}>Cancel</button>
+      </div>
+      
+      {results.length > 0 && (
+        <div style={{
+          position: "absolute", top: "100%", left: 0, right: 0, zIndex: 10,
+          background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius-md)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.1)", marginTop: 4, maxHeight: 200, overflowY: "auto"
+        }}>
+          {results.map((m) => (
+            <div
+              key={m.id}
+              onClick={() => onSelect(m)}
+              style={{ padding: "8px 12px", borderBottom: "1px solid var(--border-subtle)", cursor: "pointer", fontSize: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}
+            >
+              <div>
+                <div style={{ fontWeight: 600, color: "var(--text-main)" }}>{m.particulars}</div>
+                <div style={{ color: "var(--text-muted)", fontSize: 11 }}>{m.unit || "—"}</div>
+              </div>
+              <span style={{ color: m.current_stock > 0 ? "var(--success-text)" : "var(--danger)", fontWeight: 600, fontSize: 11 }}>
+                {m.current_stock > 0 ? `${m.current_stock} in stock` : "OOS"}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Prescription card
 // ─────────────────────────────────────────────────────────────────────────────
 const PrescriptionCard = forwardRef(({ prescription, isNew, onAddAllToCart, onAbandon }, ref) => {
   const navigate = useNavigate();
   const [addingToCart, setAddingToCart] = useState(false);
   const [removed, setRemoved] = useState(false);
+  const [localItems, setLocalItems] = useState(prescription.items || []);
+  const [editingItemId, setEditingItemId] = useState(null);
+  const [isAddingNew, setIsAddingNew] = useState(false);
   const internalRef = useRef(null);
+
+  useEffect(() => {
+    setLocalItems(prescription.items || []);
+  }, [prescription.items]);
 
   // Merge the forwarded ref from Framer Motion with our internal ref
   const setRefs = useCallback(
@@ -327,11 +398,31 @@ const PrescriptionCard = forwardRef(({ prescription, isNew, onAddAllToCart, onAb
     }
   }, [isNew]);
 
-  const readyItems = prescription.items.filter(i => i.medicine_id && i.in_stock !== false);
-  const oosItems = prescription.items.filter(i => i.medicine_id && i.in_stock === false);
-  const unmatchedItems = prescription.items.filter(i => !i.medicine_id);
+  const readyItems = localItems.filter(i => i.medicine_id && i.in_stock !== false);
+  const oosItems = localItems.filter(i => i.medicine_id && i.in_stock === false);
+  const unmatchedItems = localItems.filter(i => !i.medicine_id);
   const substituteItems = oosItems.filter(i => i.substitute_medicine_id);
   const sendableCount = readyItems.length + substituteItems.length;
+
+  const handleLinkItem = async (itemId, medicine) => {
+    try {
+      const updated = await api.linkPrescriptionItemMedicine(prescription.id, itemId, medicine.id);
+      setLocalItems(prev => prev.map(i => i.id === itemId ? updated : i));
+      setEditingItemId(null);
+    } catch (e) {
+      alert(e.message || "Failed to link medicine");
+    }
+  };
+
+  const handleAddManualItem = async (medicine) => {
+    try {
+      const newItem = await api.addPrescriptionItem(prescription.id, { medicine_id: medicine.id });
+      setLocalItems(prev => [...prev, newItem]);
+      setIsAddingNew(false);
+    } catch (e) {
+      alert(e.message || "Failed to add medicine");
+    }
+  };
 
   const handleAddAllToCart = async () => {
     setAddingToCart(true);
@@ -467,64 +558,107 @@ const PrescriptionCard = forwardRef(({ prescription, isNew, onAddAllToCart, onAb
       )}
 
       {/* Drug lines */}
-      {prescription.items.length === 0 ? (
-        <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "14px 0", fontSize: 13 }}>
-          <Pill size={22} style={{ opacity: 0.3, marginBottom: 6, display: "block", margin: "0 auto 6px" }} />
-          No drug lines extracted — add manually in POS
-        </div>
-      ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-          {prescription.items.map((item) => {
-            const isOos = item.medicine_id && item.in_stock === false;
-            const hasSubstitute = isOos && item.substitute_medicine_id;
-            const isUnmatched = !item.medicine_id;
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {localItems.map((item) => {
+          const isOos = item.medicine_id && item.in_stock === false;
+          const hasSubstitute = isOos && item.substitute_medicine_id;
+          const isUnmatched = !item.medicine_id;
+          
+          if (editingItemId === item.id) {
             return (
-              <div
-                key={item.id}
-                style={{
-                  display: "grid", gridTemplateColumns: "1fr auto",
-                  gap: 10, alignItems: "center",
-                  padding: "9px 11px", borderRadius: "var(--radius-md)",
-                  background: isOos && !hasSubstitute ? "rgba(220,38,38,0.04)" : isUnmatched ? "var(--bg-surface)" : "rgba(16,185,129,0.04)",
-                  border: `1px solid ${isOos && !hasSubstitute ? "rgba(220,38,38,0.15)" : isUnmatched ? "var(--border-subtle)" : "rgba(16,185,129,0.15)"}`,
-                }}
-              >
-                <div style={{ minWidth: 0 }}>
+              <InlineMedicineSearch 
+                key={`edit-${item.id}`} 
+                onSelect={(m) => handleLinkItem(item.id, m)} 
+                onCancel={() => setEditingItemId(null)} 
+                placeholder={`Search to replace "${item.raw_name}"...`}
+              />
+            );
+          }
+
+          return (
+            <div
+              key={item.id}
+              style={{
+                display: "grid", gridTemplateColumns: "1fr auto",
+                gap: 10, alignItems: "center",
+                padding: "9px 11px", borderRadius: "var(--radius-md)",
+                background: isOos && !hasSubstitute ? "rgba(220,38,38,0.04)" : isUnmatched ? "var(--bg-surface)" : "rgba(16,185,129,0.04)",
+                border: `1px solid ${isOos && !hasSubstitute ? "rgba(220,38,38,0.15)" : isUnmatched ? "var(--border-subtle)" : "rgba(16,185,129,0.15)"}`,
+              }}
+            >
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-main)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                     {item.added_to_cart && <Check size={11} style={{ color: "var(--success-text)", verticalAlign: "middle", marginRight: 3 }} />}
                     {item.medicine_name || item.raw_name}
                   </div>
-                  {item.medicine_name && item.medicine_name !== item.raw_name && (
-                    <div style={{ fontSize: 11, color: "var(--text-muted)" }}>OCR: "{item.raw_name}"</div>
-                  )}
-                  {item.dosage_instructions && (
-                    <div style={{ fontSize: 11, color: "var(--primary-600)", marginTop: 1 }}>📋 {item.dosage_instructions}</div>
-                  )}
-                  {isUnmatched && (
-                    <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 1, display: "flex", alignItems: "center", gap: 3 }}>
-                      <AlertTriangle size={10} /> No match — add manually in POS
-                    </div>
-                  )}
-                  {hasSubstitute && (
-                    <div style={{ fontSize: 11, color: "var(--primary-600)", marginTop: 1, display: "flex", alignItems: "center", gap: 3 }}>
-                      <RefreshCw size={10} /> Sub: {item.substitute_medicine_name}
-                    </div>
+                  {prescription.status === "ready" && (
+                    <button onClick={() => setEditingItemId(item.id)} style={{ background: "none", border: "none", color: "var(--primary-600)", fontSize: 11, cursor: "pointer", padding: 0 }}>
+                      (Edit)
+                    </button>
                   )}
                 </div>
-                <div style={{ textAlign: "right", flexShrink: 0 }}>
-                  {item.qty_prescribed != null && (
-                    <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-main)" }}>×{item.qty_prescribed}</div>
-                  )}
-                  <StockBadge inStock={item.in_stock} qty={item.current_stock_qty} />
-                </div>
+                {item.medicine_name && item.medicine_name !== item.raw_name && (
+                  <div style={{ fontSize: 11, color: "var(--text-muted)" }}>OCR: "{item.raw_name}"</div>
+                )}
+                {item.dosage_instructions && (
+                  <div style={{ fontSize: 11, color: "var(--primary-600)", marginTop: 1 }}>📋 {item.dosage_instructions}</div>
+                )}
+                {isUnmatched && (
+                  <div style={{ fontSize: 11, color: "var(--warning)", marginTop: 1, display: "flex", alignItems: "center", gap: 3 }}>
+                    <AlertTriangle size={10} /> No match
+                  </div>
+                )}
+                {hasSubstitute && (
+                  <div style={{ fontSize: 11, color: "var(--primary-600)", marginTop: 1, display: "flex", alignItems: "center", gap: 3 }}>
+                    <RefreshCw size={10} /> Sub: {item.substitute_medicine_name}
+                  </div>
+                )}
               </div>
-            );
-          })}
-        </div>
-      )}
+              <div style={{ textAlign: "right", flexShrink: 0 }}>
+                {item.qty_prescribed != null && (
+                  <div style={{ fontWeight: 700, fontSize: 13, color: "var(--text-main)" }}>×{item.qty_prescribed}</div>
+                )}
+                <StockBadge inStock={item.in_stock} qty={item.current_stock_qty} />
+              </div>
+            </div>
+          );
+        })}
+
+        {/* Add new manual drug line */}
+        {prescription.status === "ready" && (
+          isAddingNew ? (
+            <InlineMedicineSearch 
+              onSelect={handleAddManualItem} 
+              onCancel={() => setIsAddingNew(false)} 
+              placeholder="Search to add missed drug..."
+            />
+          ) : (
+            <button
+              onClick={() => setIsAddingNew(true)}
+              style={{
+                background: "var(--bg-surface)", border: "1px dashed var(--border)",
+                color: "var(--text-muted)", borderRadius: "var(--radius-md)",
+                padding: "8px", fontSize: 12, fontWeight: 600, cursor: "pointer",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+                marginTop: 2
+              }}
+            >
+              + Add missed drug manually
+            </button>
+          )
+        )}
+        
+        {localItems.length === 0 && !isAddingNew && (
+           <div style={{ textAlign: "center", color: "var(--text-muted)", padding: "14px 0", fontSize: 13 }}>
+             <Pill size={22} style={{ opacity: 0.3, marginBottom: 6, display: "block", margin: "0 auto" }} />
+             No drugs extracted
+           </div>
+        )}
+      </div>
 
       {/* Footer summary */}
-      {prescription.items.length > 0 && (
+      {localItems.length > 0 && (
         <div style={{ display: "flex", gap: 14, marginTop: 10, paddingTop: 10, borderTop: "1px solid var(--border-subtle)", fontSize: 11, flexWrap: "wrap" }}>
           {readyItems.length > 0 && <span style={{ color: "var(--success-text)", fontWeight: 700 }}><CheckCircle size={10} style={{ verticalAlign: "middle" }} /> {readyItems.length} in stock</span>}
           {oosItems.length > 0 && <span style={{ color: "var(--danger)", fontWeight: 700 }}><AlertCircle size={10} style={{ verticalAlign: "middle" }} /> {oosItems.length} OOS</span>}

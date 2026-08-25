@@ -76,6 +76,10 @@ class PaginatedPrescriptions(BaseModel):
 class LinkMedicineRequest(BaseModel):
     medicine_id: int
 
+class AddItemRequest(BaseModel):
+    medicine_id: int
+    qty_prescribed: Optional[float] = 1.0
+    dosage_instructions: Optional[str] = None
 
 class ConvertRequest(BaseModel):
     prescription_id: int
@@ -332,6 +336,25 @@ def mark_item_added_to_cart(
     db.commit()
     return {"status": "ok", "item_id": item_id, "added_to_cart": True}
 
+
+@router.post("/{prescription_id}/items")
+def add_manual_item(
+    prescription_id: int,
+    payload: AddItemRequest,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
+    """Manually add a missed drug to a prescription."""
+    item = prescription_service.add_manual_item(
+        db, prescription_id, payload.medicine_id, payload.qty_prescribed, payload.dosage_instructions
+    )
+    if not item:
+        raise HTTPException(404, "Prescription or medicine not found")
+    
+    db.refresh(item)
+    if item.medicine:
+        db.refresh(item.medicine)
+    return _item_to_out(item)
 
 @router.post("/{prescription_id}/abandon")
 def abandon_prescription(

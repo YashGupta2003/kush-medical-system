@@ -2696,3 +2696,104 @@ message: "This API method requires billing to be enabled. Please enable billing 
 [2026-08-25 22:28:04] [INFO] [prescription_service] [prescription_service.py:203]: PIE #3: Parsed 0 drug lines
 [2026-08-25 22:33:25] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
 [2026-08-25 22:33:53] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-25 23:33:07] [INFO] [prescription_service] [prescription_service.py:215]: Created Prescription #4 for customer_id=4
+[2026-08-25 23:33:07] [INFO] [prescription_service] [prescription_service.py:234]: PIE #4: Running OCR on ./uploads/rx_50ada1b8f94d48dcbb88b975dab2f3ff.webp
+[2026-08-25 23:33:09] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-25 23:33:09] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 270 degrees (confidence score=2745.0)
+[2026-08-25 23:33:09] [INFO] [prescription_service] [prescription_service.py:241]: PIE #4: OCR confidence=78.43%
+[2026-08-25 23:33:10] [ERROR] [prescription_service] [prescription_service.py:131]: PIE: Groq LLM parsing failed (Error code: 404 - {'error': {'message': 'The model `llama-3.3-70b-versatile` does not exist or you do not have access to it.', 'type': 'invalid_request_error', 'code': 'model_not_found'}}), falling back to heuristic
+[2026-08-25 23:33:10] [INFO] [prescription_service] [prescription_service.py:134]: PIE: Using heuristic fallback parser
+[2026-08-25 23:33:10] [INFO] [prescription_service] [prescription_service.py:250]: PIE #4: Parsed 0 drug lines
+[2026-08-25 23:35:43] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-25 23:37:21] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-25 23:37:58] [INFO] [prescription_service] [prescription_service.py:215]: Created Prescription #5 for customer_id=None
+[2026-08-25 23:37:58] [INFO] [prescription_service] [prescription_service.py:234]: PIE #5: Running OCR on ./uploads/rx_e137bab6db464b56a4bb9912a9a656c0.jpg
+[2026-08-25 23:38:03] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-25 23:38:04] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 180 degrees (confidence score=3375.0)
+[2026-08-25 23:38:04] [INFO] [prescription_service] [prescription_service.py:241]: PIE #5: OCR confidence=73.37%
+[2026-08-25 23:38:06] [INFO] [prescription_service] [prescription_service.py:128]: PIE: Successfully parsed drugs using Groq LLM
+[2026-08-25 23:38:06] [INFO] [prescription_service] [prescription_service.py:250]: PIE #5: Parsed 4 drug lines
+[2026-08-25 23:38:06] [INFO] [prescription_service] [prescription_service.py:301]: PIE #5: Processing complete, 4 items matched.
+[2026-08-25 23:39:06] [INFO] [prescription_service] [prescription_service.py:215]: Created Prescription #6 for customer_id=5
+[2026-08-25 23:39:06] [INFO] [prescription_service] [prescription_service.py:234]: PIE #6: Running OCR on ./uploads/rx_3f9b505063164c889ca956a2b9fcd600.webp
+[2026-08-25 23:39:07] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-08-25 23:39:08] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 270 degrees (confidence score=2745.0)
+[2026-08-25 23:39:08] [INFO] [prescription_service] [prescription_service.py:241]: PIE #6: OCR confidence=78.43%
+[2026-08-25 23:39:09] [INFO] [prescription_service] [prescription_service.py:128]: PIE: Successfully parsed drugs using Groq LLM
+[2026-08-25 23:39:09] [INFO] [prescription_service] [prescription_service.py:250]: PIE #6: Parsed 2 drug lines
+[2026-08-25 23:39:09] [INFO] [prescription_service] [prescription_service.py:301]: PIE #6: Processing complete, 2 items matched.
+[2026-08-25 23:43:26] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-25 23:43:44] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-08-25 23:44:20] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.

@@ -1,13 +1,9 @@
 import os
-import json
-from app.config import settings
-from app.services.bill_parser import ParsedRow
+from groq import Groq
+from dotenv import load_dotenv
 
-def test_groq():
-    if not settings.GROQ_API_KEY:
-        print("No API key")
-        return
-    print("API Key available")
-    
-if __name__ == "__main__":
-    test_groq()
+load_dotenv()
+client = Groq()
+models = client.models.list()
+for m in models.data:
+    print(m.id)

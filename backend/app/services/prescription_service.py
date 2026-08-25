@@ -429,3 +429,32 @@ def update_item_medicine(
     item.current_stock_qty = float(medicine.current_stock or 0)
     db.flush()
     return item
+
+def add_manual_item(
+    db: Session,
+    prescription_id: int,
+    medicine_id: int,
+    qty_prescribed: Optional[float] = 1.0,
+    dosage_instructions: Optional[str] = None
+) -> Optional[models.PrescriptionItem]:
+    """Manually add a missed drug to a prescription."""
+    prescription = db.get(models.Prescription, prescription_id)
+    medicine = db.get(models.Medicine, medicine_id)
+    if not prescription or not medicine:
+        return None
+        
+    item = models.PrescriptionItem(
+        prescription_id=prescription_id,
+        medicine_id=medicine_id,
+        raw_name=medicine.particulars,
+        qty_prescribed=qty_prescribed,
+        dosage_instructions=dosage_instructions,
+        match_status="manual",
+        match_confidence=100.0,
+        in_stock=float(medicine.current_stock or 0) > 0,
+        current_stock_qty=float(medicine.current_stock or 0)
+    )
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return item
