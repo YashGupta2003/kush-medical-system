@@ -36,13 +36,28 @@ def verify_password(plain_password: str, password_hash: str) -> bool:
     return pwd_context.verify(plain_password, password_hash)
 
 
-def authenticate_user(db: Session, username: str, password: str) -> Optional[models.User]:
-    user = db.query(models.User).filter(models.User.username == username).first()
-    if not user or not user.is_active:
+def authenticate_user(db: Session, email: str, password: str, tenant_id: int) -> Optional[models.User]:
+    """
+    Authenticate by email + password, scoped to a specific tenant.
+    Login is by email address (the tenant's registration email or staff email).
+    """
+    user = db.query(models.User).filter(
+        models.User.tenant_id == tenant_id,
+        models.User.username == email,
+        models.User.is_active.is_(True),
+    ).first()
+    if not user:
         return None
     if not verify_password(password, user.password_hash):
         return None
     return user
+
+
+def get_tenant_by_slug(db: Session, slug: str) -> Optional[models.Tenant]:
+    return db.query(models.Tenant).filter(
+        models.Tenant.slug == slug,
+        models.Tenant.is_active.is_(True),
+    ).first()
 
 
 def create_access_token(user: models.User) -> str:
@@ -51,6 +66,7 @@ def create_access_token(user: models.User) -> str:
         "sub": str(user.id),
         "username": user.username,
         "role": user.role,
+        "tenant_id": user.tenant_id,   # scopes token to this shop
         "exp": expire,
     }
     return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)

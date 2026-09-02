@@ -253,7 +253,7 @@ def list_bills(
     BUG FIX #2: Pagination prevents loading all bills into RAM at once.
     """
     # Build the base filter query (no joinedload yet, so COUNT is accurate)
-    base_q = db.query(models.Bill)
+    base_q = db.query(models.Bill).filter(models.Bill.tenant_id == current_user.tenant_id)
     if year:
         base_q = base_q.filter(models.Bill.year == year)
     if month:

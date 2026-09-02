@@ -34,6 +34,24 @@ def get_current_user(
     return user
 
 
+def get_current_tenant(
+    current_user: models.User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+) -> models.Tenant:
+    """
+    Extracts the Tenant (pharmacy shop) from the currently authenticated user.
+    Every business endpoint depends on this to scope queries to the right shop.
+    Raises 403 if the tenant is suspended.
+    """
+    tenant = db.get(models.Tenant, current_user.tenant_id)
+    if not tenant or not tenant.is_active:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            "This shop account is suspended. Contact support."
+        )
+    return tenant
+
+
 def require_owner(current_user: models.User = Depends(get_current_user)) -> models.User:
     """
     Gate for Owner-only endpoints: financial analytics, GST reports, rate

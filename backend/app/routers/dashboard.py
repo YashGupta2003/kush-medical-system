@@ -5,15 +5,19 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app import models
 from app.deps import get_current_user
+
 router = APIRouter(prefix="/dashboard" , dependencies=[Depends(get_current_user)], tags=["dashboard"])
 
 
 @router.get("/summary")
-def summary(db: Session = Depends(get_db)):
-    total_medicines = db.query(func.count(models.Medicine.id)).scalar()
+def summary(db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    total_medicines = db.query(func.count(models.Medicine.id)).filter(
+        models.Medicine.tenant_id == current_user.tenant_id
+    ).scalar()
 
     raw_status_counts = (
         db.query(models.Bill.status, func.count(models.Bill.id))
+        .filter(models.Bill.tenant_id == current_user.tenant_id)
         .group_by(models.Bill.status)
         .all()
     )
@@ -24,6 +28,8 @@ def summary(db: Session = Depends(get_db)):
 
     recent_changes = (
         db.query(models.RateHistory)
+        .join(models.Medicine, models.RateHistory.medicine_id == models.Medicine.id)
+        .filter(models.Medicine.tenant_id == current_user.tenant_id)
         .order_by(models.RateHistory.changed_at.desc())
         .limit(10)
         .all()
@@ -49,3 +55,4 @@ def summary(db: Session = Depends(get_db)):
             for r in recent_changes
         ],
     }
+

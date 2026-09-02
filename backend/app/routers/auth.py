@@ -21,7 +21,7 @@ def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends
     Priority 2a: Rate limited to 5 requests/minute/IP via slowapi.
     Returns both access_token (12h) and refresh_token (30d).
     """
-    user = authenticate_user(db, payload.username, payload.password)
+    user = authenticate_user(db, payload.username, payload.password, payload.tenant_id)
     if not user:
         raise HTTPException(401, "Incorrect username or password")
     access_token = create_access_token(user)
@@ -32,6 +32,8 @@ def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends
         role=user.role,
         username=user.username,
         full_name=user.full_name,
+        tenant_id=user.tenant_id,
+        shop_name=user.tenant.shop_name,
     )
 
 
@@ -56,6 +58,8 @@ def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(ge
         role=user.role,
         username=user.username,
         full_name=user.full_name,
+        tenant_id=user.tenant_id,
+        shop_name=user.tenant.shop_name,
     )
 
 

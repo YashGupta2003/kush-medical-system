@@ -2,27 +2,35 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext.jsx";
 import { motion } from "framer-motion";
-import { Hexagon, Lock, User, AlertCircle } from "lucide-react";
+import { Hexagon, Lock, User, AlertCircle, Mail } from "lucide-react";
+import { api } from "../api/client.js";
 
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [shopName, setShopName] = useState("");
 
   async function handleSubmit(e) {
     e.preventDefault();
     setLoading(true);
     setError(null);
     try {
-      await login(username, password);
+      // 1. Lookup the shop and tenant_id using the email
+      const shopInfo = await api.lookupShop(email);
+      setShopName(shopInfo.shop_name);
+
+      // 2. Login using the email, password, and tenant_id
+      await login(email, password, shopInfo.tenant_id);
+      
       const redirectTo = location.state?.from || "/";
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      setError(err.message);
+      setError(err.message || "Failed to login. Please check your credentials.");
     } finally {
       setLoading(false);
     }
@@ -83,30 +91,31 @@ export default function Login() {
               <Hexagon size={32} strokeWidth={2} />
             </div>
             <h2 style={{ margin: "var(--space-4) 0 var(--space-1)", fontFamily: "var(--font-display)", fontSize: "var(--text-2xl)", color: "var(--text-main)" }}>
-              Kush Medical Hall
+              {shopName ? shopName : "PharmOS"}
             </h2>
             <p style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", margin: 0 }}>
-              Precision Intelligence Dashboard
+              Sign in to your dashboard
             </p>
           </motion.div>
 
           <form onSubmit={handleSubmit}>
             <motion.div variants={itemVariants} style={{ marginBottom: "var(--space-4)" }}>
               <label style={{ display: "block", fontSize: "var(--text-xs)", fontWeight: 600, color: "var(--text-muted)", marginBottom: "var(--space-2)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Username
+                Username or Email
               </label>
               <div style={{ position: "relative" }}>
                 <div style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", color: "var(--text-muted)" }}>
-                  <User size={16} />
+                  <Mail size={16} />
                 </div>
                 <input 
+                  type="text"
                   className="input" 
                   style={{ paddingLeft: 36 }} 
-                  value={username} 
-                  onChange={(e) => setUsername(e.target.value)} 
+                  value={email} 
+                  onChange={(e) => setEmail(e.target.value)} 
                   required 
                   autoFocus 
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                 />
               </div>
             </motion.div>

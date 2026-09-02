@@ -1,14 +1,16 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { api } from "../api/client.js";
-import { Search, Save, RefreshCw, Activity, ArrowRight, TrendingUp, TrendingDown, Box, PackageOpen, X } from "lucide-react";
+import { Search, Save, RefreshCw, Activity, ArrowRight, TrendingUp, TrendingDown, Box, PackageOpen, X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import StockSparkline from "../components/StockSparkline.jsx";
+import { useAuth } from "../auth/AuthContext.jsx";
 
 const PAGE_SIZE = 50;
 
 export default function SearchDashboard() {
+  const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [total, setTotal] = useState(0);
@@ -67,17 +69,64 @@ export default function SearchDashboard() {
     }
   }
 
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good Morning" : hour < 18 ? "Good Afternoon" : "Good Evening";
+
+  const motivationalQuotes = [
+    "Every prescription filled is a life improved. Let's make today count.",
+    "Your dedication keeps the community healthy. We're here to keep your business healthy.",
+    "Great things in business are never done by one person. Let AI handle the heavy lifting.",
+    "Efficiency is doing things right. Let's optimize your pharmacy today.",
+    "Innovation distinguishes between a leader and a follower. Welcome to the future.",
+    "Small daily improvements are the key to staggering long-term results.",
+    "Success is the sum of small efforts, repeated day in and day out.",
+    "A healthy business starts with a healthy inventory. Let's review the stock."
+  ];
+
+  // Pick a random quote only once per mount
+  const quote = React.useMemo(() => motivationalQuotes[Math.floor(Math.random() * motivationalQuotes.length)], []);
+
   return (
     <div style={{ paddingBottom: "var(--space-10)" }}>
-      {/* Mission Control Header */}
-      <div style={{ marginBottom: "var(--space-6)" }}>
-        <h1 style={{ fontSize: "var(--text-3xl)", color: "var(--text-main)", marginBottom: "var(--space-1)" }}>
-          Central Command
-        </h1>
-        <p style={{ color: "var(--text-muted)", fontSize: "var(--text-base)" }}>
-          Master rate list, stock directory, and intelligence overview.
-        </p>
-      </div>
+      {/* ── Magnificent Dynamic Welcome Banner ── */}
+      <motion.div 
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        style={{
+          position: "relative",
+          background: "linear-gradient(135deg, var(--bg-surface), var(--primary-50))",
+          borderRadius: "var(--radius-xl)",
+          padding: "var(--space-8)",
+          marginBottom: "var(--space-8)",
+          border: "1px solid var(--border-subtle)",
+          boxShadow: "0 10px 40px rgba(16, 185, 129, 0.05)",
+          overflow: "hidden"
+        }}
+      >
+        <div style={{ position: "absolute", right: "-10%", top: "-50%", width: "40%", height: "200%", background: "radial-gradient(circle, var(--primary-100) 0%, transparent 70%)", filter: "blur(60px)", opacity: 0.6, pointerEvents: "none" }} />
+        <div style={{ display: "flex", alignItems: "center", gap: 20, position: "relative", zIndex: 1 }}>
+          <motion.div
+            initial={{ scale: 0, rotate: -20 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ delay: 0.2, type: "spring", stiffness: 200 }}
+            style={{ width: 64, height: 64, borderRadius: 16, background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))", color: "#fff", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 8px 24px rgba(16, 185, 129, 0.3)", flexShrink: 0 }}
+          >
+            <Sparkles size={32} />
+          </motion.div>
+          <div>
+            <motion.p initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.3 }} style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-muted)", textTransform: "uppercase", letterSpacing: "0.1em", margin: "0 0 4px" }}>
+              {greeting}, {user?.full_name?.split(" ")[0] || "Pharmacist"}
+            </motion.p>
+            <motion.h1 initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4, type: "spring", stiffness: 300 }} style={{ fontSize: "clamp(2rem, 4vw, 3rem)", fontWeight: 800, margin: "0 0 8px", letterSpacing: "-0.03em", color: "var(--text-main)", lineHeight: 1.1 }}>
+              Welcome to <span style={{ background: "linear-gradient(to right, var(--primary-600), var(--primary-800))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{user?.shop_name || "PharmOS"}</span>
+            </motion.h1>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }} style={{ margin: 0, color: "var(--text-muted)", fontSize: "1.05rem", fontStyle: "italic", borderLeft: "3px solid var(--primary-400)", paddingLeft: 12 }}>
+              "{quote}"
+            </motion.p>
+          </div>
+        </div>
+      </motion.div>
 
       <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--space-6)" }}>
         

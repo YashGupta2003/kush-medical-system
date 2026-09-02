@@ -368,6 +368,7 @@ class AnalyticsOverview(BaseModel):
 class LoginRequest(BaseModel):
     username: str
     password: str
+    tenant_id: int
 
 
 class TokenResponse(BaseModel):
@@ -377,6 +378,8 @@ class TokenResponse(BaseModel):
     role: str
     username: str
     full_name: Optional[str] = None
+    tenant_id: int
+    shop_name: str
 
 
 class UserOut(BaseModel):
@@ -385,6 +388,8 @@ class UserOut(BaseModel):
     full_name: Optional[str] = None
     role: str
     is_active: bool
+    tenant_id: int
+    shop_name: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

@@ -3298,3 +3298,14 @@ ValueError: Simulated subscriber error
 [2026-08-26 01:52:08] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
 [2026-08-26 01:52:08] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
 [2026-08-26 01:52:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-02 21:44:04] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 21:50:59] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 21:54:57] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 21:56:43] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 21:56:58] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 21:59:51] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 22:34:31] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 22:35:30] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 22:38:21] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 23:00:32] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.
+[2026-09-02 23:13:56] [INFO] [event_subscribers] [subscribers.py:468]: All domain event subscribers successfully registered with EventBus.

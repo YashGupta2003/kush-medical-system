@@ -17,10 +17,23 @@ from sqlalchemy.orm import relationship
 from app.database import Base
 
 
+
+class Tenant(Base):
+    __tablename__ = "tenants"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(150), nullable=False)
+    email = Column(String(150), nullable=False, unique=True, index=True)
+    phone = Column(String(20), nullable=False)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
+
 class Medicine(Base):
     __tablename__ = "medicines"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     particulars = Column(String(255), nullable=False)          # display name, e.g. "AMLOKIND-AT TABS"
     normalized_name = Column(String(255), nullable=False, index=True)  # UPPERCASE, no punctuation - used for matching
     unit = Column(String(50))                                  # pack size, e.g. "1*10", "100 ML"
@@ -52,6 +65,7 @@ class Distributor(Base):
     __tablename__ = "distributors"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     name = Column(String(150), nullable=False, unique=True)    # e.g. "RATHORE MEDICOS"
     gstin = Column(String(20))
     address = Column(String(255))
@@ -64,6 +78,7 @@ class Bill(Base):
     __tablename__ = "bills"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True)
     invoice_no = Column(String(100))
     invoice_date = Column(DateTime, nullable=True)
@@ -94,6 +109,7 @@ class BillItem(Base):
     __tablename__ = "bill_items"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     bill_id = Column(Integer, ForeignKey("bills.id"), nullable=False)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)  # null until matched
 
@@ -125,6 +141,7 @@ class RateHistory(Base):
     __tablename__ = "rate_history"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False)
     bill_item_id = Column(Integer, ForeignKey("bill_items.id"), nullable=True)
 
@@ -144,6 +161,7 @@ class UserMapping(Base):
     __tablename__ = "user_mappings"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True, index=True)
     raw_name = Column(String(255), nullable=False, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False)
@@ -157,6 +175,7 @@ class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     qty_sold = Column(Numeric(10, 2), nullable=False)
     sold_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -170,6 +189,7 @@ class StockLedger(Base):
     __tablename__ = "stock_ledger"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     change_qty = Column(Numeric(10, 2), nullable=False)
     resulting_balance = Column(Numeric(10, 2), nullable=False)
@@ -188,6 +208,7 @@ class ReorderItem(Base):
     __tablename__ = "reorder_items"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)
     custom_name = Column(String(255), nullable=True)
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=True)
@@ -204,6 +225,7 @@ class MedicineBatch(Base):
     __tablename__ = "medicine_batches"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     batch_no = Column(String(50), nullable=True)
     expiry_date = Column(Date, nullable=True, index=True)
@@ -221,6 +243,7 @@ class User(Base):
     __tablename__ = "users"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     username = Column(String(50), nullable=False, unique=True, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=True)
@@ -230,6 +253,11 @@ class User(Base):
     # Priority 1: WhatsApp delivery column (migration 0013)
     whatsapp_number = Column(String(20), nullable=True)
 
+    @property
+    def shop_name(self):
+        return self.tenant.name if self.tenant else None
+
+    tenant = relationship("Tenant", back_populates="users")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")
     notifications = relationship("Notification", foreign_keys="[Notification.recipient_user_id]",
                                  back_populates="recipient_user", cascade="all, delete-orphan")
@@ -251,6 +279,7 @@ class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     user_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     token_hash = Column(String(64), nullable=False, unique=True, index=True)
     expires_at = Column(DateTime, nullable=False)
@@ -269,6 +298,7 @@ class MedicineSalt(Base):
     __tablename__ = "medicine_salts"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     salt_name = Column(String(150), nullable=False, index=True)
     strength = Column(String(50), nullable=True)
@@ -284,6 +314,7 @@ class GraphEdge(Base):
     __tablename__ = "graph_edges"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     source_type = Column(String(30), nullable=False, index=True)
     source_id = Column(String(150), nullable=False, index=True)
     edge_type = Column(String(30), nullable=False, index=True)
@@ -315,6 +346,7 @@ class AuditLedgerEntry(Base):
     __tablename__ = "audit_ledger"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     event_type = Column(String(50), nullable=False, index=True)   # "rate_change" | "batch_received" | "bill_confirmed" | "stock_adjustment"
     reference_id = Column(Integer, nullable=True, index=True)      # e.g. RateHistory.id, MedicineBatch.id, Bill.id, StockLedger.id
 
@@ -340,6 +372,7 @@ class Customer(Base):
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     phone = Column(String(15), nullable=False, unique=True, index=True)
     name = Column(String(100), nullable=True)
     consent_given_at = Column(DateTime, nullable=True)
@@ -361,6 +394,7 @@ class CustomerCredit(Base):
     __tablename__ = "customer_credit_ledger"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=False, index=True)
     change_amount = Column(Numeric(10, 2), nullable=False)   # positive = customer now owes more, negative = payment reduces balance
     resulting_balance = Column(Numeric(10, 2), nullable=False)
@@ -385,6 +419,7 @@ class PharmacyNode(Base):
     __tablename__ = "pharmacy_nodes"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     shop_name = Column(String(150), nullable=False)
     api_base_url = Column(String(255), nullable=True)   # where a real deployment would sync to
     contact_phone = Column(String(50), nullable=True)
@@ -405,6 +440,7 @@ class NetworkListing(Base):
     __tablename__ = "network_listings"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     pharmacy_node_id = Column(Integer, ForeignKey("pharmacy_nodes.id"), nullable=False, index=True)
     listing_type = Column(Enum("near_expiry", "excess_stock", "shortage_request", name="listing_type"), nullable=False, index=True)
     medicine_name = Column(String(255), nullable=False)
@@ -442,6 +478,7 @@ class Notification(Base):
     __tablename__ = "notifications"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     recipient_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     notification_type = Column(
         Enum(
@@ -490,6 +527,7 @@ class SurveillanceDailyCount(Base):
     __tablename__ = "surveillance_daily_counts"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     condition_name = Column(String(150), nullable=False, index=True)
     count_date = Column(Date, nullable=False, index=True)
     otc_units = Column(Integer, nullable=False, default=0)
@@ -517,6 +555,7 @@ class ColdChainUnit(Base):
     __tablename__ = "cold_chain_units"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     unit_label = Column(String(100), nullable=False, unique=True)
     location_note = Column(String(255), nullable=True)
     min_temp_c = Column(Numeric(5, 2), nullable=False, default=2.0)
@@ -544,6 +583,7 @@ class ColdChainReading(Base):
     __tablename__ = "cold_chain_readings"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     unit_id = Column(Integer, ForeignKey("cold_chain_units.id"), nullable=False, index=True)
     recorded_temp_c = Column(Numeric(5, 2), nullable=False)
     recorded_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
@@ -567,6 +607,7 @@ class DistributorTrustScore(Base):
     __tablename__ = "distributor_trust_scores"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=False, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True, index=True)
     score = Column(Numeric(5, 2), nullable=False)
@@ -596,6 +637,7 @@ class Prescription(Base):
     __tablename__ = "prescriptions"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
     image_path = Column(String(500), nullable=False)
     status = Column(
@@ -631,6 +673,7 @@ class PrescriptionItem(Base):
     __tablename__ = "prescription_items"
 
     id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
     prescription_id = Column(Integer, ForeignKey("prescriptions.id"), nullable=False, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True, index=True)
     substitute_medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=True)

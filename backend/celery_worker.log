@@ -357,3 +357,62 @@ groq.NotFoundError: Error code: 404 - {'error': {'message': 'The model `llama-3.
 [2026-08-26 01:51:53,704: WARNING/ForkPoolWorker-7] [2026-08-26 01:51:53] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
 [2026-08-26 01:51:53,704: WARNING/ForkPoolWorker-7] [2026-08-26 01:51:53] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 2.55s
 [2026-08-26 01:51:53,705: INFO/ForkPoolWorker-7] Task process_bill[7a077a28-2fab-438c-af52-940b6154b36d] succeeded in 2.5556616249959916s: {'status': 'pending_review', 'bill_id': 2, 'items_extracted': 3}
+[2026-08-26 02:44:14,056: WARNING/MainProcess] consumer: Connection to broker lost. Trying to re-establish the connection...
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/consumer/consumer.py", line 340, in start
+    blueprint.start(self)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/bootsteps.py", line 116, in start
+    step.start(parent)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/consumer/consumer.py", line 746, in start
+    c.loop(*c.loop_args())
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/loops.py", line 97, in asynloop
+    next(loop)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/kombu/asynchronous/hub.py", line 377, in create_loop
+    cb(*cbargs)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/kombu/transport/redis.py", line 1394, in on_readable
+    self.cycle.on_readable(fileno)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/kombu/transport/redis.py", line 579, in on_readable
+    chan.handlers[type]()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/kombu/transport/redis.py", line 982, in _brpop_read
+    dest__item = self.client.parse_response(self.client.connection,
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/redis/client.py", line 565, in parse_response
+    response = connection.read_response()
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/redis/connection.py", line 512, in read_response
+    response = self._parser.read_response(disable_decoding=disable_decoding)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/redis/_parsers/resp2.py", line 15, in read_response
+    result = self._read_response(disable_decoding=disable_decoding)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/redis/_parsers/resp2.py", line 25, in _read_response
+    raw = self._buffer.readline()
+          ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/redis/_parsers/socket.py", line 115, in readline
+    self._read_from_socket()
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/redis/_parsers/socket.py", line 68, in _read_from_socket
+    raise ConnectionError(SERVER_CLOSED_CONNECTION_ERROR)
+redis.exceptions.ConnectionError: Connection closed by server.
+[2026-08-26 02:44:14,125: WARNING/MainProcess] /Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:391: CPendingDeprecationWarning: 
+In Celery 5.1 we introduced an optional breaking change which
+on connection loss cancels all currently executed tasks with late acknowledgement enabled.
+These tasks cannot be acknowledged as the connection is gone, and the tasks are automatically redelivered
+back to the queue. You can enable this behavior using the worker_cancel_long_running_tasks_on_connection_loss
+setting. In Celery 5.1 it is set to False by default. The setting will be set to True by default in Celery 6.0.
+
+  warnings.warn(CANCEL_TASKS_BY_DEFAULT, CPendingDeprecationWarning)
+
+[2026-08-26 02:44:14,131: WARNING/MainProcess] /Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/celery/worker/consumer/consumer.py:508: CPendingDeprecationWarning: The broker_connection_retry configuration setting will no longer determine
+whether broker connection retries are made during startup in Celery 6.0 and above.
+If you wish to retain the existing behavior for retrying connections on startup,
+you should set broker_connection_retry_on_startup to True.
+  warnings.warn(
+
+[2026-08-26 02:44:14,143: ERROR/MainProcess] consumer: Cannot connect to redis://localhost:6379/0: Error 61 connecting to localhost:6379. Connection refused..
+Trying again in 2.00 seconds... (1/100)
+
+[2026-08-26 02:44:16,157: ERROR/MainProcess] consumer: Cannot connect to redis://localhost:6379/0: Error 61 connecting to localhost:6379. Connection refused..
+Trying again in 4.00 seconds... (2/100)
+
+
+worker: Warm shutdown (MainProcess)

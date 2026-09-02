@@ -20,6 +20,9 @@ import GstReport from "./pages/GstReport.jsx";
 import BarcodeScan from "./pages/BarcodeScan.jsx";
 import Users from "./pages/Users.jsx";
 import Login from "./pages/Login.jsx";
+import Landing from "./pages/Landing.jsx";
+import Register from "./pages/Register.jsx";
+import SetupWizard from "./pages/SetupWizard.jsx";
 import { useAuth } from "./auth/AuthContext.jsx";
 import { RequireAuth, RequireOwner } from "./auth/guards.jsx";
 import { api } from "./api/client.js";
@@ -41,6 +44,7 @@ import ThemeToggle from "./components/ThemeToggle.jsx";
 import { NotificationBell } from "./pages/NotificationCenter.jsx";
 import NotificationCenter from "./pages/NotificationCenter.jsx";
 import Prescriptions from "./pages/Prescriptions.jsx";
+
 
 const NAV_GROUPS = [
   {
@@ -259,9 +263,10 @@ function NavBar() {
              <Hexagon size={24} strokeWidth={2.5} />
           </div>
           <span style={{ background: "linear-gradient(to right, var(--primary-600), var(--primary-800))", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-            Kush Medical
+            {user?.shop_name || "PharmOS"}
           </span>
         </div>
+
         <HealthBadge />
       </div>
       
@@ -315,14 +320,12 @@ const PageWrapper = ({ children }) => (
 );
 
 export default function App() {
-  const { loading, isOwner } = useAuth();
+  const { user, loading, isOwner } = useAuth();
   const location = useLocation();
-  const isLoginPage = location.pathname === "/login";
 
-  useEffect(() => {
-    // Add theme listener or default logic if needed
-    // For now we assume system preference or data-theme
-  }, []);
+  // Public pages that should NOT show the sidebar/navbar
+  const isPublicPage = ["/login", "/register", "/setup"].includes(location.pathname)
+    || (location.pathname === "/" && !user);
 
   if (loading) return (
     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh", background: "var(--bg-app)" }}>
@@ -334,12 +337,23 @@ export default function App() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
       <MedicalBackground />
       <CommandPalette />
-      {!isLoginPage && <NavBar />}
-      <div className={isLoginPage ? "" : "container"} style={{ flex: 1 }}>
+      {!isPublicPage && <NavBar />}
+      <div className={isPublicPage ? "" : "container"} style={{ flex: 1 }}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
+            {/* ── Public routes (no auth required) ── */}
+            <Route path="/register" element={<Register />} />
+            <Route path="/setup" element={<PageWrapper><SetupWizard /></PageWrapper>} />
             <Route path="/login" element={<PageWrapper><Login /></PageWrapper>} />
-            <Route path="/" element={<RequireAuth><PageWrapper><SearchDashboard /></PageWrapper></RequireAuth>} />
+
+            {/* ── Landing: show marketing page if not logged in, dashboard if logged in ── */}
+            <Route path="/" element={
+              user
+                ? <RequireAuth><PageWrapper><SearchDashboard /></PageWrapper></RequireAuth>
+                : <Landing />
+            } />
+
+            {/* ── Protected routes ── */}
             <Route path="/substitutes" element={<RequireAuth><PageWrapper><Substitutes /></PageWrapper></RequireAuth>} />
             <Route path="/graph" element={<RequireAuth><PageWrapper><GraphExplorer isOwner={isOwner} /></PageWrapper></RequireAuth>} />
             <Route path="/scan" element={<RequireAuth><PageWrapper><BarcodeScan /></PageWrapper></RequireAuth>} />
@@ -370,3 +384,4 @@ export default function App() {
     </div>
   );
 }
+

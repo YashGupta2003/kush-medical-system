@@ -103,9 +103,13 @@ function jsonBody(payload) {
 }
 
 export const api = {
-  // --- Auth ---
-  login: (username, password) =>
-    apiFetch("/auth/login", { method: "POST", ...jsonBody({ username, password }) }),
+  // --- Auth & Onboarding ---
+  register: (payload) =>
+    apiFetch("/register", { method: "POST", ...jsonBody(payload) }),
+  lookupShop: (email) =>
+    apiFetch("/register/lookup", { method: "POST", ...jsonBody({ email }) }),
+  login: (username, password, tenant_id) =>
+    apiFetch("/auth/login", { method: "POST", ...jsonBody({ username, password, tenant_id }) }),
   refresh: (refresh_token) =>
     apiFetch("/auth/refresh", { method: "POST", ...jsonBody({ refresh_token }) }),
   logout: (refresh_token) =>
