@@ -76,9 +76,22 @@ export default function BillHistory() {
   }, [filterStatus]);
 
   useEffect(() => {
-    refresh();
-    const interval = setInterval(refresh, 4000);
-    return () => clearInterval(interval);
+    let mounted = true;
+    let timeoutId;
+
+    async function poll() {
+      if (!mounted) return;
+      await refresh();
+      if (mounted) {
+        timeoutId = setTimeout(poll, 4000);
+      }
+    }
+
+    poll();
+    return () => {
+      mounted = false;
+      clearTimeout(timeoutId);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, page]);
 

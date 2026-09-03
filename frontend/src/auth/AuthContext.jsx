@@ -22,7 +22,10 @@ export function AuthProvider({ children }) {
     }
     api.me()
       .then((u) => setUser(u))
-      .catch(() => clearToken())
+      .catch((e) => {
+        console.error("Auth check failed:", e);
+        clearToken();
+      })
       .finally(() => setLoading(false));
   }, []);
 

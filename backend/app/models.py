@@ -22,9 +22,18 @@ class Tenant(Base):
     __tablename__ = "tenants"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(150), nullable=False)
+    slug = Column(String(80), nullable=False, unique=True, index=True)
+    shop_name = Column(String(150), nullable=False)
+    owner_name = Column(String(150), nullable=False)
     email = Column(String(150), nullable=False, unique=True, index=True)
-    phone = Column(String(20), nullable=False)
+    phone = Column(String(20), nullable=True)
+    gstin = Column(String(20), nullable=True)
+    city = Column(String(100), nullable=True)
+    address = Column(Text, nullable=True)
+    plan = Column(String(50), default="free")
+    is_active = Column(Boolean, default=True, nullable=False)
+    email_verified = Column(Boolean, default=False)
+    email_verification_token = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
@@ -255,7 +264,7 @@ class User(Base):
 
     @property
     def shop_name(self):
-        return self.tenant.name if self.tenant else None
+        return self.tenant.shop_name if self.tenant else None
 
     tenant = relationship("Tenant", back_populates="users")
     refresh_tokens = relationship("RefreshToken", back_populates="user", cascade="all, delete-orphan")

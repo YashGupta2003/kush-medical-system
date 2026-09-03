@@ -56,9 +56,12 @@ def create_medicine(
 def _mask_cost_for_staff(medicines: List[models.Medicine], current_user: models.User):
     if current_user.role == "owner":
         return medicines
+    out = []
     for m in medicines:
-        m.net_rate = None
-    return medicines
+        out_m = schemas.MedicineOut.model_validate(m)
+        out_m.net_rate = None
+        out.append(out_m)
+    return out
 
 
 @router.get(

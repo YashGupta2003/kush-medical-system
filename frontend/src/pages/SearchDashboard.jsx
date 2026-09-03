@@ -9,7 +9,7 @@ import { useAuth } from "../auth/AuthContext.jsx";
 
 const PAGE_SIZE = 50;
 
-export default function SearchDashboard() {
+export default function MedicineSearch() {
   const { user } = useAuth();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);

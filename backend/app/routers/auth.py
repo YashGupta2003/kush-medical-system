@@ -102,11 +102,12 @@ def create_user(
     db: Session = Depends(get_db),
 ):
     """Owner-only: create a new Staff (or additional Owner) account."""
-    existing = db.query(models.User).filter(models.User.username == payload.username).first()
+    existing = db.query(models.User).filter(models.User.username == payload.username, models.User.tenant_id == current_user.tenant_id).first()
     if existing:
         raise HTTPException(400, "That username is already taken")
 
     user = models.User(
+        tenant_id=current_user.tenant_id,
         username=payload.username,
         password_hash=hash_password(payload.password),
         full_name=payload.full_name,

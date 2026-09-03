@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { Routes, Route, NavLink, useLocation } from "react-router-dom";
+import { Routes, Route, NavLink, useLocation, Navigate } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { 
   BarChart2, Search, RefreshCw, Network as NetworkIcon, Scan, Upload, FileStack, Package, 
@@ -164,7 +164,7 @@ function NavDropdownGroup({ group, isOwner, urgentCount }) {
           padding: "8px 14px",
           borderRadius: "var(--radius-full)",
           background: isActiveGroup ? "var(--primary-50)" : (isOpen ? "rgba(0,0,0,0.06)" : "transparent"),
-          color: isActiveGroup ? "var(--primary-600)" : "#1e293b", // Hardcoded dark slate for contrast
+          color: isActiveGroup ? "var(--primary-600)" : "var(--text-color)",
           fontWeight: 600,
           fontSize: "var(--text-sm)",
           cursor: "pointer",
@@ -336,7 +336,7 @@ export default function App() {
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", position: "relative" }}>
       <MedicalBackground />
-      <CommandPalette />
+      {!isPublicPage && <CommandPalette />}
       {!isPublicPage && <NavBar />}
       <div className={isPublicPage ? "" : "container"} style={{ flex: 1 }}>
         <AnimatePresence mode="wait">
@@ -378,6 +378,8 @@ export default function App() {
             <Route path="/notifications" element={<RequireAuth><PageWrapper><NotificationCenter /></PageWrapper></RequireAuth>} />
             <Route path="/smart-purchase" element={<RequireOwner><PageWrapper><SmartPurchase /></PageWrapper></RequireOwner>} />
             <Route path="/profit" element={<RequireOwner><PageWrapper><ProfitOptimizer /></PageWrapper></RequireOwner>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+
           </Routes>
         </AnimatePresence>
       </div>

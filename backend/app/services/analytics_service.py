@@ -22,7 +22,7 @@ def _month_bounds(year: int, month: int):
 
 
 @cache_response(ttl_seconds=300, key_prefix="analytics")
-def get_monthly_spend(db: Session, months: int = 6) -> list[dict]:
+def get_monthly_spend(db: Session, tenant_id: int, months: int = 6) -> list[dict]:
     """
     Total confirmed-bill spend per calendar month, most recent `months`
     months (including the current one). Powers the main trend chart.
@@ -57,7 +57,7 @@ def get_monthly_spend(db: Session, months: int = 6) -> list[dict]:
     ]
 
 
-def get_distributor_breakdown(db: Session, year: Optional[int] = None, month: Optional[int] = None) -> list[dict]:
+def get_distributor_breakdown(db: Session, tenant_id: int, year: Optional[int] = None, month: Optional[int] = None) -> list[dict]:
     """
     'Is mahine kis distributor se sabse zyada khareeda' - defaults to the
     current calendar month if year/month aren't given.
@@ -72,7 +72,7 @@ def get_distributor_breakdown(db: Session, year: Optional[int] = None, month: Op
             func.sum(models.Bill.total_amount), func.count(models.Bill.id),
         )
         .join(models.Bill, models.Bill.distributor_id == models.Distributor.id)
-        .filter(models.Bill.status == "confirmed", models.Bill.year == year, models.Bill.month == month)
+        .filter(models.Bill.tenant_id == tenant_id, models.Bill.status == "confirmed", models.Bill.year == year, models.Bill.month == month)
         .group_by(models.Distributor.id, models.Distributor.name)
         .order_by(desc(func.sum(models.Bill.total_amount)))
         .all()
@@ -83,7 +83,7 @@ def get_distributor_breakdown(db: Session, year: Optional[int] = None, month: Op
     ]
 
 
-def get_price_changes(db: Session, days: int = 90, limit: int = 10) -> list[dict]:
+def get_price_changes(db: Session, tenant_id: int, days: int = 90, limit: int = 10) -> list[dict]:
     """
     'Kaunsi medicine ka price sabse zyada badha' - looks at every
     rate_history entry within the window, and for each medicine compares
@@ -92,7 +92,7 @@ def get_price_changes(db: Session, days: int = 90, limit: int = 10) -> list[dict
     """
     since = datetime.now(timezone.utc) - timedelta(days=days)
     history = (
-        db.query(models.RateHistory)
+        db.query(models.RateHistory).filter(models.RateHistory.tenant_id == tenant_id)
         .filter(models.RateHistory.changed_at >= since)
         .filter(models.RateHistory.old_net_rate.isnot(None), models.RateHistory.new_net_rate.isnot(None))
         .order_by(models.RateHistory.medicine_id, models.RateHistory.changed_at.asc())
@@ -110,7 +110,7 @@ def get_price_changes(db: Session, days: int = 90, limit: int = 10) -> list[dict
         if baseline <= 0:
             continue
         pct_change = ((final - baseline) / baseline) * 100
-        medicine = db.get(models.Medicine, medicine_id)
+        medicine = db.query(models.Medicine).filter(models.Medicine.tenant_id == tenant_id).filter_by(id=medicine_id, tenant_id=tenant_id).first()
         if not medicine:
             continue
         results.append({
@@ -126,7 +126,7 @@ def get_price_changes(db: Session, days: int = 90, limit: int = 10) -> list[dict
     return results[:limit]
 
 
-def get_top_medicines_by_spend(db: Session, year: Optional[int] = None, month: Optional[int] = None, limit: int = 10) -> list[dict]:
+def get_top_medicines_by_spend(db: Session, tenant_id: int, year: Optional[int] = None, month: Optional[int] = None, limit: int = 10) -> list[dict]:
     """Which medicines cost the most cumulative money this period."""
     today = date.today()
     year = year or today.year
@@ -136,7 +136,7 @@ def get_top_medicines_by_spend(db: Session, year: Optional[int] = None, month: O
         db.query(models.Medicine.id, models.Medicine.particulars, func.sum(models.BillItem.amount))
         .join(models.BillItem, models.BillItem.medicine_id == models.Medicine.id)
         .join(models.Bill, models.Bill.id == models.BillItem.bill_id)
-        .filter(models.Bill.status == "confirmed", models.Bill.year == year, models.Bill.month == month)
+        .filter(models.Bill.tenant_id == tenant_id, models.Bill.status == "confirmed", models.Bill.year == year, models.Bill.month == month)
         .group_by(models.Medicine.id, models.Medicine.particulars)
         .order_by(desc(func.sum(models.BillItem.amount)))
         .limit(limit)
@@ -145,11 +145,11 @@ def get_top_medicines_by_spend(db: Session, year: Optional[int] = None, month: O
     return [{"medicine_id": r[0], "medicine_name": r[1], "total_spend": float(r[2] or 0)} for r in rows]
 
 
-def get_top_selling(db: Session, days: int = 30, limit: int = 10) -> list[dict]:
+def get_top_selling(db: Session, tenant_id: int, days: int = 30, limit: int = 10) -> list[dict]:
     """Top sellers by quantity, from the Sales table (the 'Record a Sale' feature)."""
     since = datetime.now(timezone.utc) - timedelta(days=days)
     rows = (
-        db.query(models.Medicine.id, models.Medicine.particulars, func.sum(models.Sale.qty_sold))
+        db.query(models.Medicine.id, models.Medicine.particulars, func.sum(models.Sale.qty_sold)).filter(models.Medicine.tenant_id == tenant_id)
         .join(models.Sale, models.Sale.medicine_id == models.Medicine.id)
         .filter(models.Sale.sold_at >= since)
         .group_by(models.Medicine.id, models.Medicine.particulars)
@@ -161,7 +161,7 @@ def get_top_selling(db: Session, days: int = 30, limit: int = 10) -> list[dict]:
 
 
 @cache_response(ttl_seconds=300, key_prefix="analytics")
-def get_overview(db: Session) -> dict:
+def get_overview(db: Session, tenant_id: int) -> dict:
     """
     The single call that powers the top stat-card row - deliberately pulls
     from every feature area (bills, stock, expiry) so the dashboard reflects
@@ -175,7 +175,7 @@ def get_overview(db: Session) -> dict:
     def month_spend(y, m):
         total = (
             db.query(func.sum(models.Bill.total_amount))
-            .filter(models.Bill.status == "confirmed", models.Bill.year == y, models.Bill.month == m)
+            .filter(models.Bill.tenant_id == tenant_id, models.Bill.status == "confirmed", models.Bill.year == y, models.Bill.month == m)
             .scalar()
         )
         return float(total or 0)
@@ -188,12 +188,12 @@ def get_overview(db: Session) -> dict:
 
     confirmed_bills_this_month = (
         db.query(func.count(models.Bill.id))
-        .filter(models.Bill.status == "confirmed", models.Bill.year == this_year, models.Bill.month == this_month)
+        .filter(models.Bill.tenant_id == tenant_id, models.Bill.status == "confirmed", models.Bill.year == this_year, models.Bill.month == this_month)
         .scalar()
     )
     distributors_used_this_month = (
         db.query(func.count(func.distinct(models.Bill.distributor_id)))
-        .filter(models.Bill.status == "confirmed", models.Bill.year == this_year, models.Bill.month == this_month,
+        .filter(models.Bill.tenant_id == tenant_id, models.Bill.status == "confirmed", models.Bill.year == this_year, models.Bill.month == this_month,
                 models.Bill.distributor_id.isnot(None))
         .scalar()
     )
@@ -203,26 +203,26 @@ def get_overview(db: Session) -> dict:
     # single number for "how much money is sitting on your shelves right now".
     stock_value = (
         db.query(func.sum(models.Medicine.current_stock * models.Medicine.net_rate))
-        .filter(models.Medicine.net_rate.isnot(None))
+        .filter(models.Medicine.tenant_id == tenant_id, models.Medicine.net_rate.isnot(None))
         .scalar()
     )
 
     low_stock_count = (
         db.query(func.count(models.Medicine.id))
-        .filter(models.Medicine.low_stock_threshold.isnot(None))
+        .filter(models.Medicine.tenant_id == tenant_id, models.Medicine.low_stock_threshold.isnot(None))
         .filter(models.Medicine.current_stock < models.Medicine.low_stock_threshold)
         .scalar()
     )
 
     pending_review_count = (
         db.query(func.count(models.Bill.id))
-        .filter(models.Bill.status.in_(["pending_review", "needs_attention"]))
+        .filter(models.Bill.tenant_id == tenant_id, models.Bill.status.in_(["pending_review", "needs_attention"]))
         .scalar()
     )
 
     # Reuses the expiry feature's own summary logic rather than duplicating it.
     from app.services import expiry_service
-    expiry_summary = expiry_service.get_expiry_summary(db)
+    expiry_summary = expiry_service.get_expiry_summary(db, tenant_id=tenant_id)
 
     return {
         "this_month_spend": this_month_spend,

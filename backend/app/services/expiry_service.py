@@ -81,7 +81,7 @@ def _urgency_for(days_remaining: int) -> str:
     return "upcoming"
 
 
-def get_expiry_dashboard(db: Session, days: int = 90) -> list[dict]:
+def get_expiry_dashboard(db: Session, tenant_id: int, days: int = 90) -> list[dict]:
     """
     Returns every batch expiring within `days` from today (including
     already-expired ones), sorted soonest-first, each tagged with an
@@ -96,7 +96,7 @@ def get_expiry_dashboard(db: Session, days: int = 90) -> list[dict]:
 
     batches = (
         db.query(models.MedicineBatch)
-        .filter(models.MedicineBatch.expiry_date.isnot(None))
+        .filter(models.MedicineBatch.tenant_id == tenant_id, models.MedicineBatch.expiry_date.isnot(None))
         .filter(models.MedicineBatch.expiry_date <= horizon)
         .order_by(asc(models.MedicineBatch.expiry_date))
         .all()
@@ -119,7 +119,7 @@ def get_expiry_dashboard(db: Session, days: int = 90) -> list[dict]:
     return result
 
 
-def get_expiry_summary(db: Session) -> dict:
+def get_expiry_summary(db: Session, tenant_id: int) -> dict:
     """Small counts used for the nav-bar badge and dashboard stat cards."""
     today = date.today()
 
@@ -142,13 +142,13 @@ def get_expiry_summary(db: Session) -> dict:
                 else_=0
             )),
         )
-        .filter(models.MedicineBatch.expiry_date.isnot(None))
+        .filter(models.MedicineBatch.tenant_id == tenant_id, models.MedicineBatch.expiry_date.isnot(None))
         .one()
     )
 
     missing_count = (
         db.query(models.MedicineBatch)
-        .filter(models.MedicineBatch.expiry_date.is_(None))
+        .filter(models.MedicineBatch.tenant_id == tenant_id, models.MedicineBatch.expiry_date.is_(None))
         .count()
     )
     return {
@@ -159,7 +159,7 @@ def get_expiry_summary(db: Session) -> dict:
     }
 
 
-def get_missing_expiry_batches(db: Session) -> list[dict]:
+def get_missing_expiry_batches(db: Session, tenant_id: int) -> list[dict]:
     """
     Batches that exist (so quantity/batch-number is on record) but whose
     expiry couldn't be read from the bill photo - these need the user to
@@ -168,7 +168,7 @@ def get_missing_expiry_batches(db: Session) -> list[dict]:
     """
     batches = (
         db.query(models.MedicineBatch)
-        .filter(models.MedicineBatch.expiry_date.is_(None))
+        .filter(models.MedicineBatch.tenant_id == tenant_id, models.MedicineBatch.expiry_date.is_(None))
         .order_by(models.MedicineBatch.created_at.desc())
         .all()
     )
@@ -185,8 +185,8 @@ def get_missing_expiry_batches(db: Session) -> list[dict]:
     return result
 
 
-def fill_missing_expiry(db: Session, batch_id: int, expiry_date: date) -> bool:
-    batch = db.get(models.MedicineBatch, batch_id)
+def fill_missing_expiry(db: Session, tenant_id: int, batch_id: int, expiry_date: date) -> bool:
+    batch = db.query(models.MedicineBatch).filter_by(id=batch_id, tenant_id=tenant_id).first()
     if not batch:
         return False
     batch.expiry_date = expiry_date

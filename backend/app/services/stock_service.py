@@ -135,6 +135,8 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
     medicine = db.get(models.Medicine, medicine_id)
     if not medicine:
         raise ValueError("Medicine not found")
+    if qty_sold > float(medicine.current_stock or 0):
+        raise ValueError("Insufficient stock")
 
     sale = models.Sale(medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.now(timezone.utc), customer_id=customer_id)
     db.add(sale)
@@ -161,7 +163,7 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
     return snapshot
 
 
-def get_reorder_list(db: Session) -> list[dict]:
+def get_reorder_list(db: Session, tenant_id: int) -> list[dict]:
     groups: dict[str, dict] = {}
 
     def _get_group(distributor_id: Optional[int], distributor_name: str) -> dict:
@@ -172,6 +174,7 @@ def get_reorder_list(db: Session) -> list[dict]:
 
     low_stock_medicines = (
         db.query(models.Medicine)
+        .filter(models.Medicine.tenant_id == tenant_id)
         .filter(models.Medicine.low_stock_threshold.isnot(None))
         .filter(models.Medicine.current_stock < models.Medicine.low_stock_threshold)
         .all()
@@ -195,7 +198,7 @@ def get_reorder_list(db: Session) -> list[dict]:
             "source": "auto_low_stock",
         })
 
-    manual_items = db.query(models.ReorderItem).filter(models.ReorderItem.fulfilled.is_(False)).all()
+    manual_items = db.query(models.ReorderItem).filter(models.ReorderItem.tenant_id == tenant_id, models.ReorderItem.fulfilled.is_(False)).all()
     for ri in manual_items:
         if ri.distributor_id:
             distributor_name = ri.distributor.name
@@ -263,6 +266,14 @@ def mark_reorder_item_fulfilled(db: Session, reorder_item_id: int) -> bool:
     db.commit()
     return True
 
+def delete_reorder_item(db: Session, reorder_item_id: int) -> bool:
+    item = db.get(models.ReorderItem, reorder_item_id)
+    if not item:
+        return False
+    db.delete(item)
+    db.commit()
+    return True
+
 
 def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None,
                        created_by_user_id: Optional[int] = None) -> dict:
@@ -311,12 +322,13 @@ def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, not
     }
 
 
-def get_stock_ledger(db: Session, limit: int = 50, offset: int = 0) -> list[dict]:
+def get_stock_ledger(db: Session, tenant_id: int, limit: int = 50, offset: int = 0) -> list[dict]:
     """
     Priority 2b: offset added for pagination. limit preserved for backward compat.
     """
     rows = (
         db.query(models.StockLedger)
+        .filter(models.StockLedger.tenant_id == tenant_id)
         .order_by(desc(models.StockLedger.created_at))
         .offset(offset)
         .limit(limit)

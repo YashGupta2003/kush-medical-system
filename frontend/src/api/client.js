@@ -1,4 +1,4 @@
-const BASE = "/api";
+const BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 const TOKEN_KEY = "kush_medical_token";
 const REFRESH_TOKEN_KEY = "kush_medical_refresh_token";
 

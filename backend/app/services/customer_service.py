@@ -50,7 +50,7 @@ OVERDUE_MULTIPLIER = 1.5   # flag once the gap since last purchase exceeds 1.5x 
 # ---------------------------------------------------------------------------
 def get_or_create_customer(db: Session, phone: str, name: Optional[str] = None, consented: bool = False) -> models.Customer:
     phone = phone.strip()
-    customer = db.query(models.Customer).filter_by(phone=phone).first()
+    customer = db.query(models.Customer).filter_by(phone=phone, tenant_id=tenant_id).first()
     if customer:
         if name and not customer.name:
             customer.name = name
@@ -68,16 +68,16 @@ def get_or_create_customer(db: Session, phone: str, name: Optional[str] = None, 
     return customer
 
 
-def search_customers(db: Session, q: Optional[str] = None, limit: int = 20) -> list[models.Customer]:
-    query = db.query(models.Customer)
+def search_customers(db: Session, tenant_id: int, q: Optional[str] = None, limit: int = 20) -> list[models.Customer]:
+    query = db.query(models.Customer).filter_by(tenant_id=tenant_id)
     if q:
-        q = q.strip()
+        q = q.strip().replace("%", "\\%").replace("_", "\\_")
         query = query.filter(or_(models.Customer.phone.ilike(f"%{q}%"), models.Customer.name.ilike(f"%{q}%")))
     return query.order_by(models.Customer.name).limit(limit).all()
 
 
-def get_customer_summary(db: Session, customer_id: int) -> Optional[dict]:
-    customer = db.get(models.Customer, customer_id)
+def get_customer_summary(db: Session, customer_id: int, tenant_id: Optional[int] = None) -> Optional[dict]:
+    customer = db.query(models.Customer).filter_by(id=customer_id, tenant_id=tenant_id).first() if tenant_id else db.get(models.Customer, customer_id)
     if not customer:
         return None
 
@@ -103,7 +103,7 @@ def get_customer_summary(db: Session, customer_id: int) -> Optional[dict]:
 # ---------------------------------------------------------------------------
 # Credit / udhaar ledger
 # ---------------------------------------------------------------------------
-def get_customer_balance(db: Session, customer_id: int) -> Decimal:
+def get_customer_balance(db: Session, customer_id: int, tenant_id: int = None) -> Decimal:
     last = (
         db.query(models.CustomerCredit)
         .filter_by(customer_id=customer_id)
@@ -132,7 +132,7 @@ def charge_credit(db: Session, customer_id: int, amount: float, note: Optional[s
     """Records a sale given "on credit" (udhaar) - increases what this customer owes."""
     if amount <= 0:
         raise ValueError("Credit amount must be greater than 0")
-    customer = db.get(models.Customer, customer_id)
+    customer = db.query(models.Customer).filter_by(id=customer_id, tenant_id=tenant_id).first() if tenant_id else db.get(models.Customer, customer_id)
     if not customer:
         raise ValueError("Customer not found")
 
@@ -152,7 +152,7 @@ def record_payment(db: Session, customer_id: int, amount: float, note: Optional[
     """Records a payment against an outstanding udhaar balance."""
     if amount <= 0:
         raise ValueError("Payment amount must be greater than 0")
-    customer = db.get(models.Customer, customer_id)
+    customer = db.query(models.Customer).filter_by(id=customer_id, tenant_id=tenant_id).first() if tenant_id else db.get(models.Customer, customer_id)
     if not customer:
         raise ValueError("Customer not found")
 
@@ -250,7 +250,7 @@ def compute_adherence_alerts(db: Session, customer_id: Optional[int] = None) -> 
     query = (
         db.query(models.Sale)
         .join(models.Customer, models.Sale.customer_id == models.Customer.id)
-        .filter(models.Customer.consent_given_at.isnot(None))
+        .filter(models.Customer.consent_given_at.isnot(None), models.Customer.tenant_id == tenant_id)
     )
     if customer_id is not None:
         query = query.filter(models.Sale.customer_id == customer_id)

@@ -98,6 +98,8 @@ async def upload_bill(
     request. Poll GET /bills/{bill_id}/status to know when it's ready to
     review.
     """
+    if file.content_type not in ["image/jpeg", "image/png", "application/pdf"]:
+        raise HTTPException(400, "Only JPEG, PNG and PDF files are allowed.")
     file_bytes = await file.read()
     bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, invoice_no, invoice_date)
     db.commit()
@@ -133,6 +135,8 @@ async def upload_bills_batch(
 
     responses = []
     for file in files:
+        if file.content_type not in ["image/jpeg", "image/png", "application/pdf"]:
+            raise HTTPException(400, f"Only JPEG, PNG and PDF files are allowed. Found: {file.content_type}")
         file_bytes = await file.read()
         bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, None, None)
         db.commit()
@@ -160,7 +164,7 @@ def get_bill_status(bill_id: int, db: Session = Depends(get_db), current_user: m
     time. Once status is 'pending_review' or 'needs_attention', switch to
     fetching the full bill via GET /bills/{bill_id}.
     """
-    bill = db.get(models.Bill, bill_id)
+    bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill:
         raise HTTPException(404, "Bill not found")
     return schemas.BillStatusOut(
@@ -173,7 +177,7 @@ def get_bill_status(bill_id: int, db: Session = Depends(get_db), current_user: m
 
 @router.get("/{bill_id}", response_model=schemas.BillOut)
 def get_bill(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    bill = db.get(models.Bill, bill_id)
+    bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill:
         raise HTTPException(404, "Bill not found")
     return _bill_to_out(db, bill)
@@ -182,7 +186,7 @@ def get_bill(bill_id: int, db: Session = Depends(get_db), current_user: models.U
 @router.get("/{bill_id}/image")
 def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user_flexible)):
     from fastapi.responses import FileResponse
-    bill = db.get(models.Bill, bill_id)
+    bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill or not bill.image_path or not os.path.exists(bill.image_path):
         raise HTTPException(404, "Bill image not found")
     return FileResponse(bill.image_path)
@@ -199,7 +203,7 @@ def add_manual_item(bill_id: int, db: Session = Depends(get_db), current_user: m
     here on: it goes through the same medicine-link, cost-calc, and
     /bills/confirm code paths, no special-casing needed anywhere else.
     """
-    bill = db.get(models.Bill, bill_id)
+    bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill:
         raise HTTPException(404, "Bill not found")
     if bill.status == "confirmed":
@@ -221,7 +225,7 @@ def add_manual_item(bill_id: int, db: Session = Depends(get_db), current_user: m
 @router.delete("/{bill_id}/items/{item_id}")
 def remove_bill_item(bill_id: int, item_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     """Removes a line item before confirming - a manually-added row entered by mistake, or a bad OCR extraction."""
-    bill = db.get(models.Bill, bill_id)
+    bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill:
         raise HTTPException(404, "Bill not found")
     if bill.status == "confirmed":
@@ -295,13 +299,11 @@ def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Sessio
     to feel instant in the UI - FastAPI runs sync 'def' endpoints in a
     thread pool automatically, so this doesn't block other requests.
     """
-    bill = db.get(models.Bill, bill_id)
+    bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill:
         raise HTTPException(404, "Bill not found")
 
-    result = reprocess_region_task.apply(
-        args=[bill_id, payload.x0, payload.y0, payload.x1, payload.y1]
-    ).get()
+    result = reprocess_region_task(bill_id, payload.x0, payload.y0, payload.x1, payload.y1)
 
     if result.get("status") != "ok":
         raise HTTPException(422, result.get("detail", "Could not read that region"))
@@ -316,9 +318,12 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
     Decoupled subscribers automatically process stock increments, batch/expiry creation,
     learned distributor mappings, rate history auditing, and cache invalidation.
     """
-    bill = db.get(models.Bill, payload.bill_id)
+    bill = db.query(models.Bill).filter(models.Bill.id == payload.bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill:
         raise HTTPException(404, "Bill not found")
+
+    if bill.status == "confirmed":
+        raise HTTPException(400, "This bill has already been confirmed.")
 
     # Apply optional invoice_no and distributor_name corrections if provided during review
     if payload.distributor_name is not None and payload.distributor_name.strip():
@@ -337,9 +342,6 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
             status_code=409,
             detail=f"Bill #{dup_bill.id} with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}. Please double-check or update the invoice number before confirming."
         )
-
-    if bill.status == "confirmed":
-        raise HTTPException(400, "This bill has already been confirmed.")
 
     changes: List[schemas.ChangeSummaryItem] = []
 
