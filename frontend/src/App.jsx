@@ -31,6 +31,8 @@ import PointOfSale from "./pages/PointOfSale.jsx";
 import AuditTrail from "./pages/AuditTrail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Network from "./pages/Network.jsx";
+import NetworkIntegrity from './pages/NetworkIntegrity.jsx';
+
 import Predictive from "./pages/Predictive.jsx";
 import ColdChain from "./pages/ColdChain.jsx";
 import Surveillance from "./pages/Surveillance.jsx";
@@ -370,6 +372,8 @@ export default function App() {
             <Route path="/prescriptions" element={<RequireAuth><PageWrapper><Prescriptions /></PageWrapper></RequireAuth>} />
             <Route path="/customers" element={<RequireAuth><PageWrapper><Customers /></PageWrapper></RequireAuth>} />
             <Route path="/network" element={<RequireAuth><PageWrapper><Network isOwner={isOwner} /></PageWrapper></RequireAuth>} />
+            <Route path="/network-integrity" element={<RequireOwner><PageWrapper><NetworkIntegrity /></PageWrapper></RequireOwner>} />
+
             <Route path="/predictive" element={<RequireOwner><PageWrapper><Predictive /></PageWrapper></RequireOwner>} />
             <Route path="/audit" element={<RequireOwner><PageWrapper><AuditTrail /></PageWrapper></RequireOwner>} />
             <Route path="/cold-chain" element={<RequireAuth><PageWrapper><ColdChain isOwner={isOwner} /></PageWrapper></RequireAuth>} />
