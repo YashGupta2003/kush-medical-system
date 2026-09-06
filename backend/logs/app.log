@@ -5312,3 +5312,346 @@ ValueError: Simulated subscriber error
 [2026-09-06 06:18:13] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
 [2026-09-06 06:18:13] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
 [2026-09-06 06:18:13] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-06 11:49:34] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-06 11:49:35] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-06 11:49:36] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-06 11:49:36] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-06 11:49:36] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-06 11:49:36] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-06 11:49:37] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-06 11:49:37] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-06 11:49:37] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-06 11:49:37] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-06 11:49:37] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-06 11:49:37] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-06 11:49:39] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-06 11:49:39] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-06 11:49:39] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-06 11:49:39] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-06 11:49:39] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 5.59s
+[2026-09-06 11:49:40] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-06 11:49:40] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-06 11:49:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 5.93s
+[2026-09-06 11:49:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 5.93s
+[2026-09-06 11:49:40] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-06 11:49:40] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-06 11:49:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 6.04s
+[2026-09-06 11:49:40] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-06 11:49:40] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 6.1s
+[2026-09-06 11:50:01] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:06] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:35] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:36] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:36] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:36] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:36] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:36] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:36] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:37] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:37] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:37] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:37] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:38] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:47]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:135]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:155]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:172]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:189]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:204]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:220]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-06 14:08:38] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:39] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:241]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-09-06 14:08:39] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-06 14:08:39] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-06 14:08:39] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:47]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:135]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:155]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:172]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:189]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:204]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:220]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:39] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:39] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:40] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:40] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:40] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-06 14:08:40] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:40] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:40] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:41] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:41] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-06 14:08:41] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-06 14:08:41] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-06 14:08:41] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:41] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:41] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:41] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:42] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:42] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:42] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:42] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:47]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:135]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:155]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:172]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:189]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:204]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:220]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:47]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:135]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:155]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:172]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:189]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:204]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:220]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:47]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:135]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:155]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:172]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:189]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:204]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:220]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-06 14:08:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:47]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:135]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:155]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:172]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:189]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:204]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-06 14:08:43] [INFO] [event_subscribers] [subscribers.py:220]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-06 14:08:43] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-06 14:08:43] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-06 14:08:43] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-06 14:08:43] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-06 14:08:43] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 4.89s
+[2026-09-06 14:08:45] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:46] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-09-06 14:08:47] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-09-06 14:08:48] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:49] [WARNING] [duplicate_checker] [duplicate_checker.py:42]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:50] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:273]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:50] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:51] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:51] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:54] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:54] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:54] [INFO] [event_subscribers] [subscribers.py:273]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-09-06 14:08:55] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:08:55] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:08:55] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-06 14:11:24] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:11:56] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:14:02] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:14:14] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:14:15] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-06 14:18:26] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.

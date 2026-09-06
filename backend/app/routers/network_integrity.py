@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 
 from app.database import get_db
-from app.routers.auth import get_current_user, require_owner
+from app.deps import get_current_user, require_owner
 from app.services import cross_tenant_integrity_service
 from app import models, schemas
 from app.celery_app import celery_app
@@ -53,5 +53,6 @@ def trigger_scan_now(current_user: models.User = Depends(require_owner)):
     """
     Triggers scan_cross_tenant_batch_collisions_task.delay() manually.
     """
-    task = celery_app.send_task("scan_cross_tenant_batch_collisions")
+    from app.services.tasks import scan_cross_tenant_batch_collisions_task
+    task = scan_cross_tenant_batch_collisions_task.delay()
     return {"status": "queued", "task_id": task.id}

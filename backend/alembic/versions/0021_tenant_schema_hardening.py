@@ -6,7 +6,6 @@ Create Date: 2026-09-05
 """
 from alembic import op
 import sqlalchemy as sa
-from sqlalchemy.engine.reflection import Inspector
 
 revision = '0021'
 down_revision = '0020'
@@ -15,7 +14,7 @@ depends_on = None
 
 def upgrade():
     conn = op.get_bind()
-    inspector = Inspector.from_engine(conn)
+    inspector = sa.inspect(conn)
     tables = inspector.get_table_names()
 
     if "bills" in tables:
@@ -54,8 +53,11 @@ def upgrade():
             try:
                 op.create_foreign_key("fk_refresh_tokens_tenant", "refresh_tokens", "tenants", ["tenant_id"], ["id"])
                 op.create_index("ix_refresh_tokens_tenant_id", "refresh_tokens", ["tenant_id"])
-            except Exception:
-                pass
+            except sa.exc.DatabaseError as e:
+                err_msg = str(e).lower()
+                if "duplicate" not in err_msg and "already exists" not in err_msg and "cannot add foreign key" not in err_msg:
+                    raise
+
 
     for table in tables:
         if table in ("tenants", "alembic_version"):
@@ -66,8 +68,11 @@ def upgrade():
             try:
                 op.create_foreign_key(f"fk_{table}_tenant", table, "tenants", ["tenant_id"], ["id"])
                 op.create_index(f"ix_{table}_tenant_id", table, ["tenant_id"])
-            except Exception:
-                pass
+            except sa.exc.DatabaseError as e:
+                err_msg = str(e).lower()
+                if "duplicate" not in err_msg and "already exists" not in err_msg and "cannot add foreign key" not in err_msg:
+                    raise
+
 
 def downgrade():
     pass

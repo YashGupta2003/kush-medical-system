@@ -100,6 +100,7 @@ def log_event(db: Session, event_type: str, reference_id: Optional[int], payload
     entry_hash = _sha256(payload_hash + previous_hash)
 
     entry = models.AuditLedgerEntry(
+        tenant_id=payload.get("tenant_id"),
         event_type=event_type,
         reference_id=reference_id,
         payload_json=canonical,
