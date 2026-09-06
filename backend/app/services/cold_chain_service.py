@@ -194,7 +194,13 @@ def get_compliance_report(db: Session, unit_id: Optional[int] = None, days: int 
     }
 
 def get_compromised_batches(db: Session, unit_id: int) -> List[Dict[str, Any]]:
-    # Simply returning all MedicineBatch rows with is_cold_chain=True
+    # A batch is compromised if the unit it's stored in had an excursion.
+    # Since small shops typically use one fridge for all cold-chain items,
+    # we return all cold-chain batches if this unit had ANY excursion.
+    has_excursion = db.query(ColdChainReading).filter_by(unit_id=unit_id, is_excursion=True).first()
+    if not has_excursion:
+        return []
+
     batches = db.query(MedicineBatch, Medicine.particulars).join(
         Medicine, MedicineBatch.medicine_id == Medicine.id
     ).filter(

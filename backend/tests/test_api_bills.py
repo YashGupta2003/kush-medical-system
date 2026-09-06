@@ -7,9 +7,10 @@ import pytest
 from app import models
 
 
-def test_confirm_bill_happy_path(client, staff_headers, sample_medicine, sample_distributor, db_session):
+def test_confirm_bill_happy_path(client, staff_headers, sample_medicine, sample_distributor, db_session, tenant):
     # 1. Create a bill in pending_review status
     bill = models.Bill(
+        tenant_id=tenant.id,
         distributor_id=sample_distributor.id,
         invoice_no="INV-5001",
         status="pending_review",
@@ -63,9 +64,10 @@ def test_confirm_bill_happy_path(client, staff_headers, sample_medicine, sample_
     assert float(sample_medicine.current_stock) == 32.0
 
 
-def test_duplicate_warning_at_upload_and_409_at_confirm(client, staff_headers, sample_distributor, db_session):
+def test_duplicate_warning_at_upload_and_409_at_confirm(client, staff_headers, sample_distributor, db_session, tenant):
     # Existing CONFIRMED bill with same distributor and invoice_no
     bill1 = models.Bill(
+        tenant_id=tenant.id,
         distributor_id=sample_distributor.id,
         invoice_no="INV-9999",
         status="confirmed",

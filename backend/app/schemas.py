@@ -1053,3 +1053,18 @@ class WhatsAppOrderResponse(BaseModel):
     status: str
     message_id: Optional[str] = None
     error: Optional[str] = None
+
+class CrossTenantAlertOut(BaseModel):
+    id: int
+    medicine_name: str
+    normalized_batch_no: str
+    distributor_names: List[str]
+    occurrence_count: int
+    first_seen: Optional[datetime]
+    last_seen: Optional[datetime]
+    severity: str
+    status: str
+    other_pharmacies_involved: int
+
+    class Config:
+        from_attributes = True

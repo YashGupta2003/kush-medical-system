@@ -26,6 +26,7 @@ from app.events.events import (
     ColdChainExcursionEvent,
     SurveillanceSpikeDetectedEvent,
     DistributorTrustScoreDroppedEvent,
+    CrossTenantCollisionDetectedEvent,
 )
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
@@ -439,7 +440,36 @@ def handle_trust_score_dropped(event: DistributorTrustScoreDroppedEvent) -> None
     )
 
 
+
+
+def handle_cross_tenant_collision(event: CrossTenantCollisionDetectedEvent) -> None:
+    """Notifies affected tenants of a cross-tenant counterfeit batch collision."""
+    from app.services import notification_service
+    from app import models
+    from sqlalchemy.orm import Session
+    
+    count_other = len(event.tenant_ids) - 1
+    
+    for t_id in event.tenant_ids:
+        owners = event.db.query(models.User).filter_by(tenant_id=t_id, role="owner", is_active=True).all()
+        for owner in owners:
+            notification_service.create_notification(
+                event.db,
+                notification_type="cross_tenant_alert",
+                title=f"⚠️ Counterfeit Warning: {event.medicine_name}",
+                body=(
+                    f"Batch {event.normalized_batch_no} was detected at {count_other} other pharmacies "
+                    f"in the network. Please review this batch immediately."
+                ),
+                severity="critical",
+                recipient_user_id=owner.id,
+                related_entity_type="cross_tenant_alert",
+                related_entity_id=str(event.alert_id),
+                channel="in_app"
+            )
+
 def register_all_subscribers() -> None:
+
     """
     Registers all application domain subscribers with the global EventBus.
     """
@@ -463,6 +493,9 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(CreditOverdueEvent, handle_credit_overdue)
     event_bus.subscribe(ColdChainExcursionEvent, handle_cold_chain_excursion)
     event_bus.subscribe(SurveillanceSpikeDetectedEvent, handle_surveillance_spike)
+
     event_bus.subscribe(DistributorTrustScoreDroppedEvent, handle_trust_score_dropped)
+    event_bus.subscribe(CrossTenantCollisionDetectedEvent, handle_cross_tenant_collision)
+
 
     logger.info("All domain event subscribers successfully registered with EventBus.")

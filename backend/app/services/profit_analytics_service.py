@@ -156,6 +156,8 @@ def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
     unpriced = 0
     for s in substitutes_data:
         sub_med = db.get(models.Medicine, s["medicine_id"])
+        if sub_med is None:
+            continue
         margin = _margin_pct(sub_med.mrp, sub_med.net_rate)
         
         if margin is None:
@@ -213,6 +215,8 @@ def get_distributor_negotiation_report(db: Session) -> list[dict]:
         
         for mid in med_ids:
             med = db.get(models.Medicine, mid)
+            if med is None:
+                continue
             margin = _margin_pct(med.mrp, med.net_rate)
             if margin is not None:
                 margins.append(margin)

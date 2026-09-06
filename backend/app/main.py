@@ -24,7 +24,7 @@ from app.routers import (
     bills, medicines, dashboard, stock, expiry, analytics, auth, gst,
     health, substitutes, graph, copilot, pos, audit, customers, network,
     symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance, trust_score, smart_purchase, profit,
-    prescriptions, register, tenants, setup
+    prescriptions, register, tenants, setup, network_integrity
 )
 from app.database import ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
@@ -236,7 +236,9 @@ v1_router.include_router(profit.router)         # → /v1/profit/...
 v1_router.include_router(prescriptions.router) # → /v1/prescriptions/...
 v1_router.include_router(setup.router)          # → /v1/setup/... (public setup wizard)
 v1_router.include_router(register.router)       # → /v1/register/...
-v1_router.include_router(tenants.router)        # → /v1/tenants/...
+v1_router.include_router(tenants.router)
+v1_router.include_router(network_integrity.router)
+        # → /v1/tenants/...
 
 app.include_router(v1_router)
 
@@ -272,6 +274,8 @@ _legacy.include_router(trust_score.router)
 _legacy.include_router(smart_purchase.router)
 _legacy.include_router(profit.router)
 _legacy.include_router(prescriptions.router)
+_legacy.include_router(network_integrity.router)
+
 
 app.include_router(_legacy)  # bare paths still work — tests pass, scripts work
 

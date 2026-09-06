@@ -20,7 +20,9 @@ const MODULES = [
   { id: "surveillance", name: "Surveillance", path: "/surveillance", icon: "👁️" },
   { id: "cold-chain", name: "Cold Chain", path: "/cold-chain", icon: "❄️" },
   { id: "customers", name: "Customers", path: "/customers", icon: "👥" },
-  { id: "network", name: "Network", path: "/network", icon: "🌐" }
+  { id: "network", name: "Network", path: "/network", icon: "🌐" },
+  { id: "integrity", name: "Network Integrity", path: "/network-integrity", icon: "🛡️" },
+
 ];
 
 export default function CommandPalette() {

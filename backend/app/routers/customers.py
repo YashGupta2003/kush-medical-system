@@ -47,7 +47,7 @@ def create_or_get_customer(payload: schemas.CustomerCreate, db: Session = Depend
     genuinely new" in one step at the point of sale.
     """
     customer = customer_service.get_or_create_customer(
-        db, phone=payload.phone, name=payload.name, consented=payload.consent_given
+        db, phone=payload.phone, tenant_id=current_user.tenant_id, name=payload.name, consented=payload.consent_given
     )
     db.commit()
     return _summary_or_404(db, customer.id, current_user)
@@ -67,7 +67,7 @@ def adherence_alerts(db: Session = Depends(get_db), current_user: models.User = 
 
 @router.get("/{customer_id}", response_model=schemas.CustomerOut)
 def get_customer(customer_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return _summary_or_404(db, customer.id, current_user)
+    return _summary_or_404(db, customer_id, current_user)
 
 
 @router.get("/{customer_id}/ledger", response_model=list[schemas.CustomerCreditEntryOut])
@@ -78,16 +78,16 @@ def get_ledger(customer_id: int, db: Session = Depends(get_db), current_user: mo
 @router.post("/{customer_id}/credit/charge", response_model=schemas.CustomerOut)
 def charge_credit(customer_id: int, payload: schemas.CreditChargeRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
-        customer_service.charge_credit(db, customer_id, payload.amount, note=payload.note)
+        customer_service.charge_credit(db, customer_id, payload.amount, tenant_id=current_user.tenant_id, note=payload.note)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return _summary_or_404(db, customer.id, current_user)
+    return _summary_or_404(db, customer_id, current_user)
 
 
 @router.post("/{customer_id}/credit/payment", response_model=schemas.CustomerOut)
 def record_payment(customer_id: int, payload: schemas.CreditPaymentRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
     try:
-        customer_service.record_payment(db, customer_id, payload.amount, note=payload.note)
+        customer_service.record_payment(db, customer_id, payload.amount, tenant_id=current_user.tenant_id, note=payload.note)
     except ValueError as e:
         raise HTTPException(400, str(e))
-    return _summary_or_404(db, customer.id, current_user)
+    return _summary_or_404(db, customer_id, current_user)

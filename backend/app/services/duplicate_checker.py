@@ -1,7 +1,13 @@
 """
-Duplicate Bill Protection Service.
-Prevents uploading or confirming duplicate invoices, protecting stock and GST ledgers
-from double counting.
+duplicate_checker.py: Upload-time broad duplicate check (warning only).
+
+This module is used purely at UPLOAD time (see routers/bills.py _create_queued_bill).
+It checks by file checksum OR (invoice_no + distributor_id) across ANY non-rejected status.
+It is designed to give the pharmacist a soft warning ("This looks like a duplicate")
+when they upload the photo, BEFORE the OCR even finishes.
+
+For the confirm-time HARD GATE that actually prevents duplicate ledger entries,
+see `duplicate_service.py` (which checks only confirmed bills using normalized invoice numbers).
 """
 import hashlib
 from typing import Optional, Tuple

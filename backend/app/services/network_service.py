@@ -109,7 +109,7 @@ def publish_near_expiry_listings(db: Session, days: int = 60) -> list[models.Net
     never creates duplicate listings.
     """
     self_node = get_or_create_self_node(db)
-    batches = expiry_service.get_expiry_dashboard(db, days=days)
+    batches = expiry_service.get_expiry_dashboard(db, tenant_id=self_node.tenant_id, days=days)
 
     already_listed_batch_ids = {
         row[0] for row in

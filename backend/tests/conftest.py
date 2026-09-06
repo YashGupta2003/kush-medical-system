@@ -59,10 +59,22 @@ def client(db_session):
 # Auth fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def owner_user(db_session):
+def tenant(db_session):
+    t = models.Tenant(
+        slug="test-shop", shop_name="Test Pharmacy", owner_name="Test Owner",
+        email="test@example.com"
+    )
+    db_session.add(t)
+    db_session.commit()
+    db_session.refresh(t)
+    return t
+
+
+@pytest.fixture()
+def owner_user(db_session, tenant):
     user = models.User(
         username="owner1", password_hash=hash_password("ownerpass123"),
-        full_name="Test Owner", role="owner", is_active=True,
+        full_name="Test Owner", role="owner", is_active=True, tenant_id=tenant.id
     )
     db_session.add(user)
     db_session.commit()
@@ -71,10 +83,10 @@ def owner_user(db_session):
 
 
 @pytest.fixture()
-def staff_user(db_session):
+def staff_user(db_session, tenant):
     user = models.User(
         username="staff1", password_hash=hash_password("staffpass123"),
-        full_name="Test Staff", role="staff", is_active=True,
+        full_name="Test Staff", role="staff", is_active=True, tenant_id=tenant.id
     )
     db_session.add(user)
     db_session.commit()
@@ -98,12 +110,12 @@ def staff_headers(staff_user):
 # Domain data fixtures
 # ---------------------------------------------------------------------------
 @pytest.fixture()
-def sample_medicine(db_session):
+def sample_medicine(db_session, tenant):
     med = models.Medicine(
         particulars="AMLOKIND AT TAB",
         normalized_name="AMLOKIND AT TAB",
         unit="15S", mrp=118.53, net_rate=61.18, company="MANKIND",
-        current_stock=20, low_stock_threshold=10,
+        current_stock=20, low_stock_threshold=10, tenant_id=tenant.id
     )
     db_session.add(med)
     db_session.commit()
@@ -112,8 +124,8 @@ def sample_medicine(db_session):
 
 
 @pytest.fixture()
-def sample_distributor(db_session):
-    d = models.Distributor(name="HARI KRISHNA DISTRIBUTOR")
+def sample_distributor(db_session, tenant):
+    d = models.Distributor(name="HARI KRISHNA DISTRIBUTOR", tenant_id=tenant.id)
     db_session.add(d)
     db_session.commit()
     db_session.refresh(d)

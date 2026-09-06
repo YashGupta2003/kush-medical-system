@@ -4,10 +4,26 @@ from app.models import SurveillanceDailyCount, User, Medicine
 from app.services import surveillance_service
 from app.events.bus import event_bus
 
-def test_get_conditions_for_medicine(db_session, sample_medicine):
-    # This requires graph_service seeding, which is likely mocked or we can insert graph nodes.
-    # We will test the record_sale_signal which calls this, by mocking get_conditions_for_medicine.
-    pass
+def test_get_conditions_for_medicine(db_session, sample_medicine, tenant):
+    from app.services import graph_service
+    # Seed PharmaGraph edges
+    graph_service.add_edge(
+        db_session,
+        source_type="medicine", source_id=str(sample_medicine.id),
+        edge_type="CONTAINS",
+        target_type="salt", target_id="Paracetamol",
+    )
+    graph_service.add_edge(
+        db_session,
+        source_type="salt", source_id="Paracetamol",
+        edge_type="TREATS",
+        target_type="condition", target_id="Fever",
+    )
+    db_session.commit()
+    
+    conditions = surveillance_service.get_conditions_for_medicine(db_session, sample_medicine.id)
+    assert "Fever" in conditions
+    assert len(conditions) == 1
 
 def test_record_sale_signal(db_session, sample_medicine, monkeypatch):
     monkeypatch.setattr(surveillance_service, "get_conditions_for_medicine", lambda db, med_id: ["Fever", "Headache"])

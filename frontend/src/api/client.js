@@ -376,4 +376,10 @@ export const api = {
     apiFetch("/prescriptions/convert", { method: "POST", ...jsonBody({ prescription_id: prescriptionId }) }),
   abandonPrescription: (prescriptionId) =>
     apiFetch(`/prescriptions/${prescriptionId}/abandon`, { method: "POST" }),
+
+  // --- Network Integrity (Cross-Tenant) ---
+  getNetworkIntegrityAlerts: (status = "open") => apiFetch(`/network-integrity/alerts?status=${status}`),
+  updateAlertStatus: (alertId, status) => apiFetch(`/network-integrity/alerts/${alertId}/status`, { method: "PATCH", ...jsonBody({ status }) }),
+  triggerCollisionScan: () => apiFetch("/network-integrity/scan-now", { method: "POST" }),
+
 };

@@ -247,12 +247,15 @@ def build_daily_digest(db: Session, user_id: int) -> dict:
     from app.services import customer_service, expiry_service, anomaly_service
 
     # 1. Adherence overdue alerts (consent-gated, see customer_service docstring)
+    # NOTE: tenant_id is not available in this context (digest is per user_id, not per tenant).
+    # Callers that have tenant context should pass tenant_id separately.
     adherence_alerts = customer_service.compute_adherence_alerts(db)
 
     # 2. Outstanding credit — top 10 most overdue, sorted by amount desc
     outstanding = customer_service.list_customers_with_outstanding_balance(db, limit=10)
 
     # 3. Near-expiry: critical + expired batch count
+    # NOTE: tenant_id is not available in this context
     expiry_data = expiry_service.get_expiry_summary(db)
     near_expiry_critical_count = (expiry_data.get("expired", 0) + expiry_data.get("critical", 0))
 

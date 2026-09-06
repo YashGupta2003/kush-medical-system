@@ -1,7 +1,15 @@
 """
 Service module for duplicate invoice detection.
-Prevents double-counting stock and GST when physical invoices are uploaded or confirmed twice.
+Confirm-time hard gate (prevents ledger double-counting).
+
+This module is used at CONFIRM time (see routers/bills.py confirm_bill) as a strict 409
+rejection gate. It checks ONLY against already-confirmed bills, using a normalized 
+invoice number (stripping spaces/punctuation) to catch typos like "INV-123" vs "INV 123".
+
+For the upload-time soft warning that checks file checksums and pending bills, 
+see `duplicate_checker.py`. Both are necessary and serve different stages of the pipeline.
 """
+import re
 from typing import Optional
 from sqlalchemy.orm import Session
 from app import models

@@ -31,13 +31,13 @@ from app.events.events import SurveillanceSpikeDetectedEvent
 def get_conditions_for_medicine(db: Session, medicine_id: int) -> List[str]:
     """Walk PharmaGraph: medicine → CONTAINS → salt → TREATS → condition."""
     conditions = set()
-    # medicine -> CONTAINS -> salt
+    # medicine -> CONTAINS -> salt (returns GraphEdge objects; use .target_id not subscript)
     salts = graph_service.get_neighbors(db, "medicine", str(medicine_id), "CONTAINS")
     for salt in salts:
         # salt -> TREATS -> condition
-        conds = graph_service.get_neighbors(db, "salt", salt["id"], "TREATS")
+        conds = graph_service.get_neighbors(db, "salt", salt.target_id, "TREATS")
         for cond in conds:
-            conditions.add(cond["id"])
+            conditions.add(cond.target_id)
     return list(conditions)
 
 def record_sale_signal(db: Session, medicine_id: int, qty_sold: int, sale_date: date = None) -> None:

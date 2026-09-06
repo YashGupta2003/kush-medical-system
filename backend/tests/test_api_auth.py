@@ -6,7 +6,7 @@ control is actually enforced at the API layer, not just in theory.
 
 
 def test_login_with_correct_credentials_returns_token(client, owner_user):
-    response = client.post("/auth/login", json={"username": "owner1", "password": "ownerpass123"})
+    response = client.post("/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
     assert response.status_code == 200
     body = response.json()
     assert body["role"] == "owner"
@@ -14,12 +14,12 @@ def test_login_with_correct_credentials_returns_token(client, owner_user):
 
 
 def test_login_with_wrong_password_is_rejected(client, owner_user):
-    response = client.post("/auth/login", json={"username": "owner1", "password": "wrongpassword"})
+    response = client.post("/auth/login", json={"username": "owner1", "password": "wrongpassword", "tenant_id": owner_user.tenant_id})
     assert response.status_code == 401
 
 
 def test_login_with_unknown_username_is_rejected(client):
-    response = client.post("/auth/login", json={"username": "nobody", "password": "whatever"})
+    response = client.post("/auth/login", json={"username": "nobody", "password": "whatever", "tenant_id": 1})
     assert response.status_code == 401
 
 
@@ -60,7 +60,7 @@ def test_deactivated_account_cannot_log_in(client, db_session, owner_user):
     owner_user.is_active = False
     db_session.commit()
 
-    response = client.post("/auth/login", json={"username": "owner1", "password": "ownerpass123"})
+    response = client.post("/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
     assert response.status_code == 401
 
 

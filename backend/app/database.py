@@ -79,74 +79,20 @@ def _after_cursor_execute(conn, cursor, statement, parameters, context, executem
 
 def ensure_database_schema_synced():
     """
-    Self-healing schema migration helper.
-    Ensures missing columns (such as `checksum` on `bills`) exist in MySQL without requiring manual SQL queries.
+    DEPRECATED: Runtime ALTER TABLE schema sync has been removed.
+
+    All schema changes (tenant_id columns, bills.checksum, tenants.* columns,
+    refresh_tokens.tenant_id) are now managed by Alembic migrations. Run:
+
+        alembic upgrade head
+
+    to bring the database up to date. See alembic/versions/0021_tenant_schema_hardening.py
+    for the migration that covers the changes previously done inline here.
+
+    This function is retained as a no-op to avoid breaking any call sites that
+    invoke it on startup, but it performs no database operations.
     """
-    try:
-        inspector = inspect(engine)
-        if "bills" in inspector.get_table_names():
-            columns = [c["name"] for c in inspector.get_columns("bills")]
-            if "checksum" not in columns:
-                logger.info("Adding missing 'checksum' column to 'bills' table...")
-                with engine.begin() as conn:
-                    conn.execute(text("ALTER TABLE bills ADD COLUMN checksum VARCHAR(64) NULL;"))
-                    conn.execute(text("CREATE INDEX ix_bills_checksum ON bills (checksum);"))
-                logger.info("Successfully added 'checksum' column and index to 'bills' table.")
-
-        if "tenants" in inspector.get_table_names():
-            tenant_columns = [c["name"] for c in inspector.get_columns("tenants")]
-            with engine.begin() as conn:
-                if "slug" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN slug VARCHAR(80) NULL;"))
-                if "shop_name" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN shop_name VARCHAR(150) NULL;"))
-                if "owner_name" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN owner_name VARCHAR(150) NULL;"))
-                if "gstin" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN gstin VARCHAR(20) NULL;"))
-                if "city" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN city VARCHAR(100) NULL;"))
-                if "address" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN address TEXT NULL;"))
-                if "plan" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN plan VARCHAR(50) DEFAULT 'free';"))
-                if "is_active" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN is_active BOOLEAN DEFAULT 1;"))
-                if "email_verified" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN email_verified BOOLEAN DEFAULT 0;"))
-                if "email_verification_token" not in tenant_columns:
-                    conn.execute(text("ALTER TABLE tenants ADD COLUMN email_verification_token VARCHAR(64) NULL;"))
-
-        if "refresh_tokens" in inspector.get_table_names():
-            rt_columns = [c["name"] for c in inspector.get_columns("refresh_tokens")]
-            if "tenant_id" not in rt_columns:
-                logger.info("Adding missing 'tenant_id' column to 'refresh_tokens' table...")
-                with engine.begin() as conn:
-                    conn.execute(text("ALTER TABLE refresh_tokens ADD COLUMN tenant_id INT NULL;"))
-                    try:
-                        conn.execute(text("ALTER TABLE refresh_tokens ADD CONSTRAINT fk_refresh_tokens_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id);"))
-                        conn.execute(text("CREATE INDEX ix_refresh_tokens_tenant_id ON refresh_tokens (tenant_id);"))
-                    except Exception as ex:
-                        logger.warning(f"Failed to add foreign key to refresh_tokens: {ex}")
-
-        # Ensure ALL tables have tenant_id if missing, except tenants itself
-        tables = inspector.get_table_names()
-        with engine.begin() as conn:
-            for table in tables:
-                if table in ("tenants", "alembic_version"):
-                    continue
-                columns = [c["name"] for c in inspector.get_columns(table)]
-                if "tenant_id" not in columns:
-                    logger.info(f"Adding missing 'tenant_id' column to '{table}' table...")
-                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN tenant_id INT NULL;"))
-                    try:
-                        conn.execute(text(f"ALTER TABLE {table} ADD CONSTRAINT fk_{table}_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id);"))
-                        conn.execute(text(f"CREATE INDEX ix_{table}_tenant_id ON {table} (tenant_id);"))
-                    except Exception as ex:
-                        logger.warning(f"Failed to add foreign key to {table}: {ex}")
-
-    except Exception as e:
-        logger.warning(f"Schema sync check warning: {e}")
+    pass
 
 
 def get_db():

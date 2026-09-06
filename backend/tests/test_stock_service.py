@@ -54,7 +54,7 @@ def test_unmatched_item_does_not_affect_stock(db_session, sample_medicine, sampl
     assert float(sample_medicine.current_stock) == before  # untouched
 
 
-def test_record_sale_decrements_stock_and_logs_ledger(db_session, sample_medicine):
+def test_record_sale_decrements_stock_and_logs_ledger(db_session, sample_medicine, tenant):
     initial_stock = float(sample_medicine.current_stock)
 
     result = stock_service.record_sale(db_session, sample_medicine.id, 3)
@@ -76,50 +76,50 @@ def test_record_sale_returns_last_purchase_context(db_session, sample_medicine, 
     assert "current_stock" in result
 
 
-def test_reorder_list_includes_medicine_once_it_falls_below_threshold(db_session, sample_medicine):
+def test_reorder_list_includes_medicine_once_it_falls_below_threshold(db_session, sample_medicine, tenant):
     # sample_medicine: stock=20, threshold=10 - starts healthy
-    reorder = stock_service.get_reorder_list(db_session)
+    reorder = stock_service.get_reorder_list(db_session, tenant_id=tenant.id)
     all_ids_before = [item["medicine_id"] for group in reorder for item in group["items"]]
     assert sample_medicine.id not in all_ids_before
 
     stock_service.record_sale(db_session, sample_medicine.id, 15)  # 20 -> 5, now below threshold of 10
 
-    reorder = stock_service.get_reorder_list(db_session)
+    reorder = stock_service.get_reorder_list(db_session, tenant_id=tenant.id)
     all_ids_after = [item["medicine_id"] for group in reorder for item in group["items"]]
     assert sample_medicine.id in all_ids_after
 
 
-def test_manual_reorder_item_creates_new_distributor_and_groups_correctly(db_session):
+def test_manual_reorder_item_creates_new_distributor_and_groups_correctly(db_session, tenant):
     item = stock_service.add_manual_reorder_item(
         db_session, medicine_id=None, custom_name="Listerine Mouthwash 250ml",
         distributor_id=None, distributor_name_new="Yash Pharma",
-        quantity_needed=5, note="requested by staff",
+        quantity_needed=5, note="requested by staff", tenant_id=tenant.id,
     )
     assert item.distributor is not None
     assert item.distributor.name == "YASH PHARMA"   # names are stored uppercase
 
-    reorder = stock_service.get_reorder_list(db_session)
+    reorder = stock_service.get_reorder_list(db_session, tenant_id=tenant.id)
     group_names = [g["distributor_name"] for g in reorder]
-    assert "YASH PHARMA" in group_names
+    assert "YASH PHARMA" in group_names, f"Groups: {group_names}"
 
     matching_group = next(g for g in reorder if g["distributor_name"] == "YASH PHARMA")
     assert matching_group["items"][0]["name"] == "Listerine Mouthwash 250ml"
     assert matching_group["items"][0]["source"] == "manual"
 
 
-def test_marking_reorder_item_fulfilled_removes_it_from_the_list(db_session):
+def test_marking_reorder_item_fulfilled_removes_it_from_the_list(db_session, tenant):
     item = stock_service.add_manual_reorder_item(
         db_session, medicine_id=None, custom_name="Test Item",
         distributor_id=None, distributor_name_new="Some Distributor",
-        quantity_needed=1, note=None,
+        quantity_needed=1, note=None, tenant_id=tenant.id,
     )
     ok = stock_service.mark_reorder_item_fulfilled(db_session, item.id)
     assert ok is True
 
-    reorder = stock_service.get_reorder_list(db_session)
+    reorder = stock_service.get_reorder_list(db_session, tenant_id=tenant.id)
     all_item_ids = [i["id"] for g in reorder for i in g["items"]]
     assert item.id not in all_item_ids
 
 
-def test_mark_fulfilled_returns_false_for_nonexistent_item(db_session):
+def test_mark_fulfilled_returns_false_for_nonexistent_item(db_session, tenant):
     assert stock_service.mark_reorder_item_fulfilled(db_session, 999999) is False

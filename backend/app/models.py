@@ -10,7 +10,7 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 from datetime import datetime, timezone
 from sqlalchemy import (
     UniqueConstraint,
-    Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum, Boolean
+    Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum, Boolean, func
 )
 from sqlalchemy.orm import relationship
 
@@ -493,7 +493,7 @@ class Notification(Base):
         Enum(
             "adherence_overdue", "anomaly_flagged", "low_stock_crossed",
             "credit_overdue", "trust_chain_tamper", "near_expiry",
-            "daily_digest", "system",
+            "daily_digest", "system", "cross_tenant_alert",
             name="notification_type",
         ),
         nullable=False,
@@ -703,3 +703,23 @@ class PrescriptionItem(Base):
     prescription = relationship("Prescription", back_populates="items")
     medicine = relationship("Medicine", foreign_keys=[medicine_id])
     substitute_medicine = relationship("Medicine", foreign_keys=[substitute_medicine_id])
+
+class CrossTenantBatchAlert(Base):
+    __tablename__ = "cross_tenant_batch_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    medicine_name = Column(String(255), nullable=False)
+    normalized_batch_no = Column(String(100), nullable=False, index=True)
+    tenant_ids = Column(Text, nullable=False)
+    distributor_names = Column(Text, nullable=False)
+    occurrence_count = Column(Integer, nullable=False, default=0)
+    first_seen = Column(DateTime, nullable=True)
+    last_seen = Column(DateTime, nullable=True)
+    status = Column(Enum("open", "reviewed", "dismissed", name="cross_tenant_alert_status"), nullable=False, server_default="open")
+    severity = Column(Enum("medium", "high", name="cross_tenant_alert_severity"), nullable=False, server_default="high")
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, nullable=True, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("normalized_batch_no", "medicine_name", name="uix_batch_medicine"),
+    )

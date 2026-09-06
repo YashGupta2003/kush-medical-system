@@ -227,6 +227,7 @@ function RebuildPanel({ isOwner }) {
             {status.status === "pending" && "Rebuild running in the background..."}
             {status.status === "ok" && `Done — ${JSON.stringify(status.stats)}`}
             {status.status === "failed" && `Failed: ${status.error}`}
+            {!["pending", "ok", "failed"].includes(status.status) && `Status: ${status.status}...`}
           </p>
         </div>
       )}

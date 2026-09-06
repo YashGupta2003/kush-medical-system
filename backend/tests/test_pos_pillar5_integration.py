@@ -9,8 +9,8 @@ from app.services import pos_service, customer_service, audit_service
 from app import models
 
 
-def test_credit_cart_sale_links_customer_and_charges_ledger(db_session, sample_medicine):
-    customer = customer_service.get_or_create_customer(db_session, phone="9123456780", name="Udhaar Customer")
+def test_credit_cart_sale_links_customer_and_charges_ledger(db_session, sample_medicine, tenant):
+    customer = customer_service.get_or_create_customer(db_session, tenant_id=tenant.id, phone="9123456780", name="Udhaar Customer")
     db_session.commit()
 
     sample_medicine.mrp = 50.0
@@ -37,8 +37,8 @@ def test_credit_cart_sale_links_customer_and_charges_ledger(db_session, sample_m
     assert len(entries) == 1
 
 
-def test_cash_cart_sale_does_not_touch_credit_ledger(db_session, sample_medicine):
-    customer = customer_service.get_or_create_customer(db_session, phone="9123456781", name="Cash Customer")
+def test_cash_cart_sale_does_not_touch_credit_ledger(db_session, sample_medicine, tenant):
+    customer = customer_service.get_or_create_customer(db_session, tenant_id=tenant.id, phone="9123456781", name="Cash Customer")
     db_session.commit()
     sample_medicine.mrp = 50.0
     db_session.commit()
@@ -55,7 +55,7 @@ def test_cash_cart_sale_does_not_touch_credit_ledger(db_session, sample_medicine
     assert customer_service.get_customer_balance(db_session, customer.id) == 0
 
 
-def test_walk_in_sale_with_no_customer_works_exactly_as_before(db_session, sample_medicine):
+def test_walk_in_sale_with_no_customer_works_exactly_as_before(db_session, sample_medicine, tenant):
     """Backward-compatibility guard: omitting customer_id entirely must not break anything."""
     result = pos_service.record_cart_sale(db_session, [{"medicine_id": sample_medicine.id, "qty_sold": 1}])
     assert result["status"] == "recorded"

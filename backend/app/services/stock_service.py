@@ -237,19 +237,21 @@ def add_manual_reorder_item(
     distributor_name_new: Optional[str],
     quantity_needed: Optional[float],
     note: Optional[str],
+    tenant_id: Optional[int] = None,
 ) -> models.ReorderItem:
     if distributor_name_new and not distributor_id:
-        existing = db.query(models.Distributor).filter_by(name=distributor_name_new.upper()).first()
+        existing = db.query(models.Distributor).filter_by(name=distributor_name_new.upper(), tenant_id=tenant_id).first()
         if existing:
             distributor_id = existing.id
         else:
-            new_distributor = models.Distributor(name=distributor_name_new.upper())
+            new_distributor = models.Distributor(name=distributor_name_new.upper(), tenant_id=tenant_id)
             db.add(new_distributor)
             db.flush()
             distributor_id = new_distributor.id
 
     item = models.ReorderItem(
         medicine_id=medicine_id, custom_name=custom_name, distributor_id=distributor_id,
+        tenant_id=tenant_id,
         quantity_needed=quantity_needed, note=note, source="manual", fulfilled=False,
     )
     db.add(item)

@@ -79,6 +79,14 @@ celery_app.conf.update(
         },
 
         # Priority 1: Daily digest — 8am IST, after all checks have run.
+
+        # Cross-Tenant Integrity Scan - daily at 6:30am IST.
+        # Scans for counterfeit/grey-market batches circulating across the network.
+        "scan-cross-tenant-collisions-daily": {
+            "task": "scan_cross_tenant_batch_collisions",
+            "schedule": crontab(hour=6, minute=30),
+        },
+
         "send-daily-digest": {
             "task": "send_daily_digest",
             "schedule": crontab(hour=8, minute=0),

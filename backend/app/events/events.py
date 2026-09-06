@@ -173,3 +173,13 @@ class DistributorTrustScoreDroppedEvent(DomainEvent):
     new_score: float
     reasons: list[str]
     db: Session
+
+@dataclass(frozen=True, kw_only=True)
+class CrossTenantCollisionDetectedEvent(DomainEvent):
+    """Fired when a cross-tenant counterfeit batch collision is detected."""
+    alert_id: int
+    medicine_name: str
+    normalized_batch_no: str
+    tenant_ids: List[int]
+    distributor_names: List[str]
+    db: Session

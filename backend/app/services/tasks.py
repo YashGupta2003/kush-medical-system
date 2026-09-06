@@ -541,3 +541,16 @@ def generate_smart_purchase_order_task() -> dict:
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+
+@celery_app.task(name='scan_cross_tenant_batch_collisions')
+def scan_cross_tenant_batch_collisions_task() -> dict:
+    from app.services.cross_tenant_integrity_service import scan_cross_tenant_collisions
+    db = SessionLocal()
+    try:
+        result = scan_cross_tenant_collisions(db)
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()

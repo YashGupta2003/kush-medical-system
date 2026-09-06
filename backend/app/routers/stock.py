@@ -84,7 +84,7 @@ def add_manual_reorder_item(payload: schemas.ManualReorderCreate, db: Session = 
         custom_name=payload.custom_name,
         distributor_id=payload.distributor_id,
         distributor_name_new=payload.distributor_name_new,
-        quantity_needed=payload.quantity_needed,
+        quantity_needed=payload.quantity_needed, tenant_id=current_user.tenant_id,
         note=payload.note,
     )
 

@@ -60,7 +60,7 @@ def test_assign_and_then_lookup_barcode(client, owner_headers, sample_medicine):
 
 def test_cannot_assign_the_same_barcode_to_two_medicines(client, owner_headers, sample_medicine, db_session):
     from app import models
-    second_medicine = models.Medicine(particulars="SECOND MEDICINE", normalized_name="SECOND MEDICINE", current_stock=0)
+    second_medicine = models.Medicine(tenant_id=1, particulars="SECOND MEDICINE", normalized_name="SECOND MEDICINE", current_stock=0)
     db_session.add(second_medicine)
     db_session.commit()
     db_session.refresh(second_medicine)

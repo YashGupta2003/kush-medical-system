@@ -87,6 +87,6 @@ def health_check(response: Response, db: Session = Depends(get_db)):
 
     if not is_healthy:
         health_status["status"] = "unhealthy"
-        response.status_code = status.HTTP_533_SERVICE_UNAVAILABLE if hasattr(status, "HTTP_533_SERVICE_UNAVAILABLE") else status.HTTP_503_SERVICE_UNAVAILABLE
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
 
     return health_status

@@ -282,7 +282,7 @@ export default function Substitutes() {
         .substitute-results-grid {
           display: grid;
           grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: "16px";
+          gap: 16px;
         }
         .substitute-result-card {
           border: 1px solid var(--border-color);

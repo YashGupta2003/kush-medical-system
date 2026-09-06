@@ -23,24 +23,24 @@ logger = get_logger("bills_router")
 router = APIRouter(prefix="/bills", tags=["bills"])
 
 
-def _resolve_distributor(db: Session, name: Optional[str]) -> Optional[models.Distributor]:
+def _resolve_distributor(db: Session, name: Optional[str], tenant_id: int = 1) -> Optional[models.Distributor]:
     if not name:
         return None
     distributor = db.query(models.Distributor).filter_by(name=name.upper()).first()
     if not distributor:
-        distributor = models.Distributor(name=name.upper())
+        distributor = models.Distributor(name=name.upper(), tenant_id=tenant_id)
         db.add(distributor)
         db.flush()
     return distributor
 
 
-def _create_queued_bill(db: Session, file_bytes: bytes, filename: str,
+def _create_queued_bill(db: Session, file_bytes: bytes, filename: str, tenant_id: int,
                          distributor_name: Optional[str], invoice_no: Optional[str],
                          invoice_date: Optional[str]) -> models.Bill:
     file_bytes = correct_orientation(file_bytes)
     checksum = compute_file_checksum(file_bytes)
 
-    distributor = _resolve_distributor(db, distributor_name)
+    distributor = _resolve_distributor(db, distributor_name, tenant_id=tenant_id)
     is_dup, dup_reason, _ = check_duplicate_bill(
         db, file_bytes=file_bytes, invoice_no=invoice_no,
         distributor_id=distributor.id if distributor else None
@@ -64,6 +64,7 @@ def _create_queued_bill(db: Session, file_bytes: bytes, filename: str,
     now = inv_date or datetime.now(timezone.utc)
 
     bill = models.Bill(
+        tenant_id=tenant_id,
         distributor_id=distributor.id if distributor else None,
         invoice_no=invoice_no,
         invoice_date=inv_date,
@@ -101,7 +102,7 @@ async def upload_bill(
     if file.content_type not in ["image/jpeg", "image/png", "application/pdf"]:
         raise HTTPException(400, "Only JPEG, PNG and PDF files are allowed.")
     file_bytes = await file.read()
-    bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, invoice_no, invoice_date)
+    bill = _create_queued_bill(db, file_bytes, file.filename, current_user.tenant_id, distributor_name, invoice_no, invoice_date)
     db.commit()
 
     task = process_bill_task.delay(bill.id)

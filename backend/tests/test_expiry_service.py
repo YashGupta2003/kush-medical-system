@@ -22,7 +22,7 @@ def _confirmed_item_with_exp(db_session, medicine, distributor, exp_date_str):
     return item
 
 
-def test_creates_batch_with_correctly_parsed_expiry(db_session, sample_medicine, sample_distributor):
+def test_creates_batch_with_correctly_parsed_expiry(db_session, sample_medicine, sample_distributor, tenant):
     item = _confirmed_item_with_exp(db_session, sample_medicine, sample_distributor, "6/27")
     expiry_service.create_batch_from_confirmed_item(db_session, item)
     db_session.commit()
@@ -35,7 +35,7 @@ def test_creates_batch_with_correctly_parsed_expiry(db_session, sample_medicine,
     assert float(batch.qty_received) == 5.0
 
 
-def test_creates_batch_even_when_expiry_text_is_unreadable(db_session, sample_medicine, sample_distributor):
+def test_creates_batch_even_when_expiry_text_is_unreadable(db_session, sample_medicine, sample_distributor, tenant):
     """
     Real bills sometimes don't have a readable expiry (handwriting, OCR
     miss). The batch record must still be created - with a NULL expiry -
@@ -50,7 +50,7 @@ def test_creates_batch_even_when_expiry_text_is_unreadable(db_session, sample_me
     assert batch.expiry_date is None
 
 
-def test_does_not_create_duplicate_batch_for_same_bill_item(db_session, sample_medicine, sample_distributor):
+def test_does_not_create_duplicate_batch_for_same_bill_item(db_session, sample_medicine, sample_distributor, tenant):
     item = _confirmed_item_with_exp(db_session, sample_medicine, sample_distributor, "6/27")
     expiry_service.create_batch_from_confirmed_item(db_session, item)
     expiry_service.create_batch_from_confirmed_item(db_session, item)  # called twice, e.g. accidental retry
@@ -60,58 +60,58 @@ def test_does_not_create_duplicate_batch_for_same_bill_item(db_session, sample_m
     assert len(batches) == 1
 
 
-def test_expiry_dashboard_buckets_by_urgency(db_session, sample_medicine, sample_distributor):
+def test_expiry_dashboard_buckets_by_urgency(db_session, sample_medicine, sample_distributor, tenant):
     today = date.today()
     for exp in (today - timedelta(days=5), today + timedelta(days=3), today + timedelta(days=60)):
         db_session.add(models.MedicineBatch(
-            medicine_id=sample_medicine.id, expiry_date=exp, qty_received=1,
+            medicine_id=sample_medicine.id, expiry_date=exp, qty_received=1, tenant_id=tenant.id,
             distributor_id=sample_distributor.id,
         ))
     db_session.commit()
 
-    dashboard = expiry_service.get_expiry_dashboard(db_session, days=90)
+    dashboard = expiry_service.get_expiry_dashboard(db_session, tenant_id=tenant.id, days=90)
     urgencies = {b["urgency"] for b in dashboard}
     assert "expired" in urgencies
     assert "critical" in urgencies
     assert "upcoming" in urgencies
 
 
-def test_dashboard_respects_the_days_window(db_session, sample_medicine, sample_distributor):
+def test_dashboard_respects_the_days_window(db_session, sample_medicine, sample_distributor, tenant):
     today = date.today()
     far_future = today + timedelta(days=200)
     db_session.add(models.MedicineBatch(
-        medicine_id=sample_medicine.id, expiry_date=far_future, qty_received=1,
+        medicine_id=sample_medicine.id, expiry_date=far_future, qty_received=1, tenant_id=tenant.id,
         distributor_id=sample_distributor.id,
     ))
     db_session.commit()
 
-    dashboard = expiry_service.get_expiry_dashboard(db_session, days=90)
+    dashboard = expiry_service.get_expiry_dashboard(db_session, tenant_id=tenant.id, days=90)
     assert len(dashboard) == 0   # 200 days out, outside a 90-day window
 
 
-def test_missing_expiry_batches_are_listed_for_manual_entry(db_session, sample_medicine):
-    db_session.add(models.MedicineBatch(medicine_id=sample_medicine.id, expiry_date=None, qty_received=3))
+def test_missing_expiry_batches_are_listed_for_manual_entry(db_session, sample_medicine, tenant):
+    db_session.add(models.MedicineBatch(medicine_id=sample_medicine.id, expiry_date=None, qty_received=3, tenant_id=tenant.id))
     db_session.commit()
 
-    missing = expiry_service.get_missing_expiry_batches(db_session)
+    missing = expiry_service.get_missing_expiry_batches(db_session, tenant_id=tenant.id)
     assert len(missing) == 1
     assert missing[0]["medicine_id"] == sample_medicine.id
 
 
-def test_fill_missing_expiry_updates_the_batch(db_session, sample_medicine):
-    batch = models.MedicineBatch(medicine_id=sample_medicine.id, expiry_date=None, qty_received=3)
+def test_fill_missing_expiry_updates_the_batch(db_session, sample_medicine, tenant):
+    batch = models.MedicineBatch(medicine_id=sample_medicine.id, expiry_date=None, qty_received=3, tenant_id=tenant.id)
     db_session.add(batch)
     db_session.commit()
     db_session.refresh(batch)
 
-    ok = expiry_service.fill_missing_expiry(db_session, batch.id, date(2027, 12, 31))
+    ok = expiry_service.fill_missing_expiry(db_session, tenant.id, batch.id, date(2027, 12, 31))
     assert ok is True
 
     db_session.refresh(batch)
     assert batch.expiry_date == date(2027, 12, 31)
     # and it should no longer appear in the "missing" list
-    assert batch.id not in [b["batch_id"] for b in expiry_service.get_missing_expiry_batches(db_session)]
+    assert batch.id not in [b["batch_id"] for b in expiry_service.get_missing_expiry_batches(db_session, tenant_id=tenant.id)]
 
 
-def test_fill_missing_expiry_returns_false_for_nonexistent_batch(db_session):
-    assert expiry_service.fill_missing_expiry(db_session, 999999, date(2027, 1, 1)) is False
+def test_fill_missing_expiry_returns_false_for_nonexistent_batch(db_session, tenant):
+    assert expiry_service.fill_missing_expiry(db_session, tenant.id, 999999, date(2027, 1, 1)) is False

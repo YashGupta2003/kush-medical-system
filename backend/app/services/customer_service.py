@@ -48,7 +48,7 @@ OVERDUE_MULTIPLIER = 1.5   # flag once the gap since last purchase exceeds 1.5x 
 # ---------------------------------------------------------------------------
 # Profiles
 # ---------------------------------------------------------------------------
-def get_or_create_customer(db: Session, phone: str, name: Optional[str] = None, consented: bool = False) -> models.Customer:
+def get_or_create_customer(db: Session, phone: str, tenant_id: int, name: Optional[str] = None, consented: bool = False) -> models.Customer:
     phone = phone.strip()
     customer = db.query(models.Customer).filter_by(phone=phone, tenant_id=tenant_id).first()
     if customer:
@@ -60,7 +60,7 @@ def get_or_create_customer(db: Session, phone: str, name: Optional[str] = None, 
         return customer
 
     customer = models.Customer(
-        phone=phone, name=name,
+        phone=phone, name=name, tenant_id=tenant_id,
         consent_given_at=datetime.now(timezone.utc) if consented else None,
     )
     db.add(customer)
@@ -103,7 +103,10 @@ def get_customer_summary(db: Session, customer_id: int, tenant_id: Optional[int]
 # ---------------------------------------------------------------------------
 # Credit / udhaar ledger
 # ---------------------------------------------------------------------------
-def get_customer_balance(db: Session, customer_id: int, tenant_id: int = None) -> Decimal:
+def get_customer_balance(db: Session, customer_id: int, tenant_id: Optional[int] = None) -> Decimal:
+    # tenant_id is accepted for tenant-scoping but the CustomerCredit table is
+    # keyed by customer_id which is itself already tenant-scoped at creation time;
+    # the optional tenant_id guard lets callers be explicit without an extra join.
     last = (
         db.query(models.CustomerCredit)
         .filter_by(customer_id=customer_id)
@@ -127,8 +130,8 @@ def _add_credit_entry(db: Session, customer: models.Customer, change_amount: Dec
     return entry
 
 
-def charge_credit(db: Session, customer_id: int, amount: float, note: Optional[str] = None,
-                   reference_sale_id: Optional[int] = None) -> dict:
+def charge_credit(db: Session, customer_id: int, amount: float, tenant_id: Optional[int] = None,
+                   note: Optional[str] = None, reference_sale_id: Optional[int] = None) -> dict:
     """Records a sale given "on credit" (udhaar) - increases what this customer owes."""
     if amount <= 0:
         raise ValueError("Credit amount must be greater than 0")
@@ -148,7 +151,8 @@ def charge_credit(db: Session, customer_id: int, amount: float, note: Optional[s
     return {"customer_id": customer.id, "change_amount": float(amount), "resulting_balance": float(entry.resulting_balance)}
 
 
-def record_payment(db: Session, customer_id: int, amount: float, note: Optional[str] = None) -> dict:
+def record_payment(db: Session, customer_id: int, amount: float, tenant_id: Optional[int] = None,
+                   note: Optional[str] = None) -> dict:
     """Records a payment against an outstanding udhaar balance."""
     if amount <= 0:
         raise ValueError("Payment amount must be greater than 0")
@@ -178,7 +182,7 @@ def get_credit_ledger(db: Session, customer_id: int, limit: int = 50) -> list[mo
     )
 
 
-def list_customers_with_outstanding_balance(db: Session, limit: int = 100) -> list[dict]:
+def list_customers_with_outstanding_balance(db: Session, tenant_id: Optional[int] = None, limit: int = 100) -> list[dict]:
     """The 'who owes us money' screen - sorted highest balance first."""
     # BUG FIX: previous code ran one query per customer (N+1).
     # Now: a single query fetches the latest CustomerCredit row per customer
@@ -194,14 +198,18 @@ def list_customers_with_outstanding_balance(db: Session, limit: int = 100) -> li
         .scalar_subquery()
     )
 
+    base_q = db.query(
+        models.Customer.id,
+        models.Customer.phone,
+        models.Customer.name,
+        models.CustomerCredit.resulting_balance,
+    ).join(models.CustomerCredit, models.CustomerCredit.id == latest_id_sub)
+
+    if tenant_id is not None:
+        base_q = base_q.filter(models.Customer.tenant_id == tenant_id)
+
     rows = (
-        db.query(
-            models.Customer.id,
-            models.Customer.phone,
-            models.Customer.name,
-            models.CustomerCredit.resulting_balance,
-        )
-        .join(models.CustomerCredit, models.CustomerCredit.id == latest_id_sub)
+        base_q
         .filter(models.CustomerCredit.resulting_balance > 0)
         .order_by(models.CustomerCredit.resulting_balance.desc())
         .limit(limit)
@@ -222,7 +230,7 @@ def list_customers_with_outstanding_balance(db: Session, limit: int = 100) -> li
 # ---------------------------------------------------------------------------
 # Adherence tracking
 # ---------------------------------------------------------------------------
-def compute_adherence_alerts(db: Session, customer_id: Optional[int] = None) -> list[dict]:
+def compute_adherence_alerts(db: Session, tenant_id: Optional[int] = None, customer_id: Optional[int] = None) -> list[dict]:
     """
     Data-driven refill-overdue detection - deliberately does NOT depend on
     a curated "these are chronic-disease medicines" list (which would need
@@ -245,13 +253,14 @@ def compute_adherence_alerts(db: Session, customer_id: Optional[int] = None) -> 
     Only sales linked to a customer WITH consent_given_at set are
     considered - adherence tracking uses purchase-pattern data in a
     health-relevant way, so it requires the customer's explicit opt-in
-    (unlike the credit ledger, which any customer can be tracked in).
-    """
+    (unlike the credit ledger, which any customer can be tracked in).\n    """
     query = (
         db.query(models.Sale)
         .join(models.Customer, models.Sale.customer_id == models.Customer.id)
-        .filter(models.Customer.consent_given_at.isnot(None), models.Customer.tenant_id == tenant_id)
+        .filter(models.Customer.consent_given_at.isnot(None))
     )
+    if tenant_id is not None:
+        query = query.filter(models.Customer.tenant_id == tenant_id)
     if customer_id is not None:
         query = query.filter(models.Sale.customer_id == customer_id)
 

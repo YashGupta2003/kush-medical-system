@@ -11,7 +11,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc, and_
+from sqlalchemy import func, desc, and_, or_
 
 from app import models
 from app.core.cache import cache_response
@@ -38,10 +38,11 @@ def get_monthly_spend(db: Session, tenant_id: int, months: int = 6) -> list[dict
             m = 12
             y -= 1
     wanted.reverse()
+    month_filters = [and_(models.Bill.year == y, models.Bill.month == m) for y, m in wanted]
 
     rows = (
         db.query(models.Bill.year, models.Bill.month, func.sum(models.Bill.total_amount))
-        .filter(models.Bill.status == "confirmed")
+        .filter(models.Bill.status == "confirmed", models.Bill.tenant_id == tenant_id, or_(*month_filters))
         .group_by(models.Bill.year, models.Bill.month)
         .all()
     )
@@ -151,7 +152,7 @@ def get_top_selling(db: Session, tenant_id: int, days: int = 30, limit: int = 10
     rows = (
         db.query(models.Medicine.id, models.Medicine.particulars, func.sum(models.Sale.qty_sold)).filter(models.Medicine.tenant_id == tenant_id)
         .join(models.Sale, models.Sale.medicine_id == models.Medicine.id)
-        .filter(models.Sale.sold_at >= since)
+        .filter(models.Sale.sold_at >= since, models.Sale.tenant_id == tenant_id)
         .group_by(models.Medicine.id, models.Medicine.particulars)
         .order_by(desc(func.sum(models.Sale.qty_sold)))
         .limit(limit)

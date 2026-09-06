@@ -119,7 +119,7 @@ def get_expiry_dashboard(db: Session, tenant_id: int, days: int = 90) -> list[di
     return result
 
 
-def get_expiry_summary(db: Session, tenant_id: int) -> dict:
+def get_expiry_summary(db: Session, tenant_id: Optional[int] = None) -> dict:
     """Small counts used for the nav-bar badge and dashboard stat cards."""
     today = date.today()
 
