@@ -554,3 +554,26 @@ def scan_cross_tenant_batch_collisions_task() -> dict:
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+
+
+@celery_app.task(name="scan_regional_health_spikes")
+def scan_regional_health_spikes_task() -> dict:
+    """
+    Daily regional health spike detection (runs 15 minutes after the per-tenant
+    surveillance scan, so SurveillanceDailyCount rows are up to date before
+    the cross-tenant aggregation runs).
+
+    Calls regional_health_service.scan_regional_spikes() which queries only
+    opted-in tenants' SurveillanceDailyCount rows — the same privacy-safe
+    aggregated counts that the existing single-tenant scan already writes.
+    """
+    from app.services import regional_health_service
+    db = SessionLocal()
+    try:
+        result = regional_health_service.scan_regional_spikes(db)
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()

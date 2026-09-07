@@ -1068,3 +1068,45 @@ class CrossTenantAlertOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ---------------------------------------------------------------------------
+# Regional Health Sentinel (Feature 0023)
+# ---------------------------------------------------------------------------
+
+class RegionalParticipationOut(BaseModel):
+    """Current tenant's regional surveillance participation status."""
+    region_code: Optional[str] = None
+    surveillance_opt_in: bool
+
+    class Config:
+        from_attributes = True
+
+
+class RegionalParticipationUpdate(BaseModel):
+    """Body for PUT /regional-health/participation (owner only)."""
+    region_code: Optional[str] = None
+    opt_in: bool
+
+
+class RegionalHealthAlertOut(BaseModel):
+    """
+    A regional health alert returned to the tenant.
+
+    Deliberately omits region_code — the tenant already knows their own
+    region, and including it would enable cross-referencing with other
+    tenants if the response were accidentally leaked. Never includes
+    tenant_ids or individual-pharmacy counts.
+    """
+    id: int
+    condition_name: str
+    alert_date: Optional[str] = None
+    contributing_tenant_count: int
+    total_regional_units: int
+    regional_avg_units: float
+    z_score: float
+    severity: str
+    status: str
+
+    class Config:
+        from_attributes = True

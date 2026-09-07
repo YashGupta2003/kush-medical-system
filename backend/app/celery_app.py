@@ -129,6 +129,15 @@ celery_app.conf.update(
             "task": "generate_smart_purchase_order",
             "schedule": crontab(hour=7, minute=0, day_of_week=1),
         },
+
+        # Regional Health Sentinel — cross-tenant spike aggregation, daily at 11:15pm IST.
+        # Runs 15 minutes after run_surveillance_scan (if scheduled at 11pm) so that
+        # each opted-in pharmacy's SurveillanceDailyCount rows are fully up to date
+        # before the cross-tenant regional aggregation computes regional totals.
+        "scan-regional-health-spikes-daily": {
+            "task": "scan_regional_health_spikes",
+            "schedule": crontab(hour=23, minute=15),
+        },
     },
 )
 

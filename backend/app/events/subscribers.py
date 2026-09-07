@@ -27,6 +27,7 @@ from app.events.events import (
     SurveillanceSpikeDetectedEvent,
     DistributorTrustScoreDroppedEvent,
     CrossTenantCollisionDetectedEvent,
+    RegionalHealthSpikeEvent,
 )
 from app import models, schemas
 from app.services.cost_calculator import compute_cost_per_unit
@@ -468,6 +469,62 @@ def handle_cross_tenant_collision(event: CrossTenantCollisionDetectedEvent) -> N
                 channel="in_app"
             )
 
+
+def handle_regional_health_spike(event: RegionalHealthSpikeEvent) -> None:
+    """
+    Notifies every opted-in tenant in the same region when a new regional
+    health condition spike alert is created.
+
+    Privacy: the notification body names the condition and how many
+    pharmacies in the region are seeing the same pattern — NEVER names
+    which specific pharmacies or their individual counts.
+    """
+    from app.services import notification_service
+
+    # Map z-score to severity label — mirroring the scan_regional_spikes() logic
+    if event.z_score >= 3.0:
+        severity = "critical"
+    elif event.z_score >= 2.5:
+        severity = "critical"
+    else:
+        severity = "warning"
+
+    # Query all opted-in tenants in the same region and notify their owners
+    tenants = (
+        event.db.query(models.Tenant)
+        .filter(
+            models.Tenant.region_code == event.region_code,
+            models.Tenant.surveillance_opt_in.is_(True),
+        )
+        .all()
+    )
+
+    for tenant in tenants:
+        owners = (
+            event.db.query(models.User)
+            .filter_by(tenant_id=tenant.id, role="owner", is_active=True)
+            .all()
+        )
+        for owner in owners:
+            notification_service.create_notification(
+                event.db,
+                notification_type="regional_health_spike",
+                title=f"🌡️ Regional Health Alert: {event.condition_name}",
+                body=(
+                    f"{event.contributing_tenant_count} pharmacies in your region are all seeing "
+                    f"an unusual spike in {event.condition_name} sales "
+                    f"(z-score: {event.z_score:.1f}). "
+                    f"This may indicate an early-warning signal for a local health event. "
+                    f"Check the Regional Health dashboard for details."
+                ),
+                severity=severity,
+                recipient_user_id=owner.id,
+                related_entity_type="regional_health_alert",
+                related_entity_id=str(event.alert_id),
+                channel="in_app",
+            )
+
+
 def register_all_subscribers() -> None:
 
     """
@@ -497,5 +554,7 @@ def register_all_subscribers() -> None:
     event_bus.subscribe(DistributorTrustScoreDroppedEvent, handle_trust_score_dropped)
     event_bus.subscribe(CrossTenantCollisionDetectedEvent, handle_cross_tenant_collision)
 
+    # --- Regional Health Sentinel ---
+    event_bus.subscribe(RegionalHealthSpikeEvent, handle_regional_health_spike)
 
     logger.info("All domain event subscribers successfully registered with EventBus.")

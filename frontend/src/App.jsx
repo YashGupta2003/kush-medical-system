@@ -32,6 +32,7 @@ import AuditTrail from "./pages/AuditTrail.jsx";
 import Customers from "./pages/Customers.jsx";
 import Network from "./pages/Network.jsx";
 import NetworkIntegrity from './pages/NetworkIntegrity.jsx';
+import RegionalHealth from './pages/RegionalHealth.jsx';
 
 import Predictive from "./pages/Predictive.jsx";
 import ColdChain from "./pages/ColdChain.jsx";
@@ -58,6 +59,7 @@ const NAV_GROUPS = [
       { to: "/copilot", label: "PharmaCopilot", icon: <Bot size={16} />, ownerOnly: true },
       { to: "/predictive", label: "Predictive Intel", icon: <Lightbulb size={16} />, ownerOnly: true },
       { to: "/surveillance", label: "Health Surveillance", icon: <TrendingUp size={16} />, ownerOnly: true },
+      { to: "/regional-health", label: "Regional Sentinel", icon: <Globe size={16} />, ownerOnly: true },
       { to: "/graph", label: "PharmaGraph", icon: <NetworkIcon size={16} /> },
       { to: "/smart-purchase", label: "Smart Purchase AI", icon: <ShoppingCart size={16} />, ownerOnly: true },
     ]
@@ -373,6 +375,7 @@ export default function App() {
             <Route path="/customers" element={<RequireAuth><PageWrapper><Customers /></PageWrapper></RequireAuth>} />
             <Route path="/network" element={<RequireAuth><PageWrapper><Network isOwner={isOwner} /></PageWrapper></RequireAuth>} />
             <Route path="/network-integrity" element={<RequireOwner><PageWrapper><NetworkIntegrity /></PageWrapper></RequireOwner>} />
+            <Route path="/regional-health" element={<RequireOwner><PageWrapper><RegionalHealth /></PageWrapper></RequireOwner>} />
 
             <Route path="/predictive" element={<RequireOwner><PageWrapper><Predictive /></PageWrapper></RequireOwner>} />
             <Route path="/audit" element={<RequireOwner><PageWrapper><AuditTrail /></PageWrapper></RequireOwner>} />

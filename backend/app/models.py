@@ -35,6 +35,9 @@ class Tenant(Base):
     email_verified = Column(Boolean, default=False)
     email_verification_token = Column(String(64), nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    # Regional Health Sentinel (migration 0023): opt-in regional surveillance
+    region_code = Column(String(50), nullable=True)
+    surveillance_opt_in = Column(Boolean, nullable=False, default=False, server_default="0")
 
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
 
@@ -493,7 +496,7 @@ class Notification(Base):
         Enum(
             "adherence_overdue", "anomaly_flagged", "low_stock_crossed",
             "credit_overdue", "trust_chain_tamper", "near_expiry",
-            "daily_digest", "system", "cross_tenant_alert",
+            "daily_digest", "system", "cross_tenant_alert", "regional_health_spike",
             name="notification_type",
         ),
         nullable=False,
@@ -544,7 +547,7 @@ class SurveillanceDailyCount(Base):
     updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
-        UniqueConstraint('condition_name', 'count_date', name='uq_surveillance_daily_counts_cond_date'),
+        UniqueConstraint('tenant_id', 'condition_name', 'count_date', name='uq_surveillance_daily_counts_tenant_cond_date'),
     )
 
 class ColdChainUnit(Base):
@@ -722,4 +725,41 @@ class CrossTenantBatchAlert(Base):
 
     __table_args__ = (
         UniqueConstraint("normalized_batch_no", "medicine_name", name="uix_batch_medicine"),
+    )
+
+
+class RegionalHealthAlert(Base):
+    """
+    Regional Health Sentinel — one alert row per (region_code, condition_name, alert_date) triple.
+
+    Written exclusively by regional_health_service.scan_regional_spikes().
+    Read by get_alerts_for_tenant(), which deliberately omits region_code and
+    any other-tenant-identifying fields from its return value — only the
+    combined aggregate stats are exposed to the requesting tenant.
+    """
+    __tablename__ = "regional_health_alerts"
+
+    id = Column(Integer, primary_key=True, index=True)
+    region_code = Column(String(50), nullable=False, index=True)
+    condition_name = Column(String(150), nullable=False)
+    alert_date = Column(Date, nullable=False)
+    contributing_tenant_count = Column(Integer, nullable=False)
+    total_regional_units = Column(Integer, nullable=False)
+    regional_avg_units = Column(Numeric(10, 2), nullable=False)
+    z_score = Column(Numeric(6, 3), nullable=False)
+    severity = Column(
+        Enum("watch", "elevated", "critical", name="regional_alert_severity"),
+        nullable=False,
+        server_default="watch",
+    )
+    status = Column(
+        Enum("open", "acknowledged", "dismissed", name="regional_alert_status"),
+        nullable=False,
+        server_default="open",
+    )
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, nullable=True, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("region_code", "condition_name", "alert_date", name="uix_regional_alert_region_cond_date"),
     )

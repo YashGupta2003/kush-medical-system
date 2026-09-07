@@ -183,3 +183,14 @@ class CrossTenantCollisionDetectedEvent(DomainEvent):
     tenant_ids: List[int]
     distributor_names: List[str]
     db: Session
+
+
+@dataclass(frozen=True, kw_only=True)
+class RegionalHealthSpikeEvent(DomainEvent):
+    """Fired when a new regional (cross-tenant) health condition spike alert is created."""
+    alert_id: int
+    region_code: str
+    condition_name: str
+    contributing_tenant_count: int
+    z_score: float
+    db: Session

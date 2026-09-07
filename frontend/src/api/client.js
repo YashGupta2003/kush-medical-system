@@ -382,4 +382,13 @@ export const api = {
   updateAlertStatus: (alertId, status) => apiFetch(`/network-integrity/alerts/${alertId}/status`, { method: "PATCH", ...jsonBody({ status }) }),
   triggerCollisionScan: () => apiFetch("/network-integrity/scan-now", { method: "POST" }),
 
+  // --- Regional Health Sentinel ---
+  getRegionalParticipation: () => apiFetch("/regional-health/participation"),
+  updateRegionalParticipation: (region_code, opt_in) =>
+    apiFetch("/regional-health/participation", { method: "PUT", ...jsonBody({ region_code, opt_in }) }),
+  getRegionalHealthAlerts: (status = "open") => apiFetch(`/regional-health/alerts?status=${status}`),
+  updateRegionalAlertStatus: (alertId, status) =>
+    apiFetch(`/regional-health/alerts/${alertId}/status`, { method: "PATCH", ...jsonBody({ status }) }),
+  triggerRegionalScan: () => apiFetch("/regional-health/scan-now", { method: "POST" }),
+
 };

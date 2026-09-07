@@ -5655,3 +5655,188 @@ ValueError: Simulated subscriber error
 [2026-09-06 14:14:14] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
 [2026-09-06 14:14:15] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
 [2026-09-06 14:18:26] [INFO] [event_subscribers] [subscribers.py:501]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:02] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-07 22:59:02] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-07 22:59:02] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-07 22:59:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 22:59:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:58] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:58] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:242]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=446f53f96402f3e3097ff0c6f827cb3239802413aac11fcf0ab01a4356893ce2
+[2026-09-07 23:00:58] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-07 23:00:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:00:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:05] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-07 23:01:05] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-07 23:01:05] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-07 23:01:07] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:08] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:08] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-09-07 23:01:09] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-09-07 23:01:11] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:11] [WARNING] [duplicate_checker] [duplicate_checker.py:42]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-09-07 23:01:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:12] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:12] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-09-07 23:01:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:16] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:16] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:16] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:17] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:17] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-09-07 23:01:17] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:01:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:01:17] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-07 23:05:06] [INFO] [bill_pipeline] [pipeline.py:37]: Starting BillProcessingPipeline for Bill #2
+[2026-09-07 23:05:06] [INFO] [bill_pipeline] [pipeline.py:50]: Stage 1: Preprocessing image for Bill #2 (./uploads/4654d905de194ca59bb3cf5fd535566b.png)
+[2026-09-07 23:05:06] [INFO] [bill_pipeline] [pipeline.py:64]: Stage 2: Running OCR engine on Bill #2
+[2026-09-07 23:05:07] [WARNING] [ocr_service] [ocr_service.py:142]: Google Vision failed (403 This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry. [reason: "BILLING_DISABLED"
+domain: "googleapis.com"
+metadata {
+  key: "service"
+  value: "vision.googleapis.com"
+}
+metadata {
+  key: "containerInfo"
+  value: "976537126706"
+}
+metadata {
+  key: "consumer"
+  value: "projects/976537126706"
+}
+metadata {
+  key: "consoleUrl"
+  value: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+, locale: "en-US"
+message: "This API method requires billing to be enabled. Please enable billing on project #976537126706 by visiting https://console.developers.google.com/billing/enable?project=976537126706 then retry. If you enabled billing for this project recently, wait a few minutes for the action to propagate to our systems and retry."
+, links {
+  description: "Google developers console billing"
+  url: "https://console.developers.google.com/billing/enable?project=976537126706"
+}
+]); falling back to Tesseract.
+[2026-09-07 23:05:08] [INFO] [ocr_service] [ocr_service.py:100]: auto-rotation chose 0 degrees (confidence score=5436.0)
+[2026-09-07 23:05:08] [INFO] [bill_pipeline] [pipeline.py:68]: OCR completed: avg_confidence=90.6%
+[2026-09-07 23:05:08] [INFO] [bill_pipeline] [pipeline.py:71]: Stage 3: Parsing OCR word bounding boxes into structured rows
+[2026-09-07 23:05:11] [INFO] [bill_parser] [bill_parser.py:226]: LLM successfully extracted 3 items from bill
+[2026-09-07 23:05:11] [INFO] [bill_pipeline] [pipeline.py:74]: Parsed 3 line item rows from OCR text
+[2026-09-07 23:05:11] [INFO] [bill_pipeline] [pipeline.py:94]: Stage 4: Computing costs and linking items against master rate list
+[2026-09-07 23:05:11] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillProcessedEvent' to 0 subscriber(s) (transactional=False)
+[2026-09-07 23:05:11] [INFO] [bill_pipeline] [pipeline.py:155]: Pipeline successfully completed for Bill #2 in 4.76s
+[2026-09-07 23:05:15] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-07 23:12:25] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
