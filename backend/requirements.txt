@@ -47,3 +47,4 @@ sentry-sdk[fastapi]==2.14.0
 # Priority 2e: Prometheus metrics endpoint.
 # prometheus-fastapi-instrumentator 7.0.0 supports FastAPI 0.115 / Pydantic v2.
 prometheus-fastapi-instrumentator==7.0.0
+bcrypt==4.0.1
