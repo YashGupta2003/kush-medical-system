@@ -1,0 +1,46 @@
+.distributor-confidence-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border: 1px solid var(--border-subtle);
+  background-color: var(--bg-surface);
+}
+
+.distributor-confidence-badge.status-confident {
+  background-color: var(--success-bg);
+  border-color: var(--success-border);
+  color: var(--success-text);
+}
+
+.distributor-confidence-badge.status-needs_attention {
+  background-color: var(--warning-bg);
+  border-color: var(--warning-border);
+  color: var(--warning-text);
+}
+
+.distributor-confidence-badge.status-learning {
+  background-color: var(--info-bg);
+  border-color: var(--info-border);
+  color: var(--info-text);
+}
+
+.distributor-confidence-badge .status-icon {
+  flex-shrink: 0;
+}
+
+.distributor-confidence-badge .badge-label {
+  white-space: nowrap;
+}
+
+.distributor-confidence-badge .low-conf-fields {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  cursor: help;
+  color: inherit;
+  opacity: 0.8;
+}

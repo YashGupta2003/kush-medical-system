@@ -38,7 +38,22 @@ class PreprocessResult:
     warnings: list[str]
 
 
+def ensure_image_bytes(file_bytes: bytes) -> bytes:
+    if file_bytes.startswith(b"%PDF"):
+        try:
+            import pymupdf
+            doc = pymupdf.open("pdf", file_bytes)
+            if len(doc) > 0:
+                page = doc.load_page(0)
+                pix = page.get_pixmap(dpi=200)
+                return pix.tobytes("png")
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).warning(f"Failed to convert PDF to image: {e}")
+    return file_bytes
+
 def correct_orientation(image_bytes: bytes) -> bytes:
+    image_bytes = ensure_image_bytes(image_bytes)
     """
     Two passes, cheapest/most-reliable first:
 

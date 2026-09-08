@@ -330,6 +330,7 @@ export const api = {
     if (medicineId) params.set("medicine_id", medicineId);
     return apiFetch(`/trust-score/distributors/${id}?${params.toString()}`);
   },
+  getDistributorConfidence: (distributor_id) => apiFetch(`/trust-score/distributors/${distributor_id}/confidence`),
   getBatchCollisions: (days = 365) => apiFetch(`/trust-score/batch-collisions?days=${days}`),
   getRateConsistency: (medicineId) => apiFetch(`/trust-score/medicine/${medicineId}/rate-consistency`),
 

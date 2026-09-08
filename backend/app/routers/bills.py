@@ -49,7 +49,9 @@ def _create_queued_bill(db: Session, file_bytes: bytes, filename: str, tenant_id
         logger.warning(f"[DUPLICATE CHECK] {dup_reason}")
 
     os.makedirs(settings.upload_dir, exist_ok=True)
-    ext = os.path.splitext(filename or "")[1] or ".jpg"
+    ext = os.path.splitext(filename or "")[1].lower() or ".jpg"
+    if ext == ".pdf":
+        ext = ".png"  # ensure_image_bytes converts PDFs to PNG
     saved_name = f"{uuid.uuid4().hex}{ext}"
     saved_path = os.path.join(settings.upload_dir, saved_name)
     with open(saved_path, "wb") as f:
@@ -173,6 +175,7 @@ def get_bill_status(bill_id: int, db: Session = Depends(get_db), current_user: m
         ocr_confidence=float(bill.ocr_confidence) if bill.ocr_confidence is not None else None,
         needs_attention_reason=bill.needs_attention_reason,
         processing_error=bill.processing_error,
+        distributor_id=bill.distributor_id,
     )
 
 
@@ -190,7 +193,8 @@ def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: mo
     bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill or not bill.image_path or not os.path.exists(bill.image_path):
         raise HTTPException(404, "Bill image not found")
-    return FileResponse(bill.image_path)
+    media_type = "image/png" if bill.image_path.lower().endswith(".pdf") else None
+    return FileResponse(bill.image_path, media_type=media_type)
 
 
 @router.post("/{bill_id}/items", response_model=schemas.BillItemOut)
@@ -356,6 +360,46 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
     # Attach changes output collector
     object.__setattr__(event, "changes_output", changes)
 
+    # Calculate ADM field corrections before DB rows are mutated
+    if bill.distributor_id and bill.detected_header_tokens:
+        import json
+        from app.services.distributor_memory_service import learn_from_confirmed_bill
+        
+        field_corrections = {}
+        items_by_id = {item.id: item for item in bill.items}
+        
+        for edit in payload.items:
+            db_item = items_by_id.get(edit.id)
+            if not db_item:
+                continue
+            
+            for attr in ("raw_name", "qty", "free_qty", "mrp", "rate", 
+                         "discount_pct", "special_discount_pct", "gst_pct", "exp_date"):
+                submitted_val = getattr(edit, attr, None)
+                if submitted_val is not None:
+                    db_val = getattr(db_item, attr, None)
+                    # Use float conversion for numeric comparisons to avoid str/Decimal mismatches
+                    if isinstance(submitted_val, (int, float)) and isinstance(db_val, (int, float)):
+                        is_corrected = float(submitted_val) != float(db_val)
+                    else:
+                        is_corrected = str(submitted_val).strip() != str(db_val).strip()
+                    
+                    # If this field has ever been submitted across any item, track if it was corrected
+                    if attr not in field_corrections or is_corrected:
+                        field_corrections[attr] = is_corrected
+                        
+        try:
+            detected_data = json.loads(bill.detected_header_tokens)
+            header_tokens = detected_data.get("header_tokens", [])
+            column_field_map = detected_data.get("column_field_map", {})
+            if header_tokens:
+                learn_from_confirmed_bill(
+                    db, current_user.tenant_id, bill.distributor_id,
+                    header_tokens, column_field_map, field_corrections
+                )
+        except Exception as e:
+            logger.error(f"[CONFIRM BILL] ADM learning failed silently: {e}", exc_info=True)
+
     # BUG FIX #5: Publish event TRANSACTIONALLY.
     # transactional=True means: if ANY subscriber raises an exception, the
     # EventBus re-raises after all subscribers have been attempted. We then
@@ -398,6 +442,7 @@ def _bill_to_out(db: Session, bill: models.Bill) -> schemas.BillOut:
 
     return schemas.BillOut(
         id=bill.id,
+        distributor_id=bill.distributor_id,
         distributor_name=bill.distributor.name if bill.distributor else None,
         invoice_no=bill.invoice_no,
         invoice_date=bill.invoice_date,

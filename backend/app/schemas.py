@@ -122,6 +122,7 @@ class BillItemEdit(BaseModel):
 
 class BillOut(BaseModel):
     id: int
+    distributor_id: Optional[int] = None
     distributor_name: Optional[str] = None
     invoice_no: Optional[str] = None
     invoice_date: Optional[datetime] = None
@@ -156,6 +157,7 @@ class BillStatusOut(BaseModel):
     ocr_confidence: Optional[float] = None
     needs_attention_reason: Optional[str] = None
     processing_error: Optional[str] = None
+    distributor_id: Optional[int] = None
 
 
 class UploadAcceptedResponse(BaseModel):
@@ -1110,3 +1112,9 @@ class RegionalHealthAlertOut(BaseModel):
 
     class Config:
         from_attributes = True
+
+class DistributorConfidenceOut(BaseModel):
+    overall_confidence_pct: Optional[float]
+    sample_count: int
+    low_confidence_fields: List[str]
+    status: str

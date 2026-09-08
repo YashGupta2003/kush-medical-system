@@ -6,6 +6,7 @@ import {
   CheckCircle2, AlertTriangle, FileWarning, Plus, ArrowRight, ArrowLeft 
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import DistributorConfidenceBadge from "../components/DistributorConfidenceBadge";
 
 const FIELD_LABELS = {
   qty: "Qty", free_qty: "Free", mrp: "MRP", rate: "Rate",
@@ -604,7 +605,10 @@ export default function ReviewBill() {
             
             <div style={{ display: "flex", gap: "var(--space-4)", marginTop: "var(--space-4)", flexWrap: "wrap" }}>
               <div style={{ flex: 1, minWidth: 240 }}>
-                <label style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "block", marginBottom: 4, fontWeight: 600, textTransform: "uppercase" }}>Distributor Entity</label>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 4 }}>
+                  <label style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "block", fontWeight: 600, textTransform: "uppercase" }}>Distributor Entity</label>
+                  {bill.distributor_id && <DistributorConfidenceBadge distributorId={bill.distributor_id} />}
+                </div>
                 <input
                   className="input"
                   value={distributorName}

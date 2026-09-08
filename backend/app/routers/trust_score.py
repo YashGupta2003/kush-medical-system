@@ -3,8 +3,9 @@ from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.deps import require_owner
+from app.deps import require_owner, get_current_user
 from app.services import trust_score_service
+from app import schemas, models
 
 router = APIRouter(prefix="/trust-score", dependencies=[Depends(require_owner)], tags=["trust-score"])
 
@@ -49,3 +50,20 @@ def compute_rate_consistency(
         return trust_score_service.compute_rate_consistency(db, medicine_id)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
+
+@router.get("/distributors/{distributor_id}/confidence", response_model=schemas.DistributorConfidenceOut)
+def get_distributor_confidence(
+    distributor_id: int,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    dist = db.query(models.Distributor).filter(
+        models.Distributor.id == distributor_id,
+        models.Distributor.tenant_id == current_user.tenant_id
+    ).first()
+    
+    if not dist:
+        raise HTTPException(status_code=404, detail="Distributor not found")
+        
+    from app.services.distributor_memory_service import get_field_accuracy_summary
+    return get_field_accuracy_summary(db, current_user.tenant_id, distributor_id)

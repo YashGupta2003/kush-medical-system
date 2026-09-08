@@ -112,6 +112,7 @@ class Bill(Base):
     needs_attention_reason = Column(String(255), nullable=True)
     preprocessing_notes = Column(Text, nullable=True)
     checksum = Column(String(64), nullable=True, index=True)
+    detected_header_tokens = Column(Text, nullable=True)
 
     distributor = relationship("Distributor", back_populates="bills")
     items = relationship("BillItem", back_populates="bill", cascade="all, delete-orphan")
@@ -762,4 +763,48 @@ class RegionalHealthAlert(Base):
 
     __table_args__ = (
         UniqueConstraint("region_code", "condition_name", "alert_date", name="uix_regional_alert_region_cond_date"),
+    )
+
+
+class DistributorBillTemplate(Base):
+    """
+    Adaptive Distributor Memory (ADM): Stores the learned header signature
+    and column map for a specific distributor, enabling highly accurate
+    parsing on future bills.
+    """
+    __tablename__ = "distributor_bill_templates"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=False, index=True)
+    header_signature = Column(Text, nullable=False)
+    column_field_map = Column(Text, nullable=False)
+    sample_count = Column(Integer, nullable=False, server_default='1')
+    last_confirmed_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, server_default=func.now())
+    updated_at = Column(DateTime, nullable=True, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "distributor_id", name="uq_tenant_distributor_template"),
+    )
+
+
+class DistributorFieldAccuracy(Base):
+    """
+    Adaptive Distributor Memory (ADM): Tracks how often the system successfully
+    parses a specific field vs. how often a human reviewer had to correct it,
+    for a specific distributor.
+    """
+    __tablename__ = "distributor_field_accuracy"
+
+    id = Column(Integer, primary_key=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    distributor_id = Column(Integer, ForeignKey("distributors.id"), nullable=False, index=True)
+    field_name = Column(String(50), nullable=False)
+    times_total = Column(Integer, nullable=False, server_default='0')
+    times_corrected = Column(Integer, nullable=False, server_default='0')
+    updated_at = Column(DateTime, nullable=True, onupdate=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "distributor_id", "field_name", name="uq_tenant_distributor_field_accuracy"),
     )

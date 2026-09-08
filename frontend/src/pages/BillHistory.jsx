@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import DistributorConfidenceBadge from "../components/DistributorConfidenceBadge";
 import { motion } from "framer-motion";
 import { List, Filter, ChevronLeft, ChevronRight, FileText } from "lucide-react";
 import { api } from "../api/client.js";
@@ -149,7 +150,14 @@ export default function BillHistory() {
                 return (
                   <tr key={b.id} className="hover-row" style={{ transition: "background 0.2s ease" }}>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", whiteSpace: "nowrap" }}>{b.year}-{String(b.month).padStart(2, "0")}</td>
-                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>{b.distributor_name || "—"}</td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                        <span>{b.distributor_name || "—"}</span>
+                        {b.distributor_id && b.status === 'confirmed' && (
+                          <DistributorConfidenceBadge distributorId={b.distributor_id} />
+                        )}
+                      </div>
+                    </td>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>{b.invoice_no || "—"}</td>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>{b.total_amount}</td>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}><span className={`badge ${meta.badge}`}>{meta.label}</span></td>

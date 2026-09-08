@@ -69,9 +69,21 @@ class BillProcessingPipeline:
 
             # Stage 3: Row & Table Parsing
             logger.info(f"Stage 3: Parsing OCR word bounding boxes into structured rows")
-            from app.services.bill_parser import parse_bill_advanced
-            parsed_rows = parse_bill_advanced(bill.raw_ocr_text, ocr_result.words)
+            from app.services.distributor_memory_service import get_template_for_distributor
+            stored_template = None
+            if bill.distributor_id:
+                stored_template = get_template_for_distributor(db, bill.tenant_id, bill.distributor_id)
+            
+            from app.services.bill_parser import parse_bill_advanced, ParsedRowList
+            parsed_rows = parse_bill_advanced(bill.raw_ocr_text, ocr_result.words, stored_template=stored_template)
             logger.info(f"Parsed {len(parsed_rows)} line item rows from OCR text")
+            
+            import json
+            if isinstance(parsed_rows, ParsedRowList) and parsed_rows.header_tokens:
+                bill.detected_header_tokens = json.dumps({
+                    "header_tokens": parsed_rows.header_tokens,
+                    "column_field_map": parsed_rows.column_map
+                })
 
             low_confidence = ocr_result.avg_confidence < settings.ocr_confidence_threshold
             no_rows_found = len(parsed_rows) == 0

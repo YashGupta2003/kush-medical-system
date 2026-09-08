@@ -1,6 +1,6 @@
 import re
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Tuple, Dict, Any
 
 from app.services.ocr_service import Word
 from app.core.logging import get_logger
@@ -105,19 +105,54 @@ def _to_number(text: str) -> Optional[float]:
         return None
 
 
-def parse_bill_words(words: List[Word]) -> List[ParsedRow]:
+class ParsedRowList(list):
+    def __init__(self, iterable=(), header_tokens=None, column_map=None):
+        super().__init__(iterable)
+        self.header_tokens = header_tokens or []
+        self.column_map = column_map or {}
+
+def parse_bill_words(words: List[Word], stored_template: Optional[Dict[str, Any]] = None) -> List[ParsedRow]:
     logger.info(f"total OCR words detected: {len(words)}")
     rows = _cluster_rows(words)
     logger.info(f"words clustered into {len(rows)} rows")
-    header_idx = _find_header_row(rows)
-    if header_idx is None:
-        logger.warning("FAILED: no header row found.")
-        return []
+    
+    header_idx = None
+    columns = None
+    header_tokens = []
+    
+    if stored_template:
+        from app.services.distributor_memory_service import match_header_row_against_template
+        stored_signature = stored_template["header_signature"]
+        for idx, row in enumerate(rows):
+            row_tokens = [_clean_token(w.text) for w in sorted(row, key=lambda w: w.x_min)]
+            if match_header_row_against_template(row_tokens, stored_signature):
+                header_idx = idx
+                header_tokens = row_tokens
+                # Build columns using the current row's x_centers and the stored mapping
+                columns = []
+                cmap = stored_template["column_field_map"]
+                for w in row:
+                    key = _clean_token(w.text)
+                    if key in cmap:
+                        columns.append((w.x_center, cmap[key]))
+                print(f"ADM MATCHED ROW! cmap={cmap}, row_tokens={row_tokens}, columns={columns}")
+                columns.sort(key=lambda c: c[0])
+                logger.info(f"ADM template matched row {idx} (sample_count: {stored_template['sample_count']})")
+                break
 
-    columns = _build_column_map(rows[header_idx])
+    if header_idx is None:
+        header_idx = _find_header_row(rows)
+        if header_idx is None:
+            logger.warning("FAILED: no header row found.")
+            return ParsedRowList()
+        
+        header_row = rows[header_idx]
+        columns = _build_column_map(header_row)
+        header_tokens = [_clean_token(w.text) for w in sorted(header_row, key=lambda w: w.x_min)]
+
     if not columns:
-        logger.warning("FAILED: header row found but no columns could be mapped.")
-        return []
+        logger.warning("FAILED: could not map any columns from header row.")
+        return ParsedRowList()
 
     parsed_rows: List[ParsedRow] = []
 
@@ -154,9 +189,9 @@ def parse_bill_words(words: List[Word]) -> List[ParsedRow]:
             logger.debug(f"row dropped - name={pr.fields.get('name')!r} qty={pr.fields.get('qty')} rate={pr.fields.get('rate')}")
 
     logger.info(f"final result: {len(parsed_rows)} usable line items out of {len(rows) - header_idx - 1} candidate rows")
-    return parsed_rows
+    return ParsedRowList(parsed_rows, header_tokens=header_tokens, column_map=columns)
 
-def parse_bill_advanced(raw_text: str, words: List[Word]) -> List[ParsedRow]:
+def parse_bill_advanced(raw_text: str, words: List[Word], stored_template: Optional[Dict[str, Any]] = None) -> List[ParsedRow]:
     from app.config import settings
     if settings.groq_api_key:
         try:
@@ -232,4 +267,4 @@ OCR Text:
             logger.warning("Falling back to heuristic parser")
             
     # Fallback
-    return parse_bill_words(words)
+    return parse_bill_words(words, stored_template=stored_template)

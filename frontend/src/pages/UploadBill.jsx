@@ -2,12 +2,14 @@ import { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { AlertTriangle, UploadCloud, FileText, ArrowRight, Loader } from "lucide-react";
+import DistributorConfidenceBadge from "../components/DistributorConfidenceBadge";
 import { api } from "../api/client.js";
 
 function usePolledStatus(billId) {
   const [status, setStatus] = useState("queued");
   const [confidence, setConfidence] = useState(null);
   const [error, setError] = useState(null);
+  const [distributorId, setDistributorId] = useState(null);
 
   useEffect(() => {
     if (!billId) return;
@@ -21,11 +23,12 @@ function usePolledStatus(billId) {
         setStatus(s.status);
         setConfidence(s.ocr_confidence);
         setError(s.processing_error);
+        setDistributorId(s.distributor_id);
         if (s.status === "queued" || s.status === "processing") {
           timer = setTimeout(poll, 2000);
         }
       } catch (e) {
-        if (!cancelled) setError(e.message);
+        if (!cancelled) setStatus("failed");
       }
     }
     poll();
@@ -39,32 +42,32 @@ function usePolledStatus(billId) {
 }
 
 function BillProgressRow({ billId, filename, duplicateWarning }) {
-  const { status, confidence, error } = usePolledStatus(billId);
   const navigate = useNavigate();
+  const { status, confidence, error, distributorId } = usePolledStatus(billId);
 
-  const statusLabel = {
-    queued: "Waiting in queue...",
-    processing: "Reading bill (OCR running)...",
-    pending_review: "Ready to review",
-    needs_attention: `Needs attention${confidence != null ? ` (confidence ${Math.round(confidence)}%)` : ""}`,
-    failed: `Failed: ${error || "unknown error"}`,
-  }[status] || status;
-
-  const badgeClass = {
-    pending_review: "auto",
-    needs_attention: "manual",
-    failed: "unmatched",
-  }[status] || "manual";
+  let statusLabel = "Queued...";
+  let badgeClass = "neutral";
+  if (status === "processing") { statusLabel = "Processing OCR..."; badgeClass = "info"; }
+  else if (status === "pending_review") { statusLabel = "Ready for Review"; badgeClass = "success"; }
+  else if (status === "needs_attention") { statusLabel = "Needs Attention"; badgeClass = "warning"; }
+  else if (status === "confirmed") { statusLabel = "Confirmed"; badgeClass = "success"; }
+  else if (status === "failed") { statusLabel = "Failed"; badgeClass = "danger"; }
 
   return (
-    <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} className="card" style={{ display: "flex", flexDirection: "column", gap: "12px", borderLeft: status === "failed" ? "4px solid var(--danger-500)" : status === "pending_review" ? "4px solid var(--success-500)" : status === "needs_attention" ? "4px solid var(--warning-500)" : "4px solid var(--primary-500)" }}>
+    <motion.div
+      initial={{ opacity: 0, x: -10 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="card"
+      style={{ padding: "16px" }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <FileText size={24} color="var(--text-muted)" />
           <div>
             <strong style={{ color: "var(--text-main)", fontSize: "15px" }}>{filename}</strong>
-            <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px" }}>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)", marginTop: "4px", display: "flex", gap: "8px", alignItems: "center" }}>
               <span className={`badge ${badgeClass}`}>{statusLabel}</span>
+              {distributorId && <DistributorConfidenceBadge distributorId={distributorId} />}
             </div>
           </div>
         </div>
