@@ -31,6 +31,11 @@ def get_current_user(
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Account not found or disabled")
 
+    # Inject the tenant_id into the session context.
+    # The global `_tenant_isolation_filter` in database.py reads this to automatically
+    # append `WHERE tenant_id = X` to EVERY query, making data leaks impossible.
+    db.info["tenant_id"] = user.tenant_id
+
     return user
 
 
@@ -91,5 +96,8 @@ def get_current_user_flexible(
     user = db.get(models.User, int(payload["sub"]))
     if not user or not user.is_active:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Account not found or disabled")
+
+    # Inject the tenant_id into the session context.
+    db.info["tenant_id"] = user.tenant_id
 
     return user

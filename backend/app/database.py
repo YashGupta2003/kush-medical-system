@@ -106,3 +106,31 @@ def get_db():
     finally:
         db.close()
 
+
+from sqlalchemy.orm import with_loader_criteria
+
+@event.listens_for(SessionLocal, "do_orm_execute")
+def _tenant_isolation_filter(orm_execute_state):
+    """
+    GLOBAL MULTI-TENANT FILTER (Row-Level Security Equivalent).
+    Automatically appends `.filter(Model.tenant_id == current_tenant_id)`
+    to EVERY SELECT query, ensuring a developer can NEVER accidentally leak data
+    between shops by forgetting a filter clause.
+    """
+    if not orm_execute_state.is_select:
+        return
+
+    tenant_val = orm_execute_state.session.info.get("tenant_id")
+    if tenant_val is not None:
+        for mapper in Base.registry.mappers:
+            # Apply to any model that has a tenant_id column
+            if hasattr(mapper.class_, "tenant_id"):
+                orm_execute_state.statement = orm_execute_state.statement.options(
+                    with_loader_criteria(
+                        mapper.class_,
+                        lambda cls: cls.tenant_id == tenant_val,
+                        include_aliases=True,
+                        track_closure_variables=False,
+                    )
+                )
+

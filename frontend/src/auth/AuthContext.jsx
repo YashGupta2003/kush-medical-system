@@ -1,4 +1,5 @@
 import { createContext, useContext, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   api, getToken, setToken, clearToken, setUnauthorizedHandler,
   getRefreshToken, setRefreshToken,
@@ -7,13 +8,16 @@ import {
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);   // { username, role, full_name, tenant_id, shop_name }
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
-    // When the global 401 handler fires (after silent refresh also failed),
-    // clear user state to show the login page.
-    setUnauthorizedHandler(() => setUser(null));
+    setUnauthorizedHandler(() => {
+      setUser(null);
+      // Optional: if they get a 401, send them to login
+      navigate("/login");
+    });
 
     const token = getToken();
     if (!token) {
@@ -27,12 +31,11 @@ export function AuthProvider({ children }) {
         clearToken();
       })
       .finally(() => setLoading(false));
-  }, []);
+  }, [navigate]);
 
   async function login(username, password, tenant_id) {
     const res = await api.login(username, password, tenant_id);
     setToken(res.access_token);
-    // Priority 2a: store the refresh token for silent refresh on 401
     if (res.refresh_token) setRefreshToken(res.refresh_token);
     setUser({
       username: res.username,
@@ -43,11 +46,6 @@ export function AuthProvider({ children }) {
     });
   }
 
-  /**
-   * loginWithTokens — used by the registration flow where tokens come
-   * directly from the POST /register response, not from a login call.
-   * Skips the API call; uses the tokens + user data from the register response.
-   */
   async function loginWithTokens(accessToken, refreshToken, userData) {
     setToken(accessToken);
     if (refreshToken) setRefreshToken(refreshToken);
@@ -61,13 +59,13 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    // Best-effort server-side token revocation
     const refreshToken = getRefreshToken();
     if (refreshToken) {
       api.logout(refreshToken).catch(() => {});
     }
     clearToken();
     setUser(null);
+    navigate("/");
   }
 
   return (
