@@ -383,6 +383,10 @@ export const api = {
   updateAlertStatus: (alertId, status) => apiFetch(`/network-integrity/alerts/${alertId}/status`, { method: "PATCH", ...jsonBody({ status }) }),
   triggerCollisionScan: () => apiFetch("/network-integrity/scan-now", { method: "POST" }),
 
+  // --- Setup Wizard ---
+  importMedicineList: (formData) =>
+    apiFetch("/setup/import-medicine-list", { method: "POST", body: formData }),
+
   // --- Regional Health Sentinel ---
   getRegionalParticipation: () => apiFetch("/regional-health/participation"),
   updateRegionalParticipation: (region_code, opt_in) =>

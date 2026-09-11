@@ -38,7 +38,7 @@ function usePolledStatus(billId) {
     };
   }, [billId]);
 
-  return { status, confidence, error };
+  return { status, confidence, error, distributorId };
 }
 
 function BillProgressRow({ billId, filename, duplicateWarning }) {

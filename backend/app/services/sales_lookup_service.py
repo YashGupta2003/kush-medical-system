@@ -10,12 +10,12 @@ from sqlalchemy.orm import Session
 from app import models
 
 
-def get_recent_sales(db: Session, hours: int = 24) -> list[dict]:
+def get_recent_sales(db: Session, tenant_id: int, hours: int = 24) -> list[dict]:
     """Every Sale row in the last `hours` hours, most recent first."""
     since = datetime.now(timezone.utc) - timedelta(hours=hours)
     sales = (
         db.query(models.Sale)
-        .filter(models.Sale.sold_at >= since)
+        .filter(models.Sale.tenant_id == tenant_id, models.Sale.sold_at >= since)
         .order_by(models.Sale.sold_at.desc())
         .all()
     )

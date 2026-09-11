@@ -38,7 +38,7 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
     new_balance = old_balance + change_qty
     medicine.current_stock = new_balance
     entry = models.StockLedger(
-        medicine_id=medicine.id, change_qty=change_qty, resulting_balance=new_balance,
+        tenant_id=medicine.tenant_id, medicine_id=medicine.id, change_qty=change_qty, resulting_balance=new_balance,
         reason=reason, reference_bill_item_id=bill_item_id, reference_sale_id=sale_id,
         note=note, created_by_user_id=created_by_user_id,
     )
@@ -111,8 +111,8 @@ def get_last_purchase_info(db: Session, medicine_id: int) -> Optional[dict]:
     }
 
 
-def get_stock_snapshot(db: Session, medicine_id: int) -> Optional[dict]:
-    medicine = db.get(models.Medicine, medicine_id)
+def get_stock_snapshot(db: Session, tenant_id: int, medicine_id: int) -> Optional[dict]:
+    medicine = db.query(models.Medicine).filter_by(id=medicine_id, tenant_id=tenant_id).first()
     if not medicine:
         return None
     return {
@@ -124,7 +124,7 @@ def get_stock_snapshot(db: Session, medicine_id: int) -> Optional[dict]:
     }
 
 
-def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None,
+def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None,
                  created_by_user_id: Optional[int] = None) -> dict:
     """
     customer_id (Pillar 5) and created_by_user_id (Pillar 6) are both
@@ -132,13 +132,13 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
     profile and no captured staff identity works exactly as before, fully
     backward compatible with every existing caller.
     """
-    medicine = db.get(models.Medicine, medicine_id)
+    medicine = db.query(models.Medicine).filter_by(id=medicine_id, tenant_id=tenant_id).first()
     if not medicine:
         raise ValueError("Medicine not found")
     if qty_sold > float(medicine.current_stock or 0):
         raise ValueError("Insufficient stock")
 
-    sale = models.Sale(medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.now(timezone.utc), customer_id=customer_id)
+    sale = models.Sale(tenant_id=tenant_id, medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.now(timezone.utc), customer_id=customer_id)
     db.add(sale)
     db.flush()
 
@@ -158,7 +158,7 @@ def record_sale(db: Session, medicine_id: int, qty_sold: float, customer_id: Opt
         logging.getLogger(__name__).error(f"Surveillance hook failed: {e}")
         # Never crash the sale
 
-    snapshot = get_stock_snapshot(db, medicine_id)
+    snapshot = get_stock_snapshot(db, tenant_id, medicine_id)
     snapshot["sale_id"] = sale.id
     return snapshot
 

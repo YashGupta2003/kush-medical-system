@@ -6,7 +6,7 @@ by writing or executing arbitrary SQL, and never by answering from the
 model's own training-data "knowledge" for anything data-specific to this
 shop.
 
-Runs on Groq (fast inference over open-weight models like openai/gpt-oss-120b)
+Runs on Groq (fast inference over open-weight models like llama-3.3-70b-versatile)
 via the official `groq` Python SDK, which mirrors the OpenAI chat-completions
 interface - tool schemas use the standard OpenAI "type": "function" wrapper,
 and tool results are returned as role="tool" messages.
@@ -69,50 +69,50 @@ than guessing at an answer.
 # Tool wrapper functions - the ONLY functions the LLM can ever trigger.
 # Each takes (db, **kwargs) and returns a JSON-serializable dict/list.
 # ---------------------------------------------------------------------------
-def _tool_get_expiring_medicines(db: Session, days: int = 90, distributor_name: Optional[str] = None):
-    results = expiry_service.get_expiry_dashboard(db, days=days)
+def _tool_get_expiring_medicines(db: Session, tenant_id: int, days: int = 90, distributor_name: Optional[str] = None):
+    results = expiry_service.get_expiry_dashboard(db, tenant_id=tenant_id, days=days)
     if distributor_name:
         needle = distributor_name.strip().upper()
         results = [r for r in results if r.get("distributor_name") and needle in r["distributor_name"].upper()]
     return results
 
 
-def _tool_get_gst_report(db: Session, year: int, month: int):
-    return gst_report_service.get_gst_report(db, year, month)
+def _tool_get_gst_report(db: Session, tenant_id: int, year: int, month: int):
+    return gst_report_service.get_gst_report(db, tenant_id=tenant_id, year=year, month=month)
 
 
-def _tool_get_monthly_spend(db: Session, months: int = 6):
-    return analytics_service.get_monthly_spend(db, months=months)
+def _tool_get_monthly_spend(db: Session, tenant_id: int, months: int = 6):
+    return analytics_service.get_monthly_spend(db, tenant_id=tenant_id, months=months)
 
 
-def _tool_get_price_changes(db: Session, days: int = 90, limit: int = 10):
-    return analytics_service.get_price_changes(db, days=days, limit=limit)
+def _tool_get_price_changes(db: Session, tenant_id: int, days: int = 90, limit: int = 10):
+    return analytics_service.get_price_changes(db, tenant_id=tenant_id, days=days, limit=limit)
 
 
-def _tool_get_top_selling(db: Session, days: int = 30, limit: int = 10):
-    return analytics_service.get_top_selling(db, days=days, limit=limit)
+def _tool_get_top_selling(db: Session, tenant_id: int, days: int = 30, limit: int = 10):
+    return analytics_service.get_top_selling(db, tenant_id=tenant_id, days=days, limit=limit)
 
 
-def _tool_get_top_medicines_by_spend(db: Session, year: Optional[int] = None, month: Optional[int] = None, limit: int = 10):
-    return analytics_service.get_top_medicines_by_spend(db, year=year, month=month, limit=limit)
+def _tool_get_top_medicines_by_spend(db: Session, tenant_id: int, year: Optional[int] = None, month: Optional[int] = None, limit: int = 10):
+    return analytics_service.get_top_medicines_by_spend(db, tenant_id=tenant_id, year=year, month=month, limit=limit)
 
 
-def _tool_get_distributor_breakdown(db: Session, year: Optional[int] = None, month: Optional[int] = None):
-    return analytics_service.get_distributor_breakdown(db, year=year, month=month)
+def _tool_get_distributor_breakdown(db: Session, tenant_id: int, year: Optional[int] = None, month: Optional[int] = None):
+    return analytics_service.get_distributor_breakdown(db, tenant_id=tenant_id, year=year, month=month)
 
 
-def _tool_get_shop_overview(db: Session):
-    return analytics_service.get_overview(db)
+def _tool_get_shop_overview(db: Session, tenant_id: int):
+    return analytics_service.get_overview(db, tenant_id=tenant_id)
 
 
-def _tool_get_reorder_list(db: Session):
-    return stock_service.get_reorder_list(db)
+def _tool_get_reorder_list(db: Session, tenant_id: int):
+    return stock_service.get_reorder_list(db, tenant_id=tenant_id)
 
 
-def _tool_search_medicines(db: Session, query: str, limit: int = 10):
+def _tool_search_medicines(db: Session, tenant_id: int, query: str, limit: int = 10):
     medicines = (
         db.query(models.Medicine)
-        .filter(models.Medicine.particulars.ilike(f"%{query}%"))
+        .filter(models.Medicine.tenant_id == tenant_id, models.Medicine.particulars.ilike(f"%{query}%"))
         .limit(limit)
         .all()
     )
@@ -125,44 +125,40 @@ def _tool_search_medicines(db: Session, query: str, limit: int = 10):
     ]
 
 
-def _tool_get_stock_snapshot(db: Session, medicine_id: int):
-    return stock_service.get_stock_snapshot(db, medicine_id)
+def _tool_get_stock_snapshot(db: Session, tenant_id: int, medicine_id: int):
+    return stock_service.get_stock_snapshot(db, tenant_id=tenant_id, medicine_id=medicine_id)
 
 
-def _tool_check_drug_interactions(db: Session, salts: list):
+def _tool_check_drug_interactions(db: Session, tenant_id: int, salts: list):
     return graph_service.check_interactions(db, salts)
 
 
-def _tool_find_medicines_for_condition(db: Session, condition: str, in_stock_only: bool = True):
+def _tool_find_medicines_for_condition(db: Session, tenant_id: int, condition: str, in_stock_only: bool = True):
     return graph_service.get_medicines_for_condition(db, condition, in_stock_only=in_stock_only)
 
 
-def _tool_find_substitutes(db: Session, salt_or_medicine_name: str, in_stock_only: bool = True):
+def _tool_find_substitutes(db: Session, tenant_id: int, salt_or_medicine_name: str, in_stock_only: bool = True):
     return composition_service.find_substitutes(db, salt_or_medicine_name, in_stock_only=in_stock_only)
 
 
-def _tool_get_medicine_graph(db: Session, medicine_id: int):
+def _tool_get_medicine_graph(db: Session, tenant_id: int, medicine_id: int):
     return graph_service.get_medicine_graph(db, medicine_id)
 
 
-def _tool_get_profit_margin_analysis(db: Session, condition: Optional[str] = None):
-    # NEW addition - see profit_analytics_service.py's docstring for why.
-    return profit_analytics_service.get_profit_margin_analysis(db, condition=condition)
+def _tool_get_profit_margin_analysis(db: Session, tenant_id: int, condition: Optional[str] = None):
+    return profit_analytics_service.get_profit_margin_analysis(db, tenant_id=tenant_id, condition=condition)
 
 
-def _tool_get_recent_sales(db: Session, hours: int = 24):
-    # NEW addition - see sales_lookup_service.py's docstring for why.
-    return sales_lookup_service.get_recent_sales(db, hours=hours)
+def _tool_get_recent_sales(db: Session, tenant_id: int, hours: int = 24):
+    return sales_lookup_service.get_recent_sales(db, tenant_id=tenant_id, hours=hours)
 
 
-def _tool_get_uncollected_prescriptions(db: Session, minutes: int = 30):
-    # NEW — PIE integration: flag prescriptions scanned but not converted to sale
+def _tool_get_uncollected_prescriptions(db: Session, tenant_id: int, minutes: int = 30):
     from app.services import prescription_service
-    return prescription_service.get_uncollected_prescriptions(db, minutes=minutes)
+    return prescription_service.get_uncollected_prescriptions(db, tenant_id=tenant_id, minutes=minutes)
 
 
-def _tool_explain_anomaly(db: Session, anomaly_data: dict):
-    # Pass the JSON representation to the anomaly explainer
+def _tool_explain_anomaly(db: Session, tenant_id: int, anomaly_data: dict):
     return {"explanation": anomaly_explainer_service.explain_anomaly(anomaly_data)}
 
 TOOL_HANDLERS = {
@@ -386,7 +382,7 @@ _KNOWN_TOOL_NAMES = {t["name"] for t in TOOLS}
 assert _KNOWN_TOOL_NAMES == set(TOOL_HANDLERS.keys()), "TOOLS and TOOL_HANDLERS have drifted out of sync"
 
 
-def _dispatch_tool(db: Session, name: str, kwargs: dict) -> tuple[object, Optional[str]]:
+def _dispatch_tool(db: Session, tenant_id: int, name: str, kwargs: dict) -> tuple[object, Optional[str]]:
     """
     Runs exactly one tool call. Returns (result, error) - error is None on
     success. Never raises - a bad tool name or bad arguments becomes an
@@ -397,7 +393,7 @@ def _dispatch_tool(db: Session, name: str, kwargs: dict) -> tuple[object, Option
     if handler is None:
         return None, f"Unknown tool '{name}' - not in the allowed tool list."
     try:
-        result = handler(db, **(kwargs or {}))
+        result = handler(db, tenant_id=tenant_id, **(kwargs or {}))
         return result, None
     except TypeError as e:
         return None, f"Invalid arguments for '{name}': {e}"
@@ -446,7 +442,7 @@ def _to_groq_tools() -> list[dict]:
     ]
 
 
-def run_copilot_query(db: Session, user_message: str, history: Optional[list] = None) -> dict:
+def run_copilot_query(db: Session, tenant_id: int, user_message: str, history: Optional[list] = None) -> dict:
     """
     Runs one turn of the PharmaCopilot conversation on Groq: sends the
     user's message (plus prior history) to the model with the tool
@@ -481,13 +477,26 @@ def run_copilot_query(db: Session, user_message: str, history: Optional[list] = 
     for _ in range(MAX_TOOL_ITERATIONS):
         api_messages = [{"role": "system", "content": SYSTEM_PROMPT}] + conversation
 
-        response = client.chat.completions.create(
-            model=settings.groq_model,
-            messages=api_messages,
-            tools=groq_tools,
-            tool_choice="auto",
-            max_tokens=1024,
-        )
+        try:
+            response = client.chat.completions.create(
+                model=settings.groq_model,
+                messages=api_messages,
+                tools=groq_tools,
+                tool_choice="auto",
+                max_tokens=1024,
+            )
+        except Exception as e:
+            logger.exception("Copilot Groq API call failed")
+            error_msg = str(e)
+            if "tool_use_failed" in error_msg or "Failed to parse tool call" in error_msg:
+                reply = "I had trouble formulating the internal tool call. Please try asking your question slightly differently."
+            else:
+                reply = "I encountered an error connecting to the AI service. Please try again."
+            return {
+                "reply": reply,
+                "tool_calls": tool_calls_made,
+                "history": conversation,
+            }
 
         choice = response.choices[0]
         message = choice.message
@@ -501,7 +510,7 @@ def run_copilot_query(db: Session, user_message: str, history: Optional[list] = 
                 args = json.loads(tool_call.function.arguments or "{}")
             except json.JSONDecodeError:
                 args = {}
-            result, error = _dispatch_tool(db, tool_call.function.name, args)
+            result, error = _dispatch_tool(db, tenant_id, tool_call.function.name, args)
             tool_calls_made.append({"tool": tool_call.function.name, "input": args, "error": error})
             conversation.append({
                 "role": "tool",

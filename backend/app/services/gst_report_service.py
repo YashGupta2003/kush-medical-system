@@ -22,11 +22,11 @@ from sqlalchemy.orm import Session
 from app import models
 
 
-def get_gst_report(db: Session, year: int, month: int) -> dict:
+def get_gst_report(db: Session, tenant_id: int, year: int, month: int) -> dict:
     items = (
         db.query(models.BillItem)
         .join(models.Bill, models.Bill.id == models.BillItem.bill_id)
-        .filter(models.Bill.status == "confirmed", models.Bill.year == year, models.Bill.month == month)
+        .filter(models.Bill.tenant_id == tenant_id, models.Bill.status == "confirmed", models.Bill.year == year, models.Bill.month == month)
         .filter(models.BillItem.amount.isnot(None), models.BillItem.gst_pct.isnot(None))
         .all()
     )

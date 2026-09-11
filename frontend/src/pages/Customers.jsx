@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { motion } from "framer-motion";
 import { User, Bell, MessageSquare, AlertTriangle, UserPlus, CreditCard, Clock, Activity, Send } from "lucide-react";
 import { api } from "../api/client.js";
@@ -68,11 +68,23 @@ function CustomerDetail({ customer, onChanged }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
 
-  function refresh() {
+  const refresh = useCallback(() => {
+    let active = true;
     setLoading(true);
-    api.getCustomerLedger(customer.customer_id).then(setLedger).finally(() => setLoading(false));
-  }
-  useEffect(() => { refresh(); /* eslint-disable-next-line */ }, [customer.customer_id]);
+    api.getCustomerLedger(customer.customer_id)
+      .then(data => {
+        if (active) setLedger(data);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => { active = false; };
+  }, [customer.customer_id]);
+
+  useEffect(() => {
+    const cancel = refresh();
+    return cancel;
+  }, [refresh]);
 
   async function handleCharge() {
     if (!chargeAmount) return;
@@ -248,9 +260,13 @@ function DirectoryTab() {
 function AdherenceTab() {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.getAdherenceAlerts().then(setAlerts).finally(() => setLoading(false));
+    api.getAdherenceAlerts()
+      .then(setAlerts)
+      .catch((e) => setError(e.message))
+      .finally(() => setLoading(false));
   }, []);
 
   return (
@@ -265,7 +281,8 @@ function AdherenceTab() {
           includes customers who've given adherence-tracking consent.
         </p>
         {loading && <p style={{ color: "var(--text-muted)", fontSize: 13 }}>Loading...</p>}
-        {!loading && alerts.length === 0 && (
+        {error && <p style={{ color: "var(--danger-700)", fontSize: 13 }}>Failed to load alerts: {error}</p>}
+        {!loading && !error && alerts.length === 0 && (
           <p style={{ color: "var(--text-muted)", fontSize: 13 }}>No overdue refills detected right now.</p>
         )}
         {!loading && alerts.map((a, i) => (

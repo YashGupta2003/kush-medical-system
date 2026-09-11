@@ -189,6 +189,7 @@ def create_prescription(
     db: Session,
     image_bytes: bytes,
     filename: str,
+    tenant_id: int,
     customer_id: Optional[int] = None,
 ) -> models.Prescription:
     """
@@ -206,6 +207,7 @@ def create_prescription(
         f.write(image_bytes)
 
     prescription = models.Prescription(
+        tenant_id=tenant_id,
         customer_id=customer_id,
         image_path=saved_path,
         status="queued",
@@ -319,12 +321,13 @@ def get_prescription(db: Session, prescription_id: int) -> Optional[models.Presc
 
 def list_prescriptions(
     db: Session,
+    tenant_id: int,
     customer_id: Optional[int] = None,
     status: Optional[str] = None,
     limit: int = 50,
     offset: int = 0,
 ) -> Dict[str, Any]:
-    query = db.query(models.Prescription)
+    query = db.query(models.Prescription).filter(models.Prescription.tenant_id == tenant_id)
     if customer_id:
         query = query.filter(models.Prescription.customer_id == customer_id)
     if status:
@@ -455,6 +458,5 @@ def add_manual_item(
         current_stock_qty=float(medicine.current_stock or 0)
     )
     db.add(item)
-    db.commit()
-    db.refresh(item)
+    db.flush()
     return item

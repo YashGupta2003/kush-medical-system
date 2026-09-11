@@ -454,8 +454,9 @@ const PrescriptionCard = forwardRef(({ prescription, isNew, onAddAllToCart, onAb
     }
   };
 
+  const [showConfirmDismiss, setShowConfirmDismiss] = useState(false);
+
   const handleAbandon = async () => {
-    if (!confirm("Mark this prescription as dismissed?")) return;
     try {
       await api.abandonPrescription(prescription.id);
       setRemoved(true);
@@ -514,26 +515,43 @@ const PrescriptionCard = forwardRef(({ prescription, isNew, onAddAllToCart, onAb
 
         {prescription.status === "ready" && (
           <div style={{ display: "flex", gap: 6, flexShrink: 0 }}>
+            {showConfirmDismiss ? (
+              <>
+                <button
+                  onClick={() => setShowConfirmDismiss(false)}
+                  style={{ padding: "7px 10px", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleAbandon}
+                  style={{ padding: "7px 10px", borderRadius: "var(--radius-md)", border: "none", background: "var(--danger)", color: "#fff", cursor: "pointer", fontSize: 12, fontWeight: 600 }}
+                >
+                  Confirm Dismiss
+                </button>
+              </>
+            ) : (
+              <motion.button
+                whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+                onClick={() => setShowConfirmDismiss(true)}
+                title="Dismiss without sale"
+                style={{ padding: "7px 10px", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
+              >
+                <X size={12} /> Dismiss
+              </motion.button>
+            )}
             <motion.button
-              whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
-              onClick={handleAbandon}
-              title="Dismiss without sale"
-              style={{ padding: "7px 10px", borderRadius: "var(--radius-md)", border: "1px solid var(--border)", background: "transparent", color: "var(--text-muted)", cursor: "pointer", fontSize: 12, fontWeight: 600, display: "flex", alignItems: "center", gap: 4 }}
-            >
-              <X size={12} /> Dismiss
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.04 }}
-              whileTap={{ scale: 0.96 }}
+              whileHover={{ scale: (addingToCart || sendableCount === 0) ? 1 : 1.04 }}
+              whileTap={{ scale: (addingToCart || sendableCount === 0) ? 1 : 0.96 }}
               onClick={handleAddAllToCart}
-              disabled={addingToCart}
+              disabled={addingToCart || sendableCount === 0}
               style={{
                 padding: "7px 14px", borderRadius: "var(--radius-md)", border: "none",
-                cursor: addingToCart ? "not-allowed" : "pointer",
-                background: "linear-gradient(135deg, var(--primary-500), var(--primary-700))",
-                color: "#fff",
+                cursor: (addingToCart || sendableCount === 0) ? "not-allowed" : "pointer",
+                background: (addingToCart || sendableCount === 0) ? "var(--bg-muted)" : "linear-gradient(135deg, var(--primary-500), var(--primary-700))",
+                color: (addingToCart || sendableCount === 0) ? "var(--text-muted)" : "#fff",
                 fontSize: 12, fontWeight: 700, display: "flex", alignItems: "center", gap: 5,
-                boxShadow: "0 2px 8px rgba(20,184,166,0.25)",
+                boxShadow: (addingToCart || sendableCount === 0) ? "none" : "0 2px 8px rgba(20,184,166,0.25)",
               }}
             >
               {addingToCart ? <RefreshCw size={12} className="spin" /> : <ShoppingCart size={12} />}

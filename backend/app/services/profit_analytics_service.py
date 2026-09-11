@@ -19,7 +19,7 @@ def _margin_pct(mrp, net_rate) -> Optional[float]:
     return round(float((mrp - net_rate) / mrp) * 100, 2)
 
 
-def get_profit_margin_analysis(db: Session, condition: Optional[str] = None) -> dict:
+def get_profit_margin_analysis(db: Session, tenant_id: int, condition: Optional[str] = None) -> dict:
     """
     Average profit margin % ((MRP - net_rate) / MRP) across the whole shop's
     priced catalog, and optionally for medicines associated with a specific
@@ -30,6 +30,7 @@ def get_profit_margin_analysis(db: Session, condition: Optional[str] = None) -> 
     zero margin - a missing price isn't a 0% margin, it's just unknown.
     """
     all_medicines = db.query(models.Medicine).filter(
+        models.Medicine.tenant_id == tenant_id,
         models.Medicine.mrp.isnot(None),
         models.Medicine.net_rate.isnot(None),
         models.Medicine.mrp > 0,
@@ -59,11 +60,11 @@ def get_profit_margin_analysis(db: Session, condition: Optional[str] = None) -> 
 
 from datetime import datetime, timedelta, timezone
 
-def detect_margin_compression(db: Session, days: int = 90, severity_filter: Optional[str] = None) -> list[dict]:
+def detect_margin_compression(db: Session, tenant_id: int, days: int = 90, severity_filter: Optional[str] = None) -> list[dict]:
     # For each medicine: check last 2 RateHistory entries within days.
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
     
-    medicines = db.query(models.Medicine).all()
+    medicines = db.query(models.Medicine).filter(models.Medicine.tenant_id == tenant_id).all()
     results = []
     
     for med in medicines:
@@ -141,8 +142,8 @@ def detect_margin_compression(db: Session, days: int = 90, severity_filter: Opti
         
     return results
 
-def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
-    med = db.get(models.Medicine, medicine_id)
+def get_best_margin_substitutes(db: Session, tenant_id: int, medicine_id: int) -> dict:
+    med = db.query(models.Medicine).filter_by(id=medicine_id, tenant_id=tenant_id).first()
     if not med:
         return {}
         
@@ -183,8 +184,8 @@ def get_best_margin_substitutes(db: Session, medicine_id: int) -> dict:
         "unpriced_count": unpriced
     }
 
-def get_distributor_negotiation_report(db: Session) -> list[dict]:
-    distributors = db.query(models.Distributor).all()
+def get_distributor_negotiation_report(db: Session, tenant_id: int) -> list[dict]:
+    distributors = db.query(models.Distributor).filter(models.Distributor.tenant_id == tenant_id).all()
     results = []
     
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=180)

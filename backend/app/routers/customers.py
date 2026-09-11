@@ -9,6 +9,7 @@ existing convention of reserving require_owner for financial REPORTS
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -28,13 +29,31 @@ def _summary_or_404(db: Session, customer_id: int, current_user: models.User) ->
 
 @router.get("", response_model=list[schemas.CustomerOut])
 def search_customers(q: Optional[str] = Query(None), db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    customers = customer_service.search_customers(db, tenant_id=current_user.tenant_id, q=q)
-    # Build summaries directly — avoids N+1 re-query via _summary_or_404
+    from sqlalchemy import func
+    
+    query = db.query(
+        models.Customer,
+        func.max(models.Sale.sold_at).label("last_visit"),
+        func.count(models.Sale.id).label("total_purchases")
+    ).outerjoin(models.Sale, models.Sale.customer_id == models.Customer.id) \
+     .filter(models.Customer.tenant_id == current_user.tenant_id)
+     
+    if q:
+        query = query.filter(or_(models.Customer.phone.ilike(f"%{q}%"), models.Customer.name.ilike(f"%{q}%")))
+        
+    results = query.group_by(models.Customer.id).order_by(models.Customer.name).limit(20).all()
+    
     summaries = []
-    for c in customers:
-        summary = customer_service.get_customer_summary(db, c.id, tenant_id=current_user.tenant_id)
-        if summary:
-            summaries.append(schemas.CustomerOut(**summary))
+    for c, last_visit, total_purchases in results:
+        summaries.append(schemas.CustomerOut(
+            id=c.id,
+            name=c.name,
+            phone=c.phone,
+            is_regional_participant=c.is_regional_participant,
+            balance=float(customer_service.get_customer_balance(db, c.id)),
+            last_visit=last_visit,
+            total_purchases=total_purchases
+        ))
     return summaries
 
 

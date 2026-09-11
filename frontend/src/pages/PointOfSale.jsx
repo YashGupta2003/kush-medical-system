@@ -247,8 +247,9 @@ export default function PointOfSale() {
         const cartItems = await Promise.all(
           state.prefillCart.map(async (item) => {
             try {
-              const res = await api.browseMedicines({ q: "", page: 1, page_size: 1 });
-              // Fetch the specific medicine by searching for its ID via the snapshot endpoint
+              // BUG FIX: removed dead api.browseMedicines() call that was here
+              // but whose result was never used — wasted one API call per item.
+              // Only getStockSnapshot is needed to build the cart item.
               const snapshot = await api.getStockSnapshot(item.medicine_id);
               // Build a minimal medicine object from what the API returns
               const medicine = {
@@ -306,7 +307,13 @@ export default function PointOfSale() {
 
   function addToCart(medicine) {
     setSuccess(null);
-    setCart((prev) => [...prev, { medicine, qty: 1 }]);
+    setCart((prev) => {
+      const existing = prev.find((c) => c.medicine.id === medicine.id);
+      if (existing) {
+        return prev.map((c) => (c.medicine.id === medicine.id ? { ...c, qty: c.qty + 1 } : c));
+      }
+      return [...prev, { medicine, qty: 1 }];
+    });
   }
 
   function updateQty(medicineId, qty) {
@@ -368,11 +375,11 @@ export default function PointOfSale() {
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0, ...focusStyles }}
+      animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.4, ease: "easeInOut" }}
       className="page-content"
-      style={focusMode ? { height: "100vh" } : {}}
+      style={focusMode ? { height: "100vh", ...focusStyles } : {}}
     >
       <div ref={topRef} />
 

@@ -233,8 +233,9 @@ function BillImageViewer({ billId, pickingField, onRegionSelected }) {
         {drag && (
           <div
             style={{
-              position: "fixed",
-              left: Math.min(drag.startX, drag.curX), top: Math.min(drag.startY, drag.curY),
+              position: "absolute",
+              left: Math.min(drag.startX, drag.curX) - drag.imgRect.left,
+              top: Math.min(drag.startY, drag.curY) - drag.imgRect.top,
               width: Math.abs(drag.curX - drag.startX), height: Math.abs(drag.curY - drag.startY),
               border: "2px solid var(--primary-500)", background: "rgba(20, 184, 166, 0.15)", pointerEvents: "none",
             }}
@@ -636,6 +637,13 @@ export default function ReviewBill() {
           <div style={{ background: "var(--warning-bg)", color: "var(--warning-text)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", fontSize: "var(--text-sm)", marginTop: "var(--space-4)", border: "1px solid var(--warning-border)", display: "flex", alignItems: "flex-start", gap: 8 }}>
             <FileWarning size={18} style={{ flexShrink: 0, marginTop: 2 }} />
             <span><strong>Attention Required:</strong> {bill.needs_attention_reason}</span>
+          </div>
+        )}
+        
+        {error && !is409Error && (
+          <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger-text)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", marginTop: "var(--space-4)" }}>
+            <strong style={{ fontSize: "var(--text-sm)", display: "flex", alignItems: "center", gap: 6 }}><AlertTriangle size={16} /> Error saving bill</strong>
+            <p style={{ margin: "4px 0 0", fontSize: "var(--text-sm)" }}>{error}</p>
           </div>
         )}
         

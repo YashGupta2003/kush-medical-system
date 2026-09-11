@@ -23,10 +23,16 @@ logger = get_logger("bills_router")
 router = APIRouter(prefix="/bills", tags=["bills"])
 
 
-def _resolve_distributor(db: Session, name: Optional[str], tenant_id: int = 1) -> Optional[models.Distributor]:
+def _resolve_distributor(db: Session, name: Optional[str], tenant_id: Optional[int] = None) -> Optional[models.Distributor]:
     if not name:
         return None
-    distributor = db.query(models.Distributor).filter_by(name=name.upper()).first()
+    # BUG FIX: Filter by tenant_id to prevent cross-tenant distributor sharing.
+    # Previously the lookup ignored tenant_id, allowing distributors from one
+    # tenant to be linked to another tenant's bills.
+    distributor = db.query(models.Distributor).filter(
+        models.Distributor.name == name.upper(),
+        models.Distributor.tenant_id == tenant_id,
+    ).first()
     if not distributor:
         distributor = models.Distributor(name=name.upper(), tenant_id=tenant_id)
         db.add(distributor)
@@ -141,7 +147,7 @@ async def upload_bills_batch(
         if file.content_type not in ["image/jpeg", "image/png", "application/pdf"]:
             raise HTTPException(400, f"Only JPEG, PNG and PDF files are allowed. Found: {file.content_type}")
         file_bytes = await file.read()
-        bill = _create_queued_bill(db, file_bytes, file.filename, distributor_name, None, None)
+        bill = _create_queued_bill(db, file_bytes, file.filename, current_user.tenant_id, distributor_name, None, None)
         db.commit()
         task = process_bill_task.delay(bill.id)
         bill.celery_task_id = task.id
@@ -193,7 +199,10 @@ def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: mo
     bill = db.query(models.Bill).options(joinedload(models.Bill.items).joinedload(models.BillItem.medicine), joinedload(models.Bill.distributor)).filter(models.Bill.id == bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
     if not bill or not bill.image_path or not os.path.exists(bill.image_path):
         raise HTTPException(404, "Bill image not found")
-    media_type = "image/png" if bill.image_path.lower().endswith(".pdf") else None
+    # BUG FIX: PDFs are converted to .png by ensure_image_bytes (line 60 above),
+    # so image_path NEVER ends in .pdf. The original check was a no-op.
+    # Use .png detection to correctly set image/png MIME type.
+    media_type = "image/png" if bill.image_path.lower().endswith(".png") else "image/jpeg"
     return FileResponse(bill.image_path, media_type=media_type)
 
 
@@ -332,7 +341,7 @@ def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_
 
     # Apply optional invoice_no and distributor_name corrections if provided during review
     if payload.distributor_name is not None and payload.distributor_name.strip():
-        dist = _resolve_distributor(db, payload.distributor_name.strip())
+        dist = _resolve_distributor(db, payload.distributor_name.strip(), tenant_id=current_user.tenant_id)
         bill.distributor_id = dist.id
     if payload.invoice_no is not None:
         bill.invoice_no = payload.invoice_no

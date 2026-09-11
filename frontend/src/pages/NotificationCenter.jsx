@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "../api/client.js";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, Info, AlertTriangle, ShieldAlert, Check, CheckCircle2 } from "lucide-react";
+import { Bell, Info, AlertTriangle, ShieldAlert, Check, CheckCircle2, RefreshCw } from "lucide-react";
 
 /**
  * NotificationCenter — Priority 1
@@ -406,7 +406,7 @@ export default function NotificationCenter() {
             style={{ fontSize: 13, padding: "8px 12px" }}
             title="Refresh"
           >
-            <CheckCircle2 size={14} />
+            <RefreshCw size={14} />
           </button>
         </div>
       </div>

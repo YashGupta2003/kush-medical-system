@@ -44,7 +44,7 @@ def update_lead_time(medicine_id: int, payload: schemas.LeadTimeUpdate, db: Sess
 
 @router.get("/medicine/{medicine_id}/snapshot", response_model=schemas.StockSnapshot)
 def get_snapshot(medicine_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    snapshot = stock_service.get_stock_snapshot(db, medicine_id)
+    snapshot = stock_service.get_stock_snapshot(db, current_user.tenant_id, medicine_id)
     if not snapshot:
         raise HTTPException(404, "Medicine not found")
     return snapshot
@@ -62,7 +62,7 @@ def record_sale(
         raise HTTPException(404, "Medicine not found")
     try:
         return stock_service.record_sale(
-            db, payload.medicine_id, payload.qty_sold, created_by_user_id=current_user.id,
+            db, current_user.tenant_id, payload.medicine_id, payload.qty_sold, created_by_user_id=current_user.id,
         )
     except ValueError as e:
         raise HTTPException(400, str(e))

@@ -41,7 +41,12 @@ export default function CommandPalette() {
         setSearch("");
         setSelectedIndex(0);
       }
-      if (e.key === "Escape") setIsOpen(false);
+      if (e.key === "Escape") {
+        setIsOpen((prev) => {
+          if (prev) return false;
+          return prev;
+        });
+      }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
@@ -51,6 +56,10 @@ export default function CommandPalette() {
     m.name.toLowerCase().includes(search.toLowerCase()) || 
     m.id.toLowerCase().includes(search.toLowerCase())
   );
+
+  useEffect(() => {
+    setSelectedIndex(0);
+  }, [search]);
 
   useEffect(() => {
     if (isOpen) {

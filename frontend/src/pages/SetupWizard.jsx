@@ -5,7 +5,7 @@ import {
   Upload, FileSpreadsheet, CheckCircle, AlertCircle,
   Loader, ArrowRight, Info, Hexagon, ChevronRight
 } from "lucide-react";
-import { api, getToken } from "../api/client.js";
+import { api } from "../api/client.js";
 import { useAuth } from "../auth/AuthContext.jsx";
 
 const STEPS = [
@@ -66,29 +66,23 @@ export default function SetupWizard() {
     setStep(2);
     setProgress(10);
 
+    // Declare outside try so finally can always clear it (prevents interval leak)
+    let progressInterval;
     try {
       // Simulate progress while uploading
-      const progressInterval = setInterval(() => {
+      progressInterval = setInterval(() => {
         setProgress((p) => Math.min(p + 5, 85));
       }, 300);
 
       const formData = new FormData();
       formData.append("file", file);
 
-      const res = await fetch("/api/setup/import-medicine-list", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${getToken()}`,
-        },
-        body: formData,
-      });
+      // BUG FIX: Use api.importMedicineList() instead of raw fetch().
+      // Raw fetch() bypassed: silent token refresh on 401, unified error
+      // parsing (body.detail), onUnauthorized handler, and VITE_API_BASE_URL.
+      const data = await api.importMedicineList(formData);
 
-      clearInterval(progressInterval);
       setProgress(100);
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.detail || "Import failed");
-
       setResult(data);
       setStep(3);
     } catch (err) {
@@ -96,6 +90,7 @@ export default function SetupWizard() {
       setStep(1);
       setProgress(0);
     } finally {
+      clearInterval(progressInterval);
       setImporting(false);
     }
   }

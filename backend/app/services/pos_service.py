@@ -85,7 +85,7 @@ def _find_duplicate_salts(item_details: list[dict]) -> list[dict]:
     return flags
 
 
-def check_cart_interactions(db: Session, items: list[dict]) -> dict:
+def check_cart_interactions(db: Session, tenant_id: int, items: list[dict]) -> dict:
     """
     items: [{"medicine_id": int, "qty_sold": float}, ...] - qty_sold is
     accepted but unused here (this function only cares about WHICH
@@ -106,7 +106,7 @@ def check_cart_interactions(db: Session, items: list[dict]) -> dict:
     item_details = []
 
     for entry in items:
-        medicine = db.get(models.Medicine, entry["medicine_id"])
+        medicine = db.query(models.Medicine).filter_by(id=entry["medicine_id"], tenant_id=tenant_id).first()
         if not medicine:
             continue
         salts = _medicine_salts(db, medicine.id)
@@ -127,6 +127,7 @@ def check_cart_interactions(db: Session, items: list[dict]) -> dict:
 
 def record_cart_sale(
     db: Session,
+    tenant_id: int,
     items: list[dict],
     confirm_override: bool = False,
     customer_id: Optional[int] = None,
@@ -145,7 +146,7 @@ def record_cart_sale(
     are all optional - a plain walk-in cash sale with none of them set
     works exactly as it always has.
     """
-    check = check_cart_interactions(db, items)
+    check = check_cart_interactions(db, tenant_id, items)
     if check["has_interactions"] and not confirm_override:
         return {"status": "needs_confirmation", **check, "results": []}
 
@@ -153,12 +154,12 @@ def record_cart_sale(
     total_value = 0.0
     for entry in items:
         snapshot = stock_service.record_sale(
-            db, entry["medicine_id"], entry["qty_sold"],
+            db, tenant_id, entry["medicine_id"], entry["qty_sold"],
             customer_id=customer_id, created_by_user_id=created_by_user_id,
         )
         results.append(snapshot)
 
-        medicine = db.get(models.Medicine, entry["medicine_id"])
+        medicine = db.query(models.Medicine).filter_by(id=entry["medicine_id"], tenant_id=tenant_id).first()
         if medicine and medicine.mrp is not None:
             total_value += float(medicine.mrp) * float(entry["qty_sold"])
 

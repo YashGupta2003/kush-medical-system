@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app import schemas
+from app import schemas, models
 from app.services import copilot_service
 from app.deps import require_owner
 
@@ -16,12 +16,16 @@ router = APIRouter(prefix="/copilot", dependencies=[Depends(require_owner)], tag
 
 
 @router.post("/chat", response_model=schemas.CopilotChatResponse)
-def chat(payload: schemas.CopilotChatRequest, db: Session = Depends(get_db)):
+def chat(
+    payload: schemas.CopilotChatRequest, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(require_owner)
+):
     """
     One turn of the PharmaCopilot conversation. Pass back whatever
     `history` the previous response returned to continue the same
     conversation - the frontend treats it as an opaque blob, it doesn't
     need to understand its structure.
     """
-    result = copilot_service.run_copilot_query(db, payload.message, history=payload.history)
+    result = copilot_service.run_copilot_query(db, current_user.tenant_id, payload.message, history=payload.history)
     return result

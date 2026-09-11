@@ -57,21 +57,6 @@ export default function BillHistory() {
   const offset = (page - 1) * PAGE_SIZE;
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
-  function refresh() {
-    api.dashboardSummary().then(setSummary);
-    const params = { limit: PAGE_SIZE, offset };
-    if (filterStatus) params.status = filterStatus;
-    api.listBills(params).then((data) => {
-      if (data && Array.isArray(data.items)) {
-        setBills(data.items);
-        setTotal(data.total);
-      } else if (Array.isArray(data)) {
-        setBills(data);
-        setTotal(data.length);
-      }
-    });
-  }
-
   useEffect(() => {
     setPage(1);
   }, [filterStatus]);
@@ -82,7 +67,26 @@ export default function BillHistory() {
 
     async function poll() {
       if (!mounted) return;
-      await refresh();
+      
+      const offset = (page - 1) * PAGE_SIZE;
+      api.dashboardSummary().then((s) => {
+        if (mounted) setSummary(s);
+      });
+      
+      const params = { limit: PAGE_SIZE, offset };
+      if (filterStatus) params.status = filterStatus;
+      
+      api.listBills(params).then((data) => {
+        if (!mounted) return;
+        if (data && Array.isArray(data.items)) {
+          setBills(data.items);
+          setTotal(data.total);
+        } else if (Array.isArray(data)) {
+          setBills(data);
+          setTotal(data.length);
+        }
+      });
+      
       if (mounted) {
         timeoutId = setTimeout(poll, 4000);
       }
@@ -93,7 +97,6 @@ export default function BillHistory() {
       mounted = false;
       clearTimeout(timeoutId);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterStatus, page]);
 
   return (
@@ -159,7 +162,7 @@ export default function BillHistory() {
                       </div>
                     </td>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>{b.invoice_no || "—"}</td>
-                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>{b.total_amount}</td>
+                    <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}>{b.total_amount != null ? `₹${Number(b.total_amount).toLocaleString("en-IN", { maximumFractionDigits: 2 })}` : "—"}</td>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)" }}><span className={`badge ${meta.badge}`}>{meta.label}</span></td>
                     <td style={{ padding: "12px", borderBottom: "1px solid var(--border-color)", textAlign: "right" }}>
                       {(b.status === "pending_review" || b.status === "needs_attention") && (
@@ -176,7 +179,7 @@ export default function BillHistory() {
         {totalPages > 1 && (
           <div style={{ display: "flex", gap: "12px", marginTop: "16px", alignItems: "center", justifyContent: "center" }}>
             <button
-              className="btn secondary"
+              className="btn btn-secondary"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
               style={{ display: "flex", alignItems: "center", gap: "4px" }}
@@ -187,7 +190,7 @@ export default function BillHistory() {
               Page {page} of {totalPages}
             </span>
             <button
-              className="btn secondary"
+              className="btn btn-secondary"
               onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
               disabled={page === totalPages}
               style={{ display: "flex", alignItems: "center", gap: "4px" }}

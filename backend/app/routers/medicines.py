@@ -71,45 +71,21 @@ def _mask_cost_for_staff(medicines: List[models.Medicine], current_user: models.
 )
 def list_or_search_medicines(
     q: Optional[str] = Query(None, description="Optional partial name/composition filter"),
-    after_id: Optional[int] = Query(None, description="Cursor: fetch medicines with id > after_id."),
-    limit: int = Query(50, ge=1, le=500, description="Number of items per page."),
     page: int = Query(1, ge=1, description="Page number."),
     page_size: int = Query(50, ge=1, le=500, description="Items per page."),
     current_user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    if after_id is not None:
-        base_query = db.query(models.Medicine).filter(
-            models.Medicine.tenant_id == current_user.tenant_id,
-            models.Medicine.id > after_id
-        )
-        if q:
-            base_query = base_query.filter(models.Medicine.particulars.ilike(f"%{q}%"))
+    query = db.query(models.Medicine).filter(models.Medicine.tenant_id == current_user.tenant_id)
+    if q:
+        query = query.filter(models.Medicine.particulars.ilike(f"%{q}%"))
+    query = query.order_by(models.Medicine.particulars)
 
-        rows = base_query.order_by(models.Medicine.id.asc()).limit(limit + 1).all()
+    total = query.count()
+    items = query.offset((page - 1) * page_size).limit(page_size).all()
+    items = _mask_cost_for_staff(items, current_user)
 
-        has_next = len(rows) > limit
-        items = rows[:limit]
-        items = _mask_cost_for_staff(items, current_user)
-
-        next_cursor = items[-1].id if has_next and items else None
-
-        return schemas.CursorPaginatedMedicines(
-            items=items,
-            next_cursor=next_cursor,
-            limit=limit,
-        )
-    else:
-        query = db.query(models.Medicine).filter(models.Medicine.tenant_id == current_user.tenant_id)
-        if q:
-            query = query.filter(models.Medicine.particulars.ilike(f"%{q}%"))
-        query = query.order_by(models.Medicine.particulars)
-
-        total = query.count()
-        items = query.offset((page - 1) * page_size).limit(page_size).all()
-        items = _mask_cost_for_staff(items, current_user)
-
-        return schemas.PaginatedMedicines(items=items, total=total, page=page, page_size=page_size)
+    return schemas.PaginatedMedicines(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/barcode/{code:path}", response_model=schemas.BarcodeLookupResult)
@@ -123,7 +99,7 @@ def lookup_by_barcode(code: str, db: Session = Depends(get_db), current_user: mo
     if not medicine:
         return schemas.BarcodeLookupResult(found=False)
 
-    snapshot = stock_service.get_stock_snapshot(db, medicine.id)
+    snapshot = stock_service.get_stock_snapshot(db, current_user.tenant_id, medicine.id)
     return schemas.BarcodeLookupResult(found=True, medicine=medicine, stock=snapshot)
 
 

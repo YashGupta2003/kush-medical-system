@@ -52,9 +52,13 @@ def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(ge
         raise HTTPException(401, "Refresh token is invalid, expired, or revoked — please log in again")
 
     new_access_token = create_access_token(user)
+    # Rotate the refresh token
+    revoke_refresh_token(db, payload.refresh_token)
+    new_refresh_token = create_refresh_token(db, user.id)
+
     return schemas.TokenResponse(
         access_token=new_access_token,
-        refresh_token=payload.refresh_token,   # same refresh token, not rotated
+        refresh_token=new_refresh_token,
         role=user.role,
         username=user.username,
         full_name=user.full_name,

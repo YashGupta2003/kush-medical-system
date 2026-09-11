@@ -45,16 +45,20 @@ export default function MedicineSearch() {
   async function selectMedicine(med) {
     setSelected(med);
     setCompositionInput(med.composition || "");
-    const h = await api.getMedicineHistory(med.id);
-    setHistory(
-      h
-        .slice()
-        .reverse()
-        .map((r) => ({
-          date: new Date(r.changed_at).toLocaleDateString(),
-          net_rate: r.new_net_rate,
-        }))
-    );
+    try {
+      const h = await api.getMedicineHistory(med.id);
+      setHistory(
+        h
+          .slice()
+          .reverse()
+          .map((r) => ({
+            date: new Date(r.changed_at).toLocaleDateString(),
+            net_rate: r.new_net_rate,
+          }))
+      );
+    } catch {
+      setHistory([]);
+    }
   }
 
   async function handleSaveComposition() {

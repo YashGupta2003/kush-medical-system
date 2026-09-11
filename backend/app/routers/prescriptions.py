@@ -151,7 +151,7 @@ def _prescription_to_out(prescription: models.Prescription) -> dict:
     }
 
 
-def _load_prescription(db: Session, prescription_id: int) -> models.Prescription:
+def _load_prescription(db: Session, prescription_id: int, tenant_id: int) -> models.Prescription:
     """Eager-load a prescription with all relationships for API response."""
     return (
         db.query(models.Prescription)
@@ -164,7 +164,7 @@ def _load_prescription(db: Session, prescription_id: int) -> models.Prescription
             ),
             joinedload(models.Prescription.customer),
         )
-        .filter(models.Prescription.id == prescription_id)
+        .filter(models.Prescription.id == prescription_id, models.Prescription.tenant_id == tenant_id)
         .first()
     )
 
@@ -197,6 +197,7 @@ async def upload_prescription(
         customer = customer_service.get_or_create_customer(
             db,
             phone=customer_phone.strip(),
+            tenant_id=current_user.tenant_id,
             name=customer_name.strip() if customer_name else None,
             consented=False,
         )
@@ -208,6 +209,7 @@ async def upload_prescription(
         db,
         file_bytes,
         file.filename or "prescription.jpg",
+        tenant_id=current_user.tenant_id,
         customer_id=customer_id,
     )
     db.commit()
@@ -215,7 +217,7 @@ async def upload_prescription(
     prescription_service.process_prescription(db, prescription.id)
 
     # Reload with all relationships for response
-    loaded = _load_prescription(db, prescription.id)
+    loaded = _load_prescription(db, prescription.id, tenant_id=current_user.tenant_id)
     if not loaded:
         raise HTTPException(500, "Prescription processing failed to save")
     return _prescription_to_out(loaded)
@@ -241,7 +243,7 @@ def list_prescriptions(
     current_user: models.User = Depends(get_current_user),
 ):
     result = prescription_service.list_prescriptions(
-        db, customer_id=customer_id, status=status, limit=limit, offset=offset
+        db, tenant_id=current_user.tenant_id, customer_id=customer_id, status=status, limit=limit, offset=offset
     )
     ids = [p.id for p in result["items"]]
     if not ids:
@@ -258,7 +260,7 @@ def list_prescriptions(
             ),
             joinedload(models.Prescription.customer),
         )
-        .filter(models.Prescription.id.in_(ids))
+        .filter(models.Prescription.id.in_(ids), models.Prescription.tenant_id == current_user.tenant_id)
         .order_by(models.Prescription.created_at.desc())
         .all()
     )
@@ -293,7 +295,7 @@ def get_prescription(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
-    prescription = _load_prescription(db, prescription_id)
+    prescription = _load_prescription(db, prescription_id, tenant_id=current_user.tenant_id)
     if not prescription:
         raise HTTPException(404, "Prescription not found")
     return _prescription_to_out(prescription)
@@ -351,6 +353,7 @@ def add_manual_item(
     if not item:
         raise HTTPException(404, "Prescription or medicine not found")
     
+    db.commit()
     db.refresh(item)
     if item.medicine:
         db.refresh(item.medicine)
