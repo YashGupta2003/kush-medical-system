@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import {
   Hexagon, Scan, Bot, BarChart2, Shield, TrendingUp,
   Package, Snowflake, Network, CheckCircle, ArrowRight, Star,
-  Clock, IndianRupee, FileText, Quote, Zap
+  Clock, IndianRupee, FileText, Quote, Zap, Mail, Globe, Code2
 } from "lucide-react";
 
 // --- Data ---
@@ -366,6 +366,63 @@ export default function Landing() {
           onMouseOut={e => e.currentTarget.style.transform = "scale(1)"}>
             Start Free Trial <ArrowRight size={24} />
           </Link>
+        </motion.div>
+      </section>
+
+      {/* ── CREATOR SIGNATURE ── */}
+      <section style={{ padding: "100px clamp(24px, 5vw, 64px)", background: "#000", position: "relative", overflow: "hidden", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+        <div style={{ position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)", width: "60vw", height: "60vw", maxWidth: 700, maxHeight: 700, background: "radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 60%)", filter: "blur(60px)", pointerEvents: "none" }} />
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 40, scale: 0.95 }}
+          whileInView={{ opacity: 1, y: 0, scale: 1 }}
+          viewport={{ once: true, margin: "-50px" }}
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          style={{ maxWidth: 650, margin: "0 auto", textAlign: "center", position: "relative", zIndex: 1, padding: "50px 32px", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "var(--radius-3xl)", backdropFilter: "blur(12px)", boxShadow: "0 25px 50px rgba(0,0,0,0.5)" }}
+        >
+          <motion.div 
+            initial={{ rotate: -15, opacity: 0 }} 
+            whileInView={{ rotate: 0, opacity: 1 }} 
+            transition={{ delay: 0.3, duration: 0.6, type: "spring", stiffness: 200 }}
+            style={{ width: 68, height: 68, borderRadius: "50%", background: "rgba(16,185,129,0.1)", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 24px", color: "#10b981", border: "1px solid rgba(16,185,129,0.3)", boxShadow: "0 0 30px rgba(16,185,129,0.2)" }}
+          >
+            <Code2 size={32} />
+          </motion.div>
+          
+          <h3 style={{ color: "rgba(255,255,255,0.5)", fontSize: "var(--text-xs)", letterSpacing: "0.25em", textTransform: "uppercase", marginBottom: 12, fontWeight: 700 }}>
+            Architected & Developed By
+          </h3>
+          <h2 style={{ fontSize: "clamp(2rem, 6vw, 3.5rem)", fontWeight: 900, margin: "0 0 20px", fontFamily: "var(--font-display)", letterSpacing: "-0.03em" }}>
+            <span style={{ background: "linear-gradient(135deg, #fff 30%, #34d399 100%)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
+              YASH GUPTA
+            </span>
+          </h2>
+          <p style={{ color: "rgba(255,255,255,0.7)", fontSize: "var(--text-base)", marginBottom: 36, lineHeight: 1.7, maxWidth: 450, margin: "0 auto 36px" }}>
+            Software Engineer specializing in scalable AI architectures, healthcare systems, and high-performance React + FastAPI engineering.
+          </p>
+          
+          <div style={{ display: "flex", justifyContent: "center", gap: 16, flexWrap: "wrap" }}>
+            <motion.a 
+              whileHover={{ y: -3, boxShadow: "0 10px 25px rgba(16,185,129,0.25)" }}
+              href="mailto:contact@yashgupta.com" 
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 100, background: "rgba(16,185,129,0.1)", border: "1px solid rgba(16,185,129,0.3)", color: "#10b981", textDecoration: "none", fontSize: "var(--text-sm)", fontWeight: 700, transition: "background 0.2s" }}
+              onMouseOver={e => e.currentTarget.style.background = "rgba(16,185,129,0.2)"}
+              onMouseOut={e => e.currentTarget.style.background = "rgba(16,185,129,0.1)"}
+            >
+              <Mail size={18} /> Connect with me
+            </motion.a>
+            <motion.a 
+              whileHover={{ y: -3, boxShadow: "0 10px 25px rgba(255,255,255,0.05)" }}
+              href="https://linkedin.com/in/yash-gupta" 
+              target="_blank"
+              rel="noreferrer"
+              style={{ display: "flex", alignItems: "center", gap: 10, padding: "14px 28px", borderRadius: 100, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.1)", color: "#fff", textDecoration: "none", fontSize: "var(--text-sm)", fontWeight: 700, transition: "background 0.2s" }}
+              onMouseOver={e => e.currentTarget.style.background = "rgba(255,255,255,0.08)"}
+              onMouseOut={e => e.currentTarget.style.background = "rgba(255,255,255,0.03)"}
+            >
+              <Globe size={18} /> LinkedIn
+            </motion.a>
+          </div>
         </motion.div>
       </section>
 
