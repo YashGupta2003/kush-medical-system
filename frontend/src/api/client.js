@@ -1,6 +1,6 @@
 const BASE = import.meta.env.VITE_API_BASE_URL || "/api";
 const TOKEN_KEY = "kush_medical_token";
-const REFRESH_TOKEN_KEY = "kush_medical_refresh_token";
+
 
 
 // ---------------------------------------------------------------------------
@@ -16,14 +16,10 @@ export function setToken(token) {
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
-  localStorage.removeItem(REFRESH_TOKEN_KEY);
+
 }
-export function getRefreshToken() {
-  return localStorage.getItem(REFRESH_TOKEN_KEY);
-}
-export function setRefreshToken(token) {
-  if (token) localStorage.setItem(REFRESH_TOKEN_KEY, token);
-}
+
+
 
 // Fired whenever a request comes back 401 (expired/invalid session) so the
 // app shell can redirect to /login without every single page needing to
@@ -36,14 +32,14 @@ export function setUnauthorizedHandler(fn) {
 let _refreshing = null;  // singleton refresh promise — prevents race of multiple 401s
 
 async function attemptSilentRefresh() {
-  const refreshToken = getRefreshToken();
-  if (!refreshToken) return false;
-
   if (!_refreshing) {
     _refreshing = fetch(`${BASE}/auth/refresh`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ refresh_token: refreshToken }),
+      headers: { 
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest"
+      },
+      credentials: "include"
     }).then(async (res) => {
       if (!res.ok) return false;
       const data = await res.json();
@@ -57,6 +53,7 @@ async function attemptSilentRefresh() {
 async function apiFetch(path, options = {}) {
   const token = getToken();
   const headers = { ...(options.headers || {}) };
+  options.credentials = "include";
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
   const res = await fetch(`${BASE}${path}`, { ...options, headers });
@@ -112,8 +109,8 @@ export const api = {
     apiFetch("/auth/login", { method: "POST", ...jsonBody({ username, password, tenant_id }) }),
   refresh: (refresh_token) =>
     apiFetch("/auth/refresh", { method: "POST", ...jsonBody({ refresh_token }) }),
-  logout: (refresh_token) =>
-    apiFetch("/auth/logout", { method: "DELETE", ...jsonBody({ refresh_token }) }),
+  logout: () =>
+    apiFetch("/auth/logout", { method: "DELETE", headers: { "X-Requested-With": "XMLHttpRequest" } }),
   me: () => apiFetch("/auth/me"),
   listUsers: () => apiFetch("/auth/users"),
   createUser: (payload) => apiFetch("/auth/users", { method: "POST", ...jsonBody(payload) }),

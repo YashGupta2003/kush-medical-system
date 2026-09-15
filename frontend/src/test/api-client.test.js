@@ -31,25 +31,15 @@ describe("Token storage helpers", () => {
     expect(getToken()).toBe("eyJhbGciOiJIUzI1NiJ9.test");
   });
 
-  it("clearToken() wipes both access and refresh tokens", () => {
+  it("clearToken() wipes access token", () => {
     setToken("access-token");
-    setRefreshToken("refresh-token");
     clearToken();
     expect(getToken()).toBeNull();
-    expect(getRefreshToken()).toBeNull();
   });
 
-  it("setRefreshToken() stores and getRefreshToken() retrieves", () => {
-    setRefreshToken("r-token-uuid4");
-    expect(getRefreshToken()).toBe("r-token-uuid4");
-  });
+  
 
-  it("setRefreshToken() is a no-op for falsy values", () => {
-    setRefreshToken(null);
-    expect(getRefreshToken()).toBeNull();
-    setRefreshToken(undefined);
-    expect(getRefreshToken()).toBeNull();
-  });
+  
 });
 
 // ─── Unauthorized handler registration ──────────────────────────────────────

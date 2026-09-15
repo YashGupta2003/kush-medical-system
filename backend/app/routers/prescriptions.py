@@ -10,7 +10,11 @@ Endpoints follow the same patterns as bills.py:
 """
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, Request
+from app.core.rate_limit import limiter
+from fastapi import Depends
+from app.config import settings
+from fastapi import UploadFile, File, Form, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
 
@@ -173,7 +177,8 @@ def _load_prescription(db: Session, prescription_id: int, tenant_id: int) -> mod
 # Endpoints
 # ---------------------------------------------------------------------------
 @router.post("/upload")
-async def upload_prescription(
+@limiter.limit(settings.rate_limit_ocr)
+async def upload_prescription(request: Request, 
     file: UploadFile = File(...),
     customer_phone: Optional[str] = Form(None),
     customer_name: Optional[str] = Form(None),
@@ -185,7 +190,7 @@ async def upload_prescription(
     the fully processed prescription with items and stock status.
     Optionally links to a customer by phone (creates customer if not found).
     """
-    file_bytes = await file.read()
+    file_bytes = validate_upload(file)
     if not file_bytes:
         raise HTTPException(400, "Empty file uploaded")
 

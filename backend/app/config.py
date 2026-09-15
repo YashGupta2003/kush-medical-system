@@ -72,6 +72,16 @@ class Settings(BaseSettings):
     # Leave empty to allow localhost (development) origins only.
     allowed_origins: str = ""
 
+    # Rate limits
+    rate_limit_global: str = "100/minute"
+    rate_limit_copilot: str = "10/minute"
+    rate_limit_ocr: str = "10/minute"          # paid GCP Vision API — keep strict for cost control
+    rate_limit_auth: str = "5/minute"
+    rate_limit_setup: str = "5/hour"
+
+    # Uploads
+    max_upload_size_mb: int = 10
+
     class Config:
         env_file = ".env"
 

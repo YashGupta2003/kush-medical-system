@@ -7,8 +7,8 @@ from app.services import stock_service
 from app import models
 
 
-def _confirmed_item(db_session, medicine, distributor, qty=10, free_qty=2):
-    bill = models.Bill(distributor_id=distributor.id, status="confirmed", year=2026, month=7)
+def _confirmed_item(db_session, tenant, medicine, distributor, qty=10, free_qty=2):
+    bill = models.Bill(tenant_id=tenant.id, distributor_id=distributor.id, status="confirmed", year=2026, month=7)
     db_session.add(bill)
     db_session.flush()
     item = models.BillItem(
@@ -20,8 +20,8 @@ def _confirmed_item(db_session, medicine, distributor, qty=10, free_qty=2):
     return item
 
 
-def test_stock_increases_by_qty_plus_free_qty_on_bill_confirm(db_session, sample_medicine, sample_distributor):
-    item = _confirmed_item(db_session, sample_medicine, sample_distributor, qty=10, free_qty=2)
+def test_stock_increases_by_qty_plus_free_qty_on_bill_confirm(db_session, tenant, sample_medicine, sample_distributor):
+    item = _confirmed_item(db_session, tenant, sample_medicine, sample_distributor, qty=10, free_qty=2)
     before = float(sample_medicine.current_stock)
 
     stock_service.add_stock_from_confirmed_bill_item(db_session, item)
@@ -36,7 +36,7 @@ def test_stock_increases_by_qty_plus_free_qty_on_bill_confirm(db_session, sample
     assert float(ledger[0].change_qty) == 12
 
 
-def test_unmatched_item_does_not_affect_stock(db_session, sample_medicine, sample_distributor):
+def test_unmatched_item_does_not_affect_stock(db_session, tenant, sample_medicine, sample_distributor):
     bill = models.Bill(distributor_id=sample_distributor.id, status="confirmed", year=2026, month=7)
     db_session.add(bill)
     db_session.flush()
@@ -57,7 +57,7 @@ def test_unmatched_item_does_not_affect_stock(db_session, sample_medicine, sampl
 def test_record_sale_decrements_stock_and_logs_ledger(db_session, sample_medicine, tenant):
     initial_stock = float(sample_medicine.current_stock)
 
-    result = stock_service.record_sale(db_session, sample_medicine.id, 3)
+    result = stock_service.record_sale(db_session, tenant.id, sample_medicine.id, 3)
 
     assert result["current_stock"] == initial_stock - 3
     ledger = db_session.query(models.StockLedger).filter_by(medicine_id=sample_medicine.id).all()
@@ -66,10 +66,10 @@ def test_record_sale_decrements_stock_and_logs_ledger(db_session, sample_medicin
     assert float(ledger[0].change_qty) == -3
 
 
-def test_record_sale_returns_last_purchase_context(db_session, sample_medicine, sample_distributor):
-    _confirmed_item(db_session, sample_medicine, sample_distributor, qty=20, free_qty=0)
+def test_record_sale_returns_last_purchase_context(db_session, tenant, sample_medicine, sample_distributor):
+    _confirmed_item(db_session, tenant, sample_medicine, sample_distributor, qty=20, free_qty=0)
     # simulate that item having actually been through the confirm flow already
-    result = stock_service.record_sale(db_session, sample_medicine.id, 1)
+    result = stock_service.record_sale(db_session, tenant.id, sample_medicine.id, 1)
     # last_purchase may be None here since we didn't call add_stock_from_confirmed_bill_item,
     # but the snapshot shape itself must always be present and well-formed.
     assert "last_purchase" in result
@@ -82,7 +82,7 @@ def test_reorder_list_includes_medicine_once_it_falls_below_threshold(db_session
     all_ids_before = [item["medicine_id"] for group in reorder for item in group["items"]]
     assert sample_medicine.id not in all_ids_before
 
-    stock_service.record_sale(db_session, sample_medicine.id, 15)  # 20 -> 5, now below threshold of 10
+    stock_service.record_sale(db_session, tenant.id, sample_medicine.id, 15)  # 20 -> 5, now below threshold of 10
 
     reorder = stock_service.get_reorder_list(db_session, tenant_id=tenant.id)
     all_ids_after = [item["medicine_id"] for group in reorder for item in group["items"]]

@@ -17,7 +17,7 @@ def test_credit_cart_sale_links_customer_and_charges_ledger(db_session, sample_m
     db_session.commit()
 
     result = pos_service.record_cart_sale(
-        db_session,
+        db_session, tenant.id,
         [{"medicine_id": sample_medicine.id, "qty_sold": 3}],
         customer_id=customer.id,
         payment_mode="credit",
@@ -44,7 +44,7 @@ def test_cash_cart_sale_does_not_touch_credit_ledger(db_session, sample_medicine
     db_session.commit()
 
     result = pos_service.record_cart_sale(
-        db_session,
+        db_session, tenant.id,
         [{"medicine_id": sample_medicine.id, "qty_sold": 2}],
         customer_id=customer.id,
         payment_mode="cash",
@@ -57,6 +57,6 @@ def test_cash_cart_sale_does_not_touch_credit_ledger(db_session, sample_medicine
 
 def test_walk_in_sale_with_no_customer_works_exactly_as_before(db_session, sample_medicine, tenant):
     """Backward-compatibility guard: omitting customer_id entirely must not break anything."""
-    result = pos_service.record_cart_sale(db_session, [{"medicine_id": sample_medicine.id, "qty_sold": 1}])
+    result = pos_service.record_cart_sale(db_session, tenant.id, [{"medicine_id": sample_medicine.id, "qty_sold": 1}])
     assert result["status"] == "recorded"
     assert result["credit_balance_after"] is None

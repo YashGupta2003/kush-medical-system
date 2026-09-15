@@ -178,7 +178,7 @@ else:
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_allowed_origins,
-    allow_credentials=False,  # not needed; we use Authorization header, not cookies
+    allow_credentials=True,  # not needed; we use Authorization header, not cookies
     allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Requested-With"],
 )

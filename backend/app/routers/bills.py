@@ -3,12 +3,17 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, Query
+from fastapi import APIRouter, Request
+from app.core.rate_limit import limiter
+from fastapi import Depends
+from app.config import settings
+from fastapi import UploadFile, File, Form, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
 from app.config import settings
 from app import models, schemas
+from app.core.upload_validation import validate_upload
 from app.services.tasks import process_bill_task, reprocess_region_task
 from app.services.image_preprocessing import correct_orientation
 from app.deps import get_current_user, get_current_user_flexible
@@ -93,7 +98,8 @@ def _create_queued_bill(db: Session, file_bytes: bytes, filename: str, tenant_id
 
 
 @router.post("/upload", response_model=schemas.UploadAcceptedResponse)
-async def upload_bill(
+@limiter.limit(settings.rate_limit_ocr)
+async def upload_bill(request: Request, 
     file: UploadFile = File(...),
     distributor_name: Optional[str] = Form(None),
     invoice_no: Optional[str] = Form(None),
@@ -107,9 +113,7 @@ async def upload_bill(
     request. Poll GET /bills/{bill_id}/status to know when it's ready to
     review.
     """
-    if file.content_type not in ["image/jpeg", "image/png", "application/pdf"]:
-        raise HTTPException(400, "Only JPEG, PNG and PDF files are allowed.")
-    file_bytes = await file.read()
+    file_bytes = validate_upload(file)
     bill = _create_queued_bill(db, file_bytes, file.filename, current_user.tenant_id, distributor_name, invoice_no, invoice_date)
     db.commit()
 
@@ -144,9 +148,7 @@ async def upload_bills_batch(
 
     responses = []
     for file in files:
-        if file.content_type not in ["image/jpeg", "image/png", "application/pdf"]:
-            raise HTTPException(400, f"Only JPEG, PNG and PDF files are allowed. Found: {file.content_type}")
-        file_bytes = await file.read()
+        file_bytes = validate_upload(file)
         bill = _create_queued_bill(db, file_bytes, file.filename, current_user.tenant_id, distributor_name, None, None)
         db.commit()
         task = process_bill_task.delay(bill.id)

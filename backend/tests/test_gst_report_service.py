@@ -8,8 +8,8 @@ from app.services import gst_report_service
 from app import models
 
 
-def _confirmed_bill_with_item(db_session, distributor, medicine, year, month, amount, gst_pct):
-    bill = models.Bill(distributor_id=distributor.id, status="confirmed", year=year, month=month)
+def _confirmed_bill_with_item(db_session, tenant, distributor, medicine, year, month, amount, gst_pct):
+    bill = models.Bill(tenant_id=tenant.id, distributor_id=distributor.id, status="confirmed", year=year, month=month)
     db_session.add(bill)
     db_session.flush()
     item = models.BillItem(
@@ -21,11 +21,11 @@ def _confirmed_bill_with_item(db_session, distributor, medicine, year, month, am
     return bill, item
 
 
-def test_gst_math_splits_cgst_sgst_equally(db_session, sample_medicine, sample_distributor):
+def test_gst_math_splits_cgst_sgst_equally(db_session, tenant, sample_medicine, sample_distributor):
     # amount=1050 at 5% GST -> taxable=1000, total_tax=50, cgst=sgst=25
-    _confirmed_bill_with_item(db_session, sample_distributor, sample_medicine, 2026, 7, 1050.0, 5.0)
+    _confirmed_bill_with_item(db_session, tenant, sample_distributor, sample_medicine, 2026, 7, 1050.0, 5.0)
 
-    report = gst_report_service.get_gst_report(db_session, 2026, 7)
+    report = gst_report_service.get_gst_report(db_session, tenant.id, 2026, 7)
 
     assert report["bill_count"] == 1
     assert len(report["slabs"]) == 1
@@ -38,7 +38,7 @@ def test_gst_math_splits_cgst_sgst_equally(db_session, sample_medicine, sample_d
     assert abs(slab["total_amount"] - 1050.0) < 0.5
 
 
-def test_only_confirmed_bills_are_counted(db_session, sample_medicine, sample_distributor):
+def test_only_confirmed_bills_are_counted(db_session, tenant, sample_medicine, sample_distributor):
     bill = models.Bill(distributor_id=sample_distributor.id, status="pending_review", year=2026, month=7)
     db_session.add(bill)
     db_session.flush()
@@ -49,25 +49,25 @@ def test_only_confirmed_bills_are_counted(db_session, sample_medicine, sample_di
     db_session.add(item)
     db_session.commit()
 
-    report = gst_report_service.get_gst_report(db_session, 2026, 7)
+    report = gst_report_service.get_gst_report(db_session, tenant.id, 2026, 7)
     assert report["bill_count"] == 0
     assert report["slabs"] == []
 
 
-def test_multiple_gst_slabs_reported_separately(db_session, sample_medicine, sample_distributor):
-    _confirmed_bill_with_item(db_session, sample_distributor, sample_medicine, 2026, 7, 1050.0, 5.0)
-    _confirmed_bill_with_item(db_session, sample_distributor, sample_medicine, 2026, 7, 1120.0, 12.0)
+def test_multiple_gst_slabs_reported_separately(db_session, tenant, sample_medicine, sample_distributor):
+    _confirmed_bill_with_item(db_session, tenant, sample_distributor, sample_medicine, 2026, 7, 1050.0, 5.0)
+    _confirmed_bill_with_item(db_session, tenant, sample_distributor, sample_medicine, 2026, 7, 1120.0, 12.0)
 
-    report = gst_report_service.get_gst_report(db_session, 2026, 7)
+    report = gst_report_service.get_gst_report(db_session, tenant.id, 2026, 7)
     gst_pcts = {s["gst_pct"] for s in report["slabs"]}
     assert gst_pcts == {5.0, 12.0}
     assert report["bill_count"] == 2
 
 
-def test_wrong_month_returns_empty_report(db_session, sample_medicine, sample_distributor):
-    _confirmed_bill_with_item(db_session, sample_distributor, sample_medicine, 2026, 7, 1050.0, 5.0)
+def test_wrong_month_returns_empty_report(db_session, tenant, sample_medicine, sample_distributor):
+    _confirmed_bill_with_item(db_session, tenant, sample_distributor, sample_medicine, 2026, 7, 1050.0, 5.0)
 
-    report = gst_report_service.get_gst_report(db_session, 2026, 8)  # different month
+    report = gst_report_service.get_gst_report(db_session, tenant.id, 2026, 8)  # different month
     assert report["bill_count"] == 0
     assert report["grand_total_amount"] == 0.0
 

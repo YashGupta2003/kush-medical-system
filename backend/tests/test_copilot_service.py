@@ -74,26 +74,26 @@ def _fake_tool_call_for_dict_test(call_id, name, arguments_dict):
 # through which the LLM can ever cause code to run.
 # ---------------------------------------------------------------------------
 class TestDispatchTool:
-    def test_unknown_tool_name_fails_safely(self, db_session):
-        result, error = copilot_service._dispatch_tool(db_session, "delete_everything", {})
+    def test_unknown_tool_name_fails_safely(self, db_session, tenant):
+        result, error = copilot_service._dispatch_tool(db_session, tenant.id, "delete_everything", {})
         assert result is None
         assert "Unknown tool" in error
 
-    def test_known_tool_with_valid_args_succeeds(self, db_session, sample_medicine):
+    def test_known_tool_with_valid_args_succeeds(self, db_session, tenant, sample_medicine):
         result, error = copilot_service._dispatch_tool(
-            db_session, "search_medicines", {"query": "AMLOKIND"}
+            db_session, tenant.id, "search_medicines", {"query": "AMLOKIND"}
         )
         assert error is None
         assert any(m["medicine_id"] == sample_medicine.id for m in result)
 
-    def test_invalid_arguments_fail_safely_not_crash(self, db_session):
-        result, error = copilot_service._dispatch_tool(db_session, "get_gst_report", {})
+    def test_invalid_arguments_fail_safely_not_crash(self, db_session, tenant):
+        result, error = copilot_service._dispatch_tool(db_session, tenant.id, "get_gst_report", {})
         assert result is None
         assert "Invalid arguments" in error
 
-    def test_tool_cannot_be_called_with_arbitrary_python(self, db_session):
+    def test_tool_cannot_be_called_with_arbitrary_python(self, db_session, tenant):
         result, error = copilot_service._dispatch_tool(
-            db_session, "__import__", {"name": "os"}
+            db_session, tenant.id, "__import__", {"name": "os"}
         )
         assert result is None
         assert "Unknown tool" in error
@@ -103,33 +103,33 @@ class TestDispatchTool:
 # Individual tool wrappers - real DB logic, no mocking needed
 # ---------------------------------------------------------------------------
 class TestToolWrappers:
-    def test_search_medicines_partial_match(self, db_session, sample_medicine):
-        result = copilot_service._tool_search_medicines(db_session, query="amlokind")
+    def test_search_medicines_partial_match(self, db_session, tenant, sample_medicine):
+        result = copilot_service._tool_search_medicines(db_session, tenant.id, query="amlokind")
         assert len(result) == 1
         assert result[0]["particulars"] == sample_medicine.particulars
 
-    def test_get_recent_sales_respects_window(self, db_session, sample_medicine):
+    def test_get_recent_sales_respects_window(self, db_session, tenant, sample_medicine):
         from datetime import datetime, timedelta
-        old_sale = models.Sale(medicine_id=sample_medicine.id, qty_sold=5, sold_at=datetime.utcnow() - timedelta(days=5))
-        recent_sale = models.Sale(medicine_id=sample_medicine.id, qty_sold=2, sold_at=datetime.utcnow())
+        old_sale = models.Sale(tenant_id=tenant.id, medicine_id=sample_medicine.id, qty_sold=5, sold_at=datetime.utcnow() - timedelta(days=5))
+        recent_sale = models.Sale(tenant_id=tenant.id, medicine_id=sample_medicine.id, qty_sold=2, sold_at=datetime.utcnow())
         db_session.add_all([old_sale, recent_sale])
         db_session.commit()
 
-        result = copilot_service._tool_get_recent_sales(db_session, hours=24)
+        result = copilot_service._tool_get_recent_sales(db_session, tenant.id, hours=24)
         assert len(result) == 1
         assert result[0]["qty_sold"] == 2.0
 
-    def test_profit_margin_analysis_shop_average(self, db_session, sample_medicine):
-        result = copilot_service._tool_get_profit_margin_analysis(db_session)
+    def test_profit_margin_analysis_shop_average(self, db_session, tenant, sample_medicine):
+        result = copilot_service._tool_get_profit_margin_analysis(db_session, tenant.id)
         assert result["shop_average_margin_pct"] is not None
         assert result["shop_priced_medicine_count"] == 1
 
-    def test_check_drug_interactions_delegates_to_graph_service(self, db_session):
+    def test_check_drug_interactions_delegates_to_graph_service(self, db_session, tenant):
         from app.services import graph_service
         graph_service.seed_interaction_edges(db_session)
         db_session.commit()
 
-        result = copilot_service._tool_check_drug_interactions(db_session, salts=["Warfarin", "Aspirin"])
+        result = copilot_service._tool_check_drug_interactions(db_session, tenant.id, salts=["Warfarin", "Aspirin"])
         assert len(result) == 1
 
 
@@ -166,27 +166,27 @@ def _fake_response(finish_reason, message):
 
 
 class TestRunCopilotQueryNoApiKey:
-    def test_returns_friendly_message_when_unconfigured(self, db_session, monkeypatch):
+    def test_returns_friendly_message_when_unconfigured(self, db_session, tenant, monkeypatch):
         monkeypatch.setattr(copilot_service.settings, "groq_api_key", "")
-        result = copilot_service.run_copilot_query(db_session, "hello")
+        result = copilot_service.run_copilot_query(db_session, tenant.id, "hello")
         assert "isn't configured" in result["reply"]
         assert result["tool_calls"] == []
 
 
 class TestRunCopilotQueryWithMockedModel:
-    def test_direct_text_reply_needs_no_tool_calls(self, db_session, monkeypatch):
+    def test_direct_text_reply_needs_no_tool_calls(self, db_session, tenant, monkeypatch):
         monkeypatch.setattr(copilot_service.settings, "groq_api_key", "fake-key-for-test")
 
         fake_response = _fake_response("stop", _fake_message(content="Hi, how can I help?"))
 
         with patch("groq.Groq") as MockClient:
             MockClient.return_value.chat.completions.create.return_value = fake_response
-            result = copilot_service.run_copilot_query(db_session, "hello")
+            result = copilot_service.run_copilot_query(db_session, tenant.id, "hello")
 
         assert result["reply"] == "Hi, how can I help?"
         assert result["tool_calls"] == []
 
-    def test_tool_use_then_final_answer(self, db_session, sample_medicine, monkeypatch):
+    def test_tool_use_then_final_answer(self, db_session, tenant, sample_medicine, monkeypatch):
         monkeypatch.setattr(copilot_service.settings, "groq_api_key", "fake-key-for-test")
 
         tool_call = _fake_tool_call("call_1", "search_medicines", {"query": "AMLOKIND"})
@@ -195,14 +195,14 @@ class TestRunCopilotQueryWithMockedModel:
 
         with patch("groq.Groq") as MockClient:
             MockClient.return_value.chat.completions.create.side_effect = [tool_use_response, final_response]
-            result = copilot_service.run_copilot_query(db_session, "find amlokind")
+            result = copilot_service.run_copilot_query(db_session, tenant.id, "find amlokind")
 
         assert "Found it" in result["reply"]
         assert len(result["tool_calls"]) == 1
         assert result["tool_calls"][0]["tool"] == "search_medicines"
         assert result["tool_calls"][0]["error"] is None
 
-    def test_runaway_tool_loop_is_capped(self, db_session, monkeypatch):
+    def test_runaway_tool_loop_is_capped(self, db_session, tenant, monkeypatch):
         monkeypatch.setattr(copilot_service.settings, "groq_api_key", "fake-key-for-test")
         monkeypatch.setattr(copilot_service, "MAX_TOOL_ITERATIONS", 2)
 
@@ -211,12 +211,12 @@ class TestRunCopilotQueryWithMockedModel:
 
         with patch("groq.Groq") as MockClient:
             MockClient.return_value.chat.completions.create.return_value = always_tool_use
-            result = copilot_service.run_copilot_query(db_session, "loop forever")
+            result = copilot_service.run_copilot_query(db_session, tenant.id, "loop forever")
 
         assert "wasn't able to finish" in result["reply"]
         assert len(result["tool_calls"]) == 2   # capped, not infinite
 
-    def test_unknown_tool_call_reported_as_error_not_crash(self, db_session, monkeypatch):
+    def test_unknown_tool_call_reported_as_error_not_crash(self, db_session, tenant, monkeypatch):
         monkeypatch.setattr(copilot_service.settings, "groq_api_key", "fake-key-for-test")
 
         bad_tool_call = _fake_tool_call("call_1", "drop_all_tables", {})
@@ -225,12 +225,12 @@ class TestRunCopilotQueryWithMockedModel:
 
         with patch("groq.Groq") as MockClient:
             MockClient.return_value.chat.completions.create.side_effect = [bad_tool_response, final_response]
-            result = copilot_service.run_copilot_query(db_session, "try something unsafe")
+            result = copilot_service.run_copilot_query(db_session, tenant.id, "try something unsafe")
 
         assert result["tool_calls"][0]["error"] is not None
         assert "Unknown tool" in result["tool_calls"][0]["error"]
 
-    def test_malformed_tool_arguments_json_does_not_crash(self, db_session, monkeypatch):
+    def test_malformed_tool_arguments_json_does_not_crash(self, db_session, tenant, monkeypatch):
         monkeypatch.setattr(copilot_service.settings, "groq_api_key", "fake-key-for-test")
 
         malformed_call = SimpleNamespace(
@@ -243,7 +243,7 @@ class TestRunCopilotQueryWithMockedModel:
 
         with patch("groq.Groq") as MockClient:
             MockClient.return_value.chat.completions.create.side_effect = [tool_response, final_response]
-            result = copilot_service.run_copilot_query(db_session, "give me an overview")
+            result = copilot_service.run_copilot_query(db_session, tenant.id, "give me an overview")
 
         # Malformed JSON args should fall back to {} rather than raise
         assert result["reply"] == "Here's the overview."

@@ -11,7 +11,10 @@ verification) so the shop can start the Setup Wizard (medicine import) without
 waiting for email. The email_verified flag is a separate UX gate — unverified
 accounts are fully functional but a banner reminds them to verify.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Request
+from app.core.rate_limit import limiter
+from app.config import settings
+from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from typing import Optional
@@ -49,7 +52,8 @@ class RegistrationResponse(BaseModel):
 
 
 @router.post("", response_model=RegistrationResponse, summary="Register a new pharmacy")
-def register_shop(payload: ShopRegistrationRequest, db: Session = Depends(get_db)):
+@limiter.limit(settings.rate_limit_setup)
+def register_shop(request: Request, payload: ShopRegistrationRequest, db: Session = Depends(get_db)):
     """
     Register a new pharmacy on the platform.
     Creates a Tenant + Owner User and returns JWT tokens for immediate access.

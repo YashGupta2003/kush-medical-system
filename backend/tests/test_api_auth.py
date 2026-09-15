@@ -6,7 +6,7 @@ control is actually enforced at the API layer, not just in theory.
 
 
 def test_login_with_correct_credentials_returns_token(client, owner_user):
-    response = client.post("/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
+    response = client.post("https://testserver/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
     assert response.status_code == 200
     body = response.json()
     assert body["role"] == "owner"
@@ -14,12 +14,12 @@ def test_login_with_correct_credentials_returns_token(client, owner_user):
 
 
 def test_login_with_wrong_password_is_rejected(client, owner_user):
-    response = client.post("/auth/login", json={"username": "owner1", "password": "wrongpassword", "tenant_id": owner_user.tenant_id})
+    response = client.post("https://testserver/auth/login", json={"username": "owner1", "password": "wrongpassword", "tenant_id": owner_user.tenant_id})
     assert response.status_code == 401
 
 
 def test_login_with_unknown_username_is_rejected(client):
-    response = client.post("/auth/login", json={"username": "nobody", "password": "whatever", "tenant_id": 1})
+    response = client.post("https://testserver/auth/login", json={"username": "nobody", "password": "whatever", "tenant_id": 1})
     assert response.status_code == 401
 
 
@@ -56,11 +56,11 @@ def test_gst_report_is_owner_only(client, staff_headers, owner_headers):
 
 
 def test_deactivated_account_cannot_log_in(client, db_session, owner_user):
-    from app.services.auth_service import authenticate_user
+    from app.services.auth_service import authenticate_user  # noqa: F401
     owner_user.is_active = False
     db_session.commit()
 
-    response = client.post("/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
+    response = client.post("https://testserver/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
     assert response.status_code == 401
 
 
@@ -92,3 +92,34 @@ def test_cannot_create_duplicate_username(client, owner_headers, owner_user):
         headers=owner_headers,
     )
     assert response.status_code == 400
+
+
+def test_refresh_token_reads_cookie_and_needs_csrf(client, owner_user):
+    # Login → should set an httpOnly refresh_token cookie
+    response = client.post("https://testserver/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
+    assert response.status_code == 200
+    cookies = response.cookies
+    assert "refresh_token" in cookies
+
+    # Refresh without the CSRF header must be rejected
+    resp2 = client.post("https://testserver/auth/refresh")
+    assert resp2.status_code == 400
+
+    # Refresh with CSRF header + cookie must succeed and rotate the cookie
+    resp3 = client.post("https://testserver/auth/refresh", headers={"X-Requested-With": "XMLHttpRequest"}, cookies=cookies)
+    assert resp3.status_code == 200
+    assert "access_token" in resp3.json()
+    assert "refresh_token" in resp3.cookies
+
+
+def test_logout_reads_cookie_and_needs_csrf(client, owner_user):
+    response = client.post("https://testserver/auth/login", json={"username": "owner1", "password": "ownerpass123", "tenant_id": owner_user.tenant_id})
+    cookies = response.cookies
+
+    # Logout must succeed with CSRF header
+    resp_out = client.delete("https://testserver/auth/logout", headers={"X-Requested-With": "XMLHttpRequest"}, cookies=cookies)
+    assert resp_out.status_code == 200
+
+    # Using the old (now-revoked) refresh cookie must fail
+    resp_ref = client.post("https://testserver/auth/refresh", headers={"X-Requested-With": "XMLHttpRequest"}, cookies=cookies)
+    assert resp_ref.status_code == 401

@@ -22,7 +22,11 @@ Column mapping (case-insensitive, extra columns ignored):
 """
 import io
 import logging
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Request
+from app.core.rate_limit import limiter
+from fastapi import Depends
+from app.config import settings
+from fastapi import HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -69,7 +73,9 @@ def _normalize_medicine_name(name: str) -> str:
 
 
 @router.post("/import-medicine-list", summary="Import medicine list from Excel/CSV (Setup Wizard)")
+@limiter.limit(settings.rate_limit_setup)
 def import_medicine_list(
+    request: Request,
     file: UploadFile = File(..., description="Excel (.xlsx, .xls) or CSV medicine rate list"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_owner),

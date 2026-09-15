@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   api, getToken, setToken, clearToken, setUnauthorizedHandler,
-  getRefreshToken, setRefreshToken,
+  
 } from "../api/client.js";
 
 const AuthContext = createContext(null);
@@ -36,7 +36,7 @@ export function AuthProvider({ children }) {
   async function login(username, password, tenant_id) {
     const res = await api.login(username, password, tenant_id);
     setToken(res.access_token);
-    if (res.refresh_token) setRefreshToken(res.refresh_token);
+    
     setUser({
       username: res.username,
       role: res.role,
@@ -48,7 +48,7 @@ export function AuthProvider({ children }) {
 
   async function loginWithTokens(accessToken, refreshToken, userData) {
     setToken(accessToken);
-    if (refreshToken) setRefreshToken(refreshToken);
+    
     setUser({
       username: userData.username,
       role: userData.role,
@@ -59,10 +59,7 @@ export function AuthProvider({ children }) {
   }
 
   async function logout() {
-    const refreshToken = getRefreshToken();
-    if (refreshToken) {
-      api.logout(refreshToken).catch(() => {});
-    }
+    api.logout().catch(() => {});
     clearToken();
     setUser(null);
     navigate("/");

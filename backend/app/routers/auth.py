@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -11,12 +11,13 @@ from app.services.auth_service import (
 )
 
 from app.core.rate_limit import limiter
+from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/login", response_model=schemas.TokenResponse)
-@limiter.limit("5/minute")
-def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit(settings.rate_limit_auth)
+def login(request: Request, response: Response, payload: schemas.LoginRequest, db: Session = Depends(get_db)):
     """
     Priority 2a: Rate limited to 5 requests/minute/IP via slowapi.
     Returns both access_token (12h) and refresh_token (30d).
@@ -26,9 +27,9 @@ def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends
         raise HTTPException(401, "Incorrect username or password")
     access_token = create_access_token(user)
     refresh_token = create_refresh_token(db, user)
+    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=True, samesite="strict", max_age=settings.refresh_token_expire_days * 24 * 60 * 60)
     return schemas.TokenResponse(
         access_token=access_token,
-        refresh_token=refresh_token,
         role=user.role,
         username=user.username,
         full_name=user.full_name,
@@ -38,7 +39,7 @@ def login(request: Request, payload: schemas.LoginRequest, db: Session = Depends
 
 
 @router.post("/refresh", response_model=schemas.TokenResponse)
-def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+def refresh_token(request: Request, response: Response, db: Session = Depends(get_db)):
     """
     Priority 2a: Silent refresh flow.
     The frontend calls this on any 401 before redirecting to /login.
@@ -47,18 +48,20 @@ def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(ge
     refresh_token on every refresh call — simpler for the frontend.
     Explicit revocation is available via DELETE /auth/logout.
     """
-    user = verify_refresh_token(db, payload.refresh_token)
+    if not request.headers.get("x-requested-with"): raise HTTPException(400, "CSRF protection: Missing X-Requested-With header")
+    token = request.cookies.get("refresh_token")
+    if not token: raise HTTPException(401, "No refresh token in cookie")
+    user = verify_refresh_token(db, token)
     if not user:
         raise HTTPException(401, "Refresh token is invalid, expired, or revoked — please log in again")
 
     new_access_token = create_access_token(user)
     # Rotate the refresh token
-    revoke_refresh_token(db, payload.refresh_token)
-    new_refresh_token = create_refresh_token(db, user.id)
-
+    revoke_refresh_token(db, token)
+    new_refresh_token = create_refresh_token(db, user)
+    response.set_cookie(key="refresh_token", value=new_refresh_token, httponly=True, secure=True, samesite="strict", max_age=settings.refresh_token_expire_days * 24 * 60 * 60)
     return schemas.TokenResponse(
         access_token=new_access_token,
-        refresh_token=new_refresh_token,
         role=user.role,
         username=user.username,
         full_name=user.full_name,
@@ -68,13 +71,18 @@ def refresh_token(payload: schemas.RefreshTokenRequest, db: Session = Depends(ge
 
 
 @router.delete("/logout")
-def logout(payload: schemas.RefreshTokenRequest, db: Session = Depends(get_db)):
+def logout(request: Request, response: Response, db: Session = Depends(get_db)):
     """
     Explicit logout: revokes the provided refresh token so it can't be
     used to silently refresh access anymore. The access token itself is
     short-lived (12h) and will naturally expire.
     """
-    revoked = revoke_refresh_token(db, payload.refresh_token)
+    if not request.headers.get("x-requested-with"): raise HTTPException(400, "CSRF protection: Missing X-Requested-With header")
+    token = request.cookies.get("refresh_token")
+    revoked = False
+    if token:
+        revoked = revoke_refresh_token(db, token)
+    response.delete_cookie("refresh_token")
     return {"revoked": revoked}
 
 
