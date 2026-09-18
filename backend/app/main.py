@@ -15,10 +15,17 @@ API Versioning:
   unversioned URLs continues to work. Those paths are tagged
   "deprecated" in OpenAPI and will be removed in v2.
 """
+import traceback
+
 from fastapi import FastAPI, APIRouter, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import SQLAlchemyError
 from app.core.idempotency import IdempotencyMiddleware
+from app.core.request_id import RequestIDMiddleware
+from app.core.logging import get_logger
+
+_main_logger = get_logger("main")
 
 from app.routers import (
     bills, medicines, dashboard, stock, expiry, analytics, auth, gst,
@@ -192,6 +199,79 @@ app.add_middleware(
 # added AFTER CORSMiddleware to run *inside* CORS (correct layering).
 # ---------------------------------------------------------------------------
 app.add_middleware(IdempotencyMiddleware)
+
+# ---------------------------------------------------------------------------
+# Request ID middleware — generates a per-request UUID4 correlation ID.
+# Must be added LAST (Starlette LIFO) so it runs OUTERMOST and the ID is
+# available on request.state for all downstream handlers, including the
+# global exception handlers below.
+# ---------------------------------------------------------------------------
+app.add_middleware(RequestIDMiddleware)
+
+
+# ---------------------------------------------------------------------------
+# Task 1 — Global exception handlers
+#
+# IMPORTANT: these run AFTER Sentry's FastAPI integration, which already
+# hooks into the ASGI cycle at the middleware level before our handlers.
+# So Sentry captures the exception automatically; our handlers just ensure
+# the CLIENT response is always sanitised (no raw error details leaked).
+# ---------------------------------------------------------------------------
+
+def _get_request_id(request: Request) -> str:
+    """Safe accessor for request.state.request_id (set by RequestIDMiddleware)."""
+    return getattr(request.state, "request_id", "unknown")
+
+
+@app.exception_handler(SQLAlchemyError)
+async def _sqlalchemy_error_handler(request: Request, exc: SQLAlchemyError):
+    """
+    Catches any unhandled SQLAlchemy error and returns a generic DB error
+    message.  Raw SQL / connection strings are NEVER forwarded to the client.
+    """
+    request_id = _get_request_id(request)
+    _main_logger.error(
+        "SQLAlchemyError on %s %s [request_id=%s]: %s\n%s",
+        request.method, request.url.path, request_id,
+        exc, traceback.format_exc()
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "A database error occurred. Please try again later.",
+            "request_id": request_id,
+        },
+        headers={"X-Request-ID": request_id},
+    )
+
+
+@app.exception_handler(Exception)
+async def _global_exception_handler(request: Request, exc: Exception):
+    """
+    Catch-all for any unhandled exception that wasn't caught by a more
+    specific handler.  Logs the full traceback server-side and returns a
+    sanitised 500 response — no internal detail is ever exposed to the
+    client.
+
+    Sentry note: Sentry's FastAPI integration intercepts exceptions at
+    the ASGI middleware layer (before our handler sees them), so Sentry
+    already captures the event.  This handler does NOT need to call
+    sentry_sdk.capture_exception() manually.
+    """
+    request_id = _get_request_id(request)
+    _main_logger.error(
+        "Unhandled exception on %s %s [request_id=%s]: %r\n%s",
+        request.method, request.url.path, request_id,
+        exc, traceback.format_exc()
+    )
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Internal server error",
+            "request_id": request_id,
+        },
+        headers={"X-Request-ID": request_id},
+    )
 
 # ---------------------------------------------------------------------------
 # Routers — versioned (/v1/...) + unversioned legacy (/...) shims

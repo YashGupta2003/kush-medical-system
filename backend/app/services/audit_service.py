@@ -176,12 +176,14 @@ def verify_chain(db: Session) -> dict:
     }
 
 
-def get_ledger(db: Session, event_type: Optional[str] = None, limit: int = 100) -> list[models.AuditLedgerEntry]:
-    """Most recent entries first - what the TrustChain screen's main table shows."""
+def get_ledger_paginated(db: Session, event_type: Optional[str] = None, limit: int = 100, offset: int = 0) -> tuple[list[models.AuditLedgerEntry], int]:
+    """Most recent entries first - what the TrustChain screen's main table shows, with total count."""
     q = db.query(models.AuditLedgerEntry)
     if event_type:
         q = q.filter(models.AuditLedgerEntry.event_type == event_type)
-    return q.order_by(models.AuditLedgerEntry.id.desc()).limit(limit).all()
+    total = q.count()
+    items = q.order_by(models.AuditLedgerEntry.id.desc()).offset(offset).limit(limit).all()
+    return items, total
 
 
 def get_entries_for_reference(db: Session, event_type: str, reference_id: int) -> list[models.AuditLedgerEntry]:

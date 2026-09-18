@@ -255,20 +255,20 @@ def remove_bill_item(bill_id: int, item_id: int, db: Session = Depends(get_db), 
     return {"status": "ok"}
 
 
-@router.get("", response_model=schemas.PaginatedBills)
+@router.get("", response_model=schemas.PaginatedResponse[schemas.BillOut])
 def list_bills(
     year: Optional[int] = None,
     month: Optional[int] = None,
     status: Optional[str] = None,
     distributor_name: Optional[str] = None,
-    limit: int = Query(default=50, ge=1, le=200, description="Number of bills per page"),
-    offset: int = Query(default=0, ge=0, description="Number of bills to skip"),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (max 100)"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
     """
-    Paginated bill listing. Use limit/offset for pagination.
-    Defaults: limit=50, offset=0. Max limit=200 to prevent OOM crashes.
+    Paginated bill listing. Use page/page_size for pagination.
+    Defaults: page=1, page_size=20. Max page_size=100 to prevent OOM crashes.
     BUG FIX #1: Uses joinedload(Bill.items) to eliminate N+1 query trap.
     BUG FIX #2: Pagination prevents loading all bills into RAM at once.
     """
@@ -293,12 +293,13 @@ def list_bills(
         joinedload(models.Bill.items).joinedload(models.BillItem.medicine),
         joinedload(models.Bill.distributor),
     )
-    bills = q.order_by(models.Bill.uploaded_at.desc()).offset(offset).limit(limit).all()
-    return schemas.PaginatedBills(
+    offset = (page - 1) * page_size
+    bills = q.order_by(models.Bill.uploaded_at.desc()).offset(offset).limit(page_size).all()
+    return schemas.PaginatedResponse(
         items=[_bill_to_out(db, b) for b in bills],
         total=total,
-        limit=limit,
-        offset=offset,
+        page=page,
+        page_size=page_size,
     )
 
 

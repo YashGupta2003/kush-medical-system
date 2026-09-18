@@ -73,7 +73,7 @@ function CustomerDetail({ customer, onChanged }) {
     setLoading(true);
     api.getCustomerLedger(customer.customer_id)
       .then(data => {
-        if (active) setLedger(data);
+        if (active) setLedger(data.items || data);
       })
       .finally(() => {
         if (active) setLoading(false);
@@ -187,7 +187,7 @@ function DirectoryTab() {
 
   useEffect(() => {
     if (query.trim().length < 2) { setResults([]); return; }
-    const t = setTimeout(() => api.searchCustomers(query).then(setResults), 250);
+    const t = setTimeout(() => api.searchCustomers(query).then(data => setResults(data.items || data)), 250);
     return () => clearTimeout(t);
   }, [query]);
 

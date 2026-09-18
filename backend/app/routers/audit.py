@@ -34,15 +34,22 @@ def _entry_to_out(entry) -> schemas.AuditLedgerEntryOut:
     )
 
 
-@router.get("/ledger", response_model=list[schemas.AuditLedgerEntryOut])
+@router.get("/ledger", response_model=schemas.PaginatedResponse[schemas.AuditLedgerEntryOut])
 def get_ledger(
     event_type: str = Query(None, description="Filter to one event type, e.g. 'rate_change'"),
-    limit: int = Query(100, ge=1, le=500),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
     """Most recent ledger entries first - powers the TrustChain screen's main table."""
-    entries = audit_service.get_ledger(db, event_type=event_type, limit=limit)
-    return [_entry_to_out(e) for e in entries]
+    offset = (page - 1) * page_size
+    entries, total = audit_service.get_ledger_paginated(db, event_type=event_type, limit=page_size, offset=offset)
+    return schemas.PaginatedResponse(
+        items=[_entry_to_out(e) for e in entries],
+        total=total,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/verify", response_model=schemas.AuditVerifyResult)

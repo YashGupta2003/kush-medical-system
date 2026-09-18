@@ -43,6 +43,7 @@ class PaginatedMedicines(BaseModel):
     page_size: int
 
 
+
 class CursorPaginatedMedicines(BaseModel):
     """
     Cursor (keyset) paginated response for GET /medicines.
@@ -139,18 +140,6 @@ class BillOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
-class PaginatedBills(BaseModel):
-    """
-    Paginated response for the GET /bills endpoint.
-    BUG FIX #2: Replaces the previous un-paginated List[BillOut] response,
-    which would load ALL bills into RAM and cause OOM crashes in production.
-    """
-    items: List[BillOut] = []
-    total: int
-    limit: int
-    offset: int
-
-
 class BillStatusOut(BaseModel):
     id: int
     status: str
@@ -234,8 +223,19 @@ class SaleCreate(BaseModel):
 
 class StockAdjustmentCreate(BaseModel):
     medicine_id: int
-    new_total_stock: float = Field(ge=0, description="Cannot be negative")
+    new_total_stock: float = Field(ge=0)
     note: Optional[str] = None
+
+
+class StockLedgerEntryOut(BaseModel):
+    id: int
+    medicine_id: int
+    medicine_name: Optional[str] = None
+    change_qty: float
+    resulting_balance: float
+    reason: str
+    note: Optional[str] = None
+    created_at: Optional[datetime] = None
 
 
 class LastPurchaseInfo(BaseModel):
@@ -858,9 +858,8 @@ class PaginatedResponse(BaseModel, Generic[T]):
     """
     items: List[T]
     total: int
-    limit: int
-    offset: int
     page: int
+    page_size: int
 
     model_config = ConfigDict(from_attributes=True)
 

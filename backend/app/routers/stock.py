@@ -1,5 +1,5 @@
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -120,9 +120,17 @@ def fulfill_reorder_item(reorder_item_id: int, db: Session = Depends(get_db), cu
     return {"status": "ok"}
 
 
-@router.get("/ledger")
-def get_ledger(limit: int = 50, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
-    return stock_service.get_stock_ledger(db, current_user.tenant_id, limit=limit)
+@router.get("/ledger", response_model=schemas.PaginatedResponse[schemas.StockLedgerEntryOut])
+def get_ledger(
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=100, description="Items per page (max 100)"),
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user)
+):
+    offset = (page - 1) * page_size
+    items = stock_service.get_stock_ledger(db, current_user.tenant_id, limit=page_size, offset=offset)
+    total = stock_service.get_stock_ledger_count(db, current_user.tenant_id)
+    return schemas.PaginatedResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.post("/adjustments")

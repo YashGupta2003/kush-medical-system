@@ -243,8 +243,8 @@ export const api = {
     }),
 
   // --- TrustChain / tamper-evident audit ledger (Pillar 4, owner only) ---
-  getAuditLedger: ({ event_type, limit = 100 } = {}) => {
-    const params = new URLSearchParams({ limit });
+  getAuditLedger: ({ event_type, page = 1, page_size = 100 } = {}) => {
+    const params = new URLSearchParams({ page, page_size });
     if (event_type) params.set("event_type", event_type);
     return apiFetch(`/audit/ledger?${params.toString()}`);
   },
@@ -252,10 +252,17 @@ export const api = {
   getAuditEntriesFor: (eventType, referenceId) => apiFetch(`/audit/for/${eventType}/${referenceId}`),
 
   // --- Customer Health Companion (Pillar 5, Part A) ---
-  searchCustomers: (q = "") => apiFetch(`/customers${q ? "?q=" + encodeURIComponent(q) : ""}`),
+  searchCustomers: (q = "", { page = 1, page_size = 20 } = {}) => {
+    const params = new URLSearchParams({ page, page_size });
+    if (q) params.set("q", q);
+    return apiFetch(`/customers?${params.toString()}`);
+  },
   getCustomer: (id) => apiFetch(`/customers/${id}`),
   createOrGetCustomer: (payload) => apiFetch("/customers", { method: "POST", ...jsonBody(payload) }),
-  getCustomerLedger: (id) => apiFetch(`/customers/${id}/ledger`),
+  getCustomerLedger: (id, { page = 1, page_size = 20 } = {}) => {
+    const params = new URLSearchParams({ page, page_size });
+    return apiFetch(`/customers/${id}/ledger?${params.toString()}`);
+  },
   chargeCustomerCredit: (id, amount, note) =>
     apiFetch(`/customers/${id}/credit/charge`, { method: "POST", ...jsonBody({ amount, note }) }),
   recordCustomerPayment: (id, amount, note) =>
@@ -289,8 +296,8 @@ export const api = {
   explainAnomaly: (anomaly) => apiFetch("/anomalies/explain", { method: "POST", ...jsonBody({ anomaly }) }),
 
   // --- Notification Engine (Priority 1) ---
-  getNotifications: ({ unread_only = false, limit = 20, offset = 0 } = {}) => {
-    const params = new URLSearchParams({ limit, offset });
+  getNotifications: ({ unread_only = false, page = 1, page_size = 20 } = {}) => {
+    const params = new URLSearchParams({ page, page_size });
     if (unread_only) params.set("unread_only", "true");
     return apiFetch(`/notifications?${params.toString()}`);
   },
@@ -355,8 +362,8 @@ export const api = {
   // --- Prescription Intelligence Engine (PIE) ---
   uploadPrescription: (formData) =>
     apiFetch("/prescriptions/upload", { method: "POST", body: formData }),
-  listPrescriptions: ({ status, customer_id, limit = 50, offset = 0 } = {}) => {
-    const params = new URLSearchParams({ limit, offset });
+  listPrescriptions: ({ status, customer_id, page = 1, page_size = 50 } = {}) => {
+    const params = new URLSearchParams({ page, page_size });
     if (status) params.set("status", status);
     if (customer_id) params.set("customer_id", customer_id);
     return apiFetch(`/prescriptions?${params.toString()}`);

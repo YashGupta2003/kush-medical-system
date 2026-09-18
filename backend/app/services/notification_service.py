@@ -148,6 +148,23 @@ def get_notifications_for_user(
     convention — the tasks that create broadcast notifications are all
     owner-facing alerts like TrustChain tamper and daily digests).
     """
+    items, _total = get_notifications_for_user_paginated(
+        db, user, unread_only=unread_only, limit=limit, offset=offset
+    )
+    return items
+
+
+def get_notifications_for_user_paginated(
+    db: Session,
+    user: models.User,
+    unread_only: bool = False,
+    limit: int = 50,
+    offset: int = 0,
+) -> tuple[list[models.Notification], int]:
+    """
+    Paginated version — returns (items, total).  Used by the paginated
+    notifications router endpoint (Task 2).
+    """
     q = db.query(models.Notification)
 
     if user.role == "owner":
@@ -161,12 +178,14 @@ def get_notifications_for_user(
     if unread_only:
         q = q.filter(models.Notification.is_read.is_(False))
 
-    return (
+    total = q.count()
+    items = (
         q.order_by(desc(models.Notification.created_at))
         .offset(offset)
         .limit(limit)
         .all()
     )
+    return items, total
 
 
 def get_unread_count(db: Session, user: models.User) -> int:

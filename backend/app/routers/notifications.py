@@ -7,7 +7,7 @@ Auth pattern follows existing precedent:
   - POST /digest/send-now: owner-only — this triggers a manual Celery task,
     which is an admin-level operation
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -17,12 +17,14 @@ from app.deps import get_current_user, require_owner
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
+_MAX_PAGE_SIZE = 100
 
-@router.get("", response_model=list[schemas.NotificationOut])
+
+@router.get("", response_model=schemas.PaginatedResponse[schemas.NotificationOut])
 def list_notifications(
     unread_only: bool = False,
-    limit: int = 20,
-    offset: int = 0,
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(20, ge=1, le=_MAX_PAGE_SIZE, description="Items per page (max 100)"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
@@ -30,10 +32,15 @@ def list_notifications(
     Returns the current user's notifications (their own + broadcast
     if owner), paginated. Defaults to all (read + unread). Set
     unread_only=true for the notification-center panel view.
+    Returns {items, total, page, page_size} — same shape as /medicines.
     """
-    return notification_service.get_notifications_for_user(
-        db, current_user, unread_only=unread_only, limit=limit, offset=offset
+    page_size = min(page_size, _MAX_PAGE_SIZE)
+    offset = (page - 1) * page_size
+
+    items, total = notification_service.get_notifications_for_user_paginated(
+        db, current_user, unread_only=unread_only, limit=page_size, offset=offset
     )
+    return schemas.PaginatedResponse(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/unread-count", response_model=schemas.UnreadCountOut)

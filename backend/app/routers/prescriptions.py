@@ -238,21 +238,22 @@ def get_uncollected(
     return prescription_service.get_uncollected_prescriptions(db, minutes=minutes)
 
 
-@router.get("")
+@router.get("", response_model=schemas.PaginatedResponse[schemas.PrescriptionOut])
 def list_prescriptions(
     customer_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),
-    limit: int = Query(default=50, ge=1, le=200),
-    offset: int = Query(default=0, ge=0),
+    page: int = Query(1, ge=1, description="Page number (1-based)"),
+    page_size: int = Query(50, ge=1, le=100, description="Items per page (max 100)"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    offset = (page - 1) * page_size
     result = prescription_service.list_prescriptions(
-        db, tenant_id=current_user.tenant_id, customer_id=customer_id, status=status, limit=limit, offset=offset
+        db, tenant_id=current_user.tenant_id, customer_id=customer_id, status=status, limit=page_size, offset=offset
     )
     ids = [p.id for p in result["items"]]
     if not ids:
-        return {"items": [], "total": result["total"], "limit": limit, "offset": offset}
+        return schemas.PaginatedResponse(items=[], total=result["total"], page=page, page_size=page_size)
 
     prescriptions = (
         db.query(models.Prescription)
@@ -269,12 +270,12 @@ def list_prescriptions(
         .order_by(models.Prescription.created_at.desc())
         .all()
     )
-    return {
-        "items": [_prescription_to_out(p) for p in prescriptions],
-        "total": result["total"],
-        "limit": limit,
-        "offset": offset,
-    }
+    return schemas.PaginatedResponse(
+        items=[_prescription_to_out(p) for p in prescriptions],
+        total=result["total"],
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.post("/convert")

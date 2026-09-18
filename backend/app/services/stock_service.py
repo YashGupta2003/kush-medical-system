@@ -351,6 +351,6 @@ def get_stock_ledger(db: Session, tenant_id: int, limit: int = 50, offset: int =
     ]
 
 
-def get_stock_ledger_count(db: Session) -> int:
+def get_stock_ledger_count(db: Session, tenant_id: int) -> int:
     """Total row count for pagination metadata."""
-    return db.query(models.StockLedger).count()
+    return db.query(models.StockLedger).filter(models.StockLedger.tenant_id == tenant_id).count()
