@@ -148,9 +148,10 @@ def test_notifications_api_list(client, owner_headers, owner_user, db_session, t
     res = client.get("/notifications", headers=owner_headers)
     assert res.status_code == 200
     data = res.json()
-    assert isinstance(data, list)
-    assert len(data) >= 1
-    assert data[0]["notification_type"] == "system"
+    assert isinstance(data, dict)
+    items = data["items"]
+    assert len(items) >= 1
+    assert items[0]["notification_type"] == "system"
 
 
 def test_notifications_unread_count_api(client, owner_headers, owner_user, db_session, tenant):

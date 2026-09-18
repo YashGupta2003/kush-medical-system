@@ -82,6 +82,13 @@ class Settings(BaseSettings):
     # Uploads
     max_upload_size_mb: int = 10
 
+    gemini_api_key: str = ""
+    gemini_voice_model_primary: str = "gemini-2.5-flash"
+    gemini_voice_model_fallback: str = "gemini-2.5-flash-lite"
+    rate_limit_voice: str = "20/minute"
+    max_voice_clip_seconds: int = 12
+    max_voice_upload_size_mb: int = 5
+
     class Config:
         env_file = ".env"
 

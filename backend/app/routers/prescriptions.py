@@ -10,13 +10,14 @@ Endpoints follow the same patterns as bills.py:
 """
 from typing import Optional, List
 
-from fastapi import APIRouter, Request
-from app.core.rate_limit import limiter
+from fastapi import APIRouter, Request, UploadFile, File, Form, HTTPException, Query
 from fastapi import Depends
-from app.config import settings
-from fastapi import UploadFile, File, Form, HTTPException, Query
 from sqlalchemy.orm import Session, joinedload
 from pydantic import BaseModel
+
+from app.core.rate_limit import limiter
+from app.config import settings
+from app import schemas
 
 from app.database import get_db
 from app import models
@@ -238,7 +239,7 @@ def get_uncollected(
     return prescription_service.get_uncollected_prescriptions(db, minutes=minutes)
 
 
-@router.get("", response_model=schemas.PaginatedResponse[schemas.PrescriptionOut])
+@router.get("", response_model=schemas.PaginatedResponse[PrescriptionOut])
 def list_prescriptions(
     customer_id: Optional[int] = Query(None),
     status: Optional[str] = Query(None),

@@ -185,6 +185,9 @@ def get_ledger_paginated(db: Session, event_type: Optional[str] = None, limit: i
     items = q.order_by(models.AuditLedgerEntry.id.desc()).offset(offset).limit(limit).all()
     return items, total
 
+def get_ledger(db: Session, event_type: Optional[str] = None, limit: int = 100) -> list[models.AuditLedgerEntry]:
+    return get_ledger_paginated(db, event_type, limit=limit, offset=0)[0]
+
 
 def get_entries_for_reference(db: Session, event_type: str, reference_id: int) -> list[models.AuditLedgerEntry]:
     """

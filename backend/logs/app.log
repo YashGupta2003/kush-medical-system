@@ -4112,3 +4112,1225 @@ offset
 [2026-09-16 14:03:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
 [2026-09-16 14:03:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
 [2026-09-16 14:03:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:51] [WARNING] [main] [main.py:332]: GEMINI_API_KEY is missing — Voice Assistant endpoint disabled.
+[2026-09-18 17:38:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:38:59] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:38:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:00] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:242]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=02b282114fae3c318669077cb87a48b0304d2714330e1ebb0dee095085e14c80
+[2026-09-18 17:39:00] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:04] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:06] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:39:06] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-18 17:39:06] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:191]: final result: 1 usable line items out of 1 candidate rows
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:39:08] [WARNING] [bill_parser] [bill_parser.py:146]: FAILED: no header row found.
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:140]: ADM template matched row 0 (sample_count: 5)
+[2026-09-18 17:39:08] [INFO] [bill_parser] [bill_parser.py:191]: final result: 1 usable line items out of 1 candidate rows
+[2026-09-18 17:39:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:09] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:09] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:10] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:10] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:11] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:11] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:11] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:11] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:11] [INFO] [app.services.distributor_memory_service] [distributor_memory_service.py:152]: Distributor 1 layout drifted. Resetting template.
+[2026-09-18 17:39:11] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:12] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:12] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-09-18 17:39:12] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-09-18 17:39:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:13] [ERROR] [main] [request_id.py:74]: Unhandled exception on GET /test-boom-runtime [request_id=0b526ee7-6203-4343-afbd-3af6d1a1fb93]: RuntimeError('secret internal detail')
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 133, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/request_id.py", line 55, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/idempotency.py", line 71, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/slowapi/middleware.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 269, in _sentry_exceptionmiddleware_call
+    await old_call(self, scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+RuntimeError: secret internal detail
+
+[2026-09-18 17:39:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:13] [ERROR] [main] [request_id.py:74]: Unhandled exception on GET /test-boom-log [request_id=4f46962c-bb58-442f-a278-1087019800d6]: RuntimeError('logged-secret-detail-xyz')
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 133, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/request_id.py", line 55, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/idempotency.py", line 71, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/slowapi/middleware.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 269, in _sentry_exceptionmiddleware_call
+    await old_call(self, scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+RuntimeError: logged-secret-detail-xyz
+
+[2026-09-18 17:39:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:13] [ERROR] [main] [main.py:233]: SQLAlchemyError on GET /test-dberror-op [request_id=2ebf5234-8e42-4564-b55f-44bbd3a38047]: (builtins.Exception) connection refused
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+sqlalchemy.exc.OperationalError: (builtins.Exception) connection refused
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+[2026-09-18 17:39:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:15] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:16] [WARNING] [duplicate_checker] [duplicate_checker.py:42]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-09-18 17:39:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:16] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:16] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-09-18 17:39:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:20] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:20] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:20] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:20] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:20] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:21] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:24] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:24] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:24] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:25] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:25] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:25] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-09-18 17:39:25] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:25] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:26] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:39:26] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:39:26] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:29] [WARNING] [main] [main.py:332]: GEMINI_API_KEY is missing — Voice Assistant endpoint disabled.
+[2026-09-18 17:40:32] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:32] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:32] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:32] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:32] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:32] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:33] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:33] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:33] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:33] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:34] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:34] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:34] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:34] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:35] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:40:35] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:36] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:242]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=02b282114fae3c318669077cb87a48b0304d2714330e1ebb0dee095085e14c80
+[2026-09-18 17:40:36] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:36] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:37] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:37] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:37] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:37] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:37] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:40] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:40] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:40] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:40] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:41] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:41] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:41] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:41] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:41] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:42] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:40:42] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-18 17:40:42] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:191]: final result: 1 usable line items out of 1 candidate rows
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:40:44] [WARNING] [bill_parser] [bill_parser.py:146]: FAILED: no header row found.
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:140]: ADM template matched row 0 (sample_count: 5)
+[2026-09-18 17:40:44] [INFO] [bill_parser] [bill_parser.py:191]: final result: 1 usable line items out of 1 candidate rows
+[2026-09-18 17:40:44] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:45] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:45] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:46] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:46] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:46] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:47] [INFO] [app.services.distributor_memory_service] [distributor_memory_service.py:152]: Distributor 1 layout drifted. Resetting template.
+[2026-09-18 17:40:47] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:47] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:47] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-09-18 17:40:47] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-09-18 17:40:48] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:48] [ERROR] [main] [request_id.py:74]: Unhandled exception on GET /test-boom-runtime [request_id=77b6be15-f25f-46d7-ac9e-44d5f7644728]: RuntimeError('secret internal detail')
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 133, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/request_id.py", line 55, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/idempotency.py", line 71, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/slowapi/middleware.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 269, in _sentry_exceptionmiddleware_call
+    await old_call(self, scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+RuntimeError: secret internal detail
+
+[2026-09-18 17:40:48] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:48] [ERROR] [main] [request_id.py:74]: Unhandled exception on GET /test-boom-log [request_id=0e3a6437-4106-4f0d-a41c-0a3590030c24]: RuntimeError('logged-secret-detail-xyz')
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 133, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/request_id.py", line 55, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/idempotency.py", line 71, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/slowapi/middleware.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 269, in _sentry_exceptionmiddleware_call
+    await old_call(self, scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+RuntimeError: logged-secret-detail-xyz
+
+[2026-09-18 17:40:48] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:48] [ERROR] [main] [main.py:233]: SQLAlchemyError on GET /test-dberror-op [request_id=b6638206-1f39-4093-a963-a2a9aa81c3c0]: (builtins.Exception) connection refused
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+sqlalchemy.exc.OperationalError: (builtins.Exception) connection refused
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+[2026-09-18 17:40:48] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:49] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:50] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:50] [WARNING] [duplicate_checker] [duplicate_checker.py:42]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-09-18 17:40:51] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:51] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:51] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-09-18 17:40:51] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:51] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:51] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:52] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:52] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:52] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:52] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:40:59] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:59] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:40:59] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:41:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:41:00] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:41:00] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-09-18 17:41:00] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:41:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:41:01] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:41:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:41:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:47] [WARNING] [main] [main.py:332]: GEMINI_API_KEY is missing — Voice Assistant endpoint disabled.
+[2026-09-18 17:47:49] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:49] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:50] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:50] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:50] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:50] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:47:50] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:48:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:38] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:39] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:40] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:52] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:53] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:53] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:53] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:53] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:53] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:53] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:54] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:54] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:54] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:54] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:55] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:56] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:56] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:242]: [EVENT: BillUploaded] Bill #2 (test_invoice.jpg) distributor=HARI KRISHNA DISTRIBUTOR checksum=02b282114fae3c318669077cb87a48b0304d2714330e1ebb0dee095085e14c80
+[2026-09-18 17:49:56] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=True)
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:56] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:57] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:58] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:49:59] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:00] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:01] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:02] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:03] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #1
+[2026-09-18 17:50:03] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillConfirmedEvent' to 7 subscriber(s) (transactional=False)
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:48]: [SUBSCRIBER: RateHistory] Processing rate updates for Bill #2
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:136]: [SUBSCRIBER: Learning] Updating learned mappings for Bill #2
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:156]: [SUBSCRIBER: Stock] Incrementing stock for confirmed items on Bill #2
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:173]: [SUBSCRIBER: Expiry] Creating batch/expiry entries for Bill #2
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:190]: [SUBSCRIBER: PharmaGraph] Syncing SUPPLIES edges for Bill #2
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:205]: [SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #2
+[2026-09-18 17:50:03] [INFO] [event_subscribers] [subscribers.py:221]: [SUBSCRIBER: TrustChain] Logging bill_confirmed audit entry for Bill #2
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:191]: final result: 1 usable line items out of 1 candidate rows
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:50:04] [WARNING] [bill_parser] [bill_parser.py:146]: FAILED: no header row found.
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:115]: total OCR words detected: 8
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:117]: words clustered into 2 rows
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:140]: ADM template matched row 0 (sample_count: 5)
+[2026-09-18 17:50:04] [INFO] [bill_parser] [bill_parser.py:191]: final result: 1 usable line items out of 1 candidate rows
+[2026-09-18 17:50:05] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:05] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'ColdChainExcursionEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:05] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:07] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:07] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:07] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:07] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:07] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:07] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'CrossTenantCollisionDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:08] [INFO] [app.services.distributor_memory_service] [distributor_memory_service.py:152]: Distributor 1 layout drifted. Resetting template.
+[2026-09-18 17:50:08] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:08] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:08] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:08] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'BillUploadedEvent' to 2 subscriber(s) (transactional=False)
+[2026-09-18 17:50:08] [ERROR] [event_bus] [bus.py:68]: [EVENT ERROR] Subscriber 'failing_handler' on event 'BillUploadedEvent': Simulated subscriber error
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/events/bus.py", line 65, in publish
+    handler(event)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_event_bus.py", line 33, in failing_handler
+    raise ValueError("Simulated subscriber error")
+ValueError: Simulated subscriber error
+[2026-09-18 17:50:09] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:09] [ERROR] [main] [request_id.py:74]: Unhandled exception on GET /test-boom-runtime [request_id=6b0b778f-10fb-44b1-a5ef-9b4fea548245]: RuntimeError('secret internal detail')
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 133, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/request_id.py", line 55, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/idempotency.py", line 71, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/slowapi/middleware.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 269, in _sentry_exceptionmiddleware_call
+    await old_call(self, scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+RuntimeError: secret internal detail
+
+[2026-09-18 17:50:09] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:09] [ERROR] [main] [request_id.py:74]: Unhandled exception on GET /test-boom-log [request_id=63158fd8-ec93-4878-99d7-22cccc272f25]: RuntimeError('logged-secret-detail-xyz')
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 157, in call_next
+    message = await recv_stream.receive()
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/anyio/streams/memory.py", line 133, in receive
+    raise EndOfStream from None
+anyio.EndOfStream
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/request_id.py", line 55, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/../app/core/idempotency.py", line 71, in dispatch
+    return await call_next(request)
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/cors.py", line 85, in __call__
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 174, in __call__
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/prometheus_fastapi_instrumentator/middleware.py", line 172, in __call__
+    await self.app(scope, receive, send_wrapper)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 185, in __call__
+    with collapse_excgroups():
+  File "/opt/homebrew/Cellar/python@3.11/3.11.15_3/Frameworks/Python.framework/Versions/3.11/lib/python3.11/contextlib.py", line 158, in __exit__
+    self.gen.throw(typ, value, traceback)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_utils.py", line 83, in collapse_excgroups
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 187, in __call__
+    response = await self.dispatch_func(request, call_next)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/slowapi/middleware.py", line 136, in dispatch
+    response = await call_next(request)
+               ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 163, in call_next
+    raise app_exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/base.py", line 149, in coro
+    await self.app(scope, receive_or_disconnect, send_no_error)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 269, in _sentry_exceptionmiddleware_call
+    await old_call(self, scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/starlette.py", line 170, in _create_span_call
+    return await old_call(app, scope, new_receive, new_send, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/middleware/exceptions.py", line 62, in __call__
+    await wrap_app_handling_exceptions(self.app, conn)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 715, in __call__
+    await self.middleware_stack(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 735, in app
+    await route.handle(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 288, in handle
+    await self.app(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 76, in app
+    await wrap_app_handling_exceptions(app, request)(scope, receive, send)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 62, in wrapped_app
+    raise exc
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+RuntimeError: logged-secret-detail-xyz
+
+[2026-09-18 17:50:09] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:09] [ERROR] [main] [main.py:233]: SQLAlchemyError on GET /test-dberror-op [request_id=7f582594-a252-4cde-b9d5-16512284fa64]: (builtins.Exception) connection refused
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+Traceback (most recent call last):
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/_exception_handler.py", line 51, in wrapped_app
+    await app(scope, receive, sender)
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/starlette/routing.py", line 73, in app
+    response = await f(request)
+               ^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/sentry_sdk/integrations/fastapi.py", line 138, in _sentry_app
+    return await old_app(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 301, in app
+    raw_response = await run_endpoint_function(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/venv/lib/python3.11/site-packages/fastapi/routing.py", line 212, in run_endpoint_function
+    return await dependant.call(**values)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yashgupta/Documents/Projects/kush-medical-system/backend/tests/test_global_exception_handler.py", line 23, in raiser
+    raise exc_factory()
+sqlalchemy.exc.OperationalError: (builtins.Exception) connection refused
+[SQL: SELECT 1]
+(Background on this error at: https://sqlalche.me/e/20/e3q8)
+
+[2026-09-18 17:50:09] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:10] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:11] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:12] [WARNING] [duplicate_checker] [duplicate_checker.py:42]: Duplicate bill image detected (matches Bill #1, status: confirmed)
+[2026-09-18 17:50:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:12] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:12] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (9.0 < 10.0)
+[2026-09-18 17:50:12] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:13] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:16] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:17] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:18] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:21] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:21] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:21] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'RegionalHealthSpikeEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:21] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:21] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'LowStockCrossedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:21] [INFO] [event_subscribers] [subscribers.py:274]: [SUBSCRIBER: LowStock] Medicine 'AMLOKIND AT TAB' crossed below threshold (5.0 < 10.0)
+[2026-09-18 17:50:22] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'SurveillanceSpikeDetectedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:22] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:22] [INFO] [event_bus] [bus.py:57]: [EVENT DISPATCH] Publishing 'DistributorTrustScoreDroppedEvent' to 1 subscriber(s) (transactional=False)
+[2026-09-18 17:50:22] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:23] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:23] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:23] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:23] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:23] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:24] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:24] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.
+[2026-09-18 17:50:24] [INFO] [event_subscribers] [subscribers.py:560]: All domain event subscribers successfully registered with EventBus.

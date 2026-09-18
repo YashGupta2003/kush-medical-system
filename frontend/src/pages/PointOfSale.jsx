@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ShoppingCart, Search, User, UserPlus, AlertTriangle, AlertCircle, Info, CheckCircle, X, Trash2, Maximize, Minimize, Stethoscope } from "lucide-react";
 import { api } from "../api/client.js";
+import { VoiceCommandButton } from "../components/VoiceCommandButton.jsx";
+import { VoiceConfirmationCard } from "../components/VoiceConfirmationCard.jsx";
 import { useLocation } from "react-router-dom";
 
 
@@ -232,6 +234,8 @@ export default function PointOfSale() {
   const [paymentMode, setPaymentMode] = useState("cash");
   const [focusMode, setFocusMode] = useState(false);
   const [prefillBanner, setPrefillBanner] = useState(null); // prescription source banner
+  const [voiceParsedResult, setVoiceParsedResult] = useState(null);
+  const [voiceError, setVoiceError] = useState(null);
   const topRef = useRef(null);
 
   // ── Prescription pre-fill ────────────────────────────────────────────────
@@ -443,7 +447,28 @@ export default function PointOfSale() {
           interactions before the sale is recorded. Attach a customer profile below to sell on
           credit (udhaar) instead of cash.
         </p>
-        <MedicineSearch onAdd={addToCart} excludeIds={cartIds} />
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <MedicineSearch onAdd={addToCart} excludeIds={cartIds} />
+          </div>
+          <VoiceCommandButton 
+            onCommandParsed={(res) => { setVoiceParsedResult(res); setVoiceError(null); }}
+            onError={(err) => setVoiceError(err)}
+          />
+        </div>
+        {voiceError && <div style={{ color: "var(--danger)", fontSize: 13, marginTop: 8 }}>{voiceError}</div>}
+        {voiceParsedResult && (
+          <div style={{ marginTop: 16 }}>
+            <VoiceConfirmationCard 
+              parsedResult={voiceParsedResult} 
+              onConfirm={(res) => {
+                setVoiceParsedResult(null);
+                setSuccess(`Voice command executed: ${res.message}`);
+              }}
+              onCancel={() => setVoiceParsedResult(null)}
+            />
+          </div>
+        )}
       </div>
 
       <div className="card">
