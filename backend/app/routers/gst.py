@@ -34,7 +34,8 @@ def gst_report_pdf(
     today = date.today()
     y, m = year or today.year, month or today.month
     report = gst_report_service.get_gst_report(db, current_user.tenant_id, y, m)
-    pdf_bytes = gst_report_service.generate_gst_report_pdf(report)
+    pharmacy_name = current_user.tenant.shop_name if current_user.tenant else "Pharmacy"
+    pdf_bytes = gst_report_service.generate_gst_report_pdf(report, pharmacy_name=pharmacy_name)
 
     filename = f"GST_Report_{report['month_label'].replace(' ', '_')}.pdf"
     return Response(

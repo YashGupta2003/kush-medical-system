@@ -18,7 +18,7 @@ from app.services.auth_service import hash_password
 
 
 def _slugify(name: str) -> str:
-    """Convert a shop name to a URL-safe slug, e.g. 'Kush Medical Hall' → 'kush-medical-hall'."""
+    """Convert a pharmacy name to a URL-safe tenant slug."""
     slug = name.lower().strip()
     slug = re.sub(r'[^\w\s-]', '', slug)    # remove non-alphanumeric except hyphen
     slug = re.sub(r'[\s_]+', '-', slug)      # spaces/underscores → hyphen

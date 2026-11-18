@@ -1,5 +1,5 @@
 """
-Kush Pulse — Privacy-Preserving Regional Health Heatmap endpoints.
+PharmOs Pulse — Privacy-Preserving Regional Health Heatmap endpoints.
 
 The GET endpoints are intentionally public: they expose only k-anonymous
 aggregate signals (k >= 3), never shop, customer, bill, medicine or sale

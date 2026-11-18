@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, BackgroundTasks
 from app.core.rate_limit import limiter
 from fastapi import Depends
 from app.config import settings
@@ -22,6 +22,7 @@ from app.events.events import BillConfirmedEvent, BillUploadedEvent
 from app.services.duplicate_checker import compute_file_checksum, check_duplicate_bill
 from app.services import duplicate_service
 from app.core.logging import get_logger
+from app.core.task_dispatch import dispatch_task
 
 logger = get_logger("bills_router")
 
@@ -99,7 +100,8 @@ def _create_queued_bill(db: Session, file_bytes: bytes, filename: str, tenant_id
 
 @router.post("/upload", response_model=schemas.UploadAcceptedResponse)
 @limiter.limit(settings.rate_limit_ocr)
-async def upload_bill(request: Request, 
+async def upload_bill(request: Request,
+    background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     distributor_name: Optional[str] = Form(None),
     invoice_no: Optional[str] = Form(None),
@@ -117,9 +119,16 @@ async def upload_bill(request: Request,
     bill = _create_queued_bill(db, file_bytes, file.filename, current_user.tenant_id, distributor_name, invoice_no, invoice_date)
     db.commit()
 
-    task = process_bill_task.delay(bill.id)
-    bill.celery_task_id = task.id
+    dispatch = dispatch_task(
+        process_bill_task, bill.id, background_tasks=background_tasks
+    )
+    bill.celery_task_id = dispatch.task_id
     db.commit()
+    if dispatch.executed:
+        # Inline fallback may have already finished the pipeline in another
+        # session; refresh before reporting status to the client.
+        db.expire_all()
+        db.refresh(bill)
 
     dup_bill = duplicate_service.find_confirmed_duplicate(db, bill.distributor_id, bill.invoice_no)
     dup_warning = None
@@ -127,11 +136,17 @@ async def upload_bill(request: Request,
         conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
         dup_warning = f"Warning: Bill #{dup_bill.id} from this distributor with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}."
 
-    return schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status, duplicate_warning=dup_warning)
+    return schemas.UploadAcceptedResponse(
+        bill_id=bill.id,
+        task_id=dispatch.task_id,
+        status=bill.status,
+        duplicate_warning=dup_warning,
+    )
 
 
 @router.post("/upload-batch", response_model=List[schemas.UploadAcceptedResponse])
 async def upload_bills_batch(
+    background_tasks: BackgroundTasks,
     files: List[UploadFile] = File(...),
     distributor_name: Optional[str] = Form(None),
     db: Session = Depends(get_db),
@@ -151,9 +166,14 @@ async def upload_bills_batch(
         file_bytes = validate_upload(file)
         bill = _create_queued_bill(db, file_bytes, file.filename, current_user.tenant_id, distributor_name, None, None)
         db.commit()
-        task = process_bill_task.delay(bill.id)
-        bill.celery_task_id = task.id
+        dispatch = dispatch_task(
+            process_bill_task, bill.id, background_tasks=background_tasks
+        )
+        bill.celery_task_id = dispatch.task_id
         db.commit()
+        if dispatch.executed:
+            db.expire_all()
+            db.refresh(bill)
 
         # BUG FIX: At batch-upload time invoice_no is always None — the OCR task
         # hasn't run yet. A duplicate check against None invoice_no is meaningless.
@@ -161,7 +181,12 @@ async def upload_bills_batch(
         # real duplicate check once the invoice number is known.
         dup_warning = None
 
-        responses.append(schemas.UploadAcceptedResponse(bill_id=bill.id, task_id=task.id, status=bill.status, duplicate_warning=dup_warning))
+        responses.append(schemas.UploadAcceptedResponse(
+            bill_id=bill.id,
+            task_id=dispatch.task_id,
+            status=bill.status,
+            duplicate_warning=dup_warning,
+        ))
 
     return responses
 

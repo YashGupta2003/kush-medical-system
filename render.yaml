@@ -1,0 +1,136 @@
+# Render Blueprint — Kush Medical System (FastAPI + React Pharmacy OS)
+#
+# MODE A (default in this file): zero-Redis free tier.
+#   Only PostgreSQL + the API web service are created. Tasks run inline via
+#   FastAPI BackgroundTasks (CELERY_TASK_ALWAYS_EAGER=true). No Redis, no
+#   Celery worker, no Beat process — nothing to pay for or keep alive.
+#
+# MODE B (full production):
+#   1. Set CELERY_TASK_ALWAYS_EAGER=false on kush-api.
+#   2. Uncomment the Redis + worker + beat block at the bottom of this file.
+#   3. Prefer a TLS managed Redis: set REDIS_URL to a rediss://... URL.
+#      TLS options are derived automatically by app.config.Settings.
+
+databases:
+  - name: kush-postgres
+    databaseName: kush_medical
+    user: kush_admin
+    plan: free
+
+services:
+  # ---------------------------------------------------------------------------
+  # FastAPI application (also serves the built React SPA if configured).
+  # ---------------------------------------------------------------------------
+  - type: web
+    name: kush-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    # Liveness never touches PostgreSQL/Redis/Celery, so a broker blip cannot
+    # cause needless container restarts. Use /health/ready for traffic gating.
+    healthCheckPath: /health/live
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kush-postgres
+          property: connectionString
+      # Keep DB_* in sync for scripts that build a URL from parts.
+      - key: DB_HOST
+        fromDatabase:
+          name: kush-postgres
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: kush-postgres
+          property: port
+      - key: DB_USER
+        fromDatabase:
+          name: kush-postgres
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: kush-postgres
+          property: password
+      - key: DB_NAME
+        fromDatabase:
+          name: kush-postgres
+          property: database
+      # A localhost URL is harmless here: eager mode never connects to it, and
+      # the shared dispatcher/cache degrade gracefully if something does.
+      - key: REDIS_URL
+        value: redis://localhost:6379/0
+      - key: CELERY_BROKER_URL
+        value: ""
+      - key: CELERY_RESULT_BACKEND
+        value: ""
+      - key: CELERY_TASK_ALWAYS_EAGER
+        value: "true"
+      - key: USE_SYNC_TASKS_FALLBACK
+        value: "true"
+      - key: TASK_EAGER_PROPAGATES
+        value: "false"
+      - key: REDIS_SOCKET_TIMEOUT
+        value: "5.0"
+      - key: REDIS_SOCKET_CONNECT_TIMEOUT
+        value: "5.0"
+      - key: REDIS_CACHE_SOCKET_TIMEOUT
+        value: "1.0"
+
+  # ---------------------------------------------------------------------------
+  # MODE B ONLY — uncomment this entire block to run managed Redis + workers.
+  # Also flip CELERY_TASK_ALWAYS_EAGER to "false" on kush-api above.
+  # ---------------------------------------------------------------------------
+  # - type: redis
+  #   name: kush-redis
+  #   plan: free
+  #   ipAllowList: []
+  #
+  # - type: worker
+  #   name: kush-celery-worker
+  #   runtime: python
+  #   plan: starter
+  #   rootDir: backend
+  #   buildCommand: "pip install -r requirements.txt"
+  #   startCommand: "celery -A app.celery_app worker --loglevel=info --concurrency=2"
+  #   envVars:
+  #     - key: PYTHON_VERSION
+  #       value: 3.11.9
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: kush-postgres
+  #         property: connectionString
+  #     - key: CELERY_TASK_ALWAYS_EAGER
+  #       value: "false"
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: kush-redis
+  #         property: connectionString
+  #
+  # - type: worker
+  #   name: kush-celery-beat
+  #   runtime: python
+  #   plan: starter
+  #   rootDir: backend
+  #   buildCommand: "pip install -r requirements.txt"
+  #   startCommand: "celery -A app.celery_app beat --loglevel=info"
+  #   envVars:
+  #     - key: PYTHON_VERSION
+  #       value: 3.11.9
+  #     - key: DATABASE_URL
+  #       fromDatabase:
+  #         name: kush-postgres
+  #         property: connectionString
+  #     - key: CELERY_TASK_ALWAYS_EAGER
+  #       value: "false"
+  #     - key: REDIS_URL
+  #       fromService:
+  #         type: redis
+  #         name: kush-redis
+  #         property: connectionString

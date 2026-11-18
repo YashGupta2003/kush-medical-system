@@ -7,13 +7,14 @@ Auth pattern follows existing precedent:
   - POST /digest/send-now: owner-only — this triggers a manual Celery task,
     which is an admin-level operation
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
 from app.services import notification_service
 from app.deps import get_current_user, require_owner
+from app.core.task_dispatch import dispatch_task
 
 router = APIRouter(prefix="/notifications", tags=["notifications"])
 
@@ -81,6 +82,7 @@ def mark_all_read(
 
 @router.post("/digest/send-now")
 def send_digest_now(
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_owner),
 ):
@@ -90,5 +92,9 @@ def send_digest_now(
     scheduled run. Returns task id so the caller can optionally poll status.
     """
     from app.services.tasks import send_daily_digest_task
-    result = send_daily_digest_task.delay()
-    return {"status": "queued", "task_id": result.id}
+
+    dispatch = dispatch_task(
+        send_daily_digest_task, background_tasks=background_tasks
+    )
+    status = dispatch.result.get("status", "queued") if dispatch.executed else "queued"
+    return {"status": status, "task_id": dispatch.task_id}

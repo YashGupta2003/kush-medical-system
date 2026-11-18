@@ -23,7 +23,6 @@ Edge lifecycle:
     to re-run, always replaces rather than duplicates.
 """
 import json
-import os
 from contextlib import nullcontext
 from typing import Optional
 
@@ -32,8 +31,7 @@ from sqlalchemy import and_
 
 from app import models
 from app.database import GLOBAL_GRAPH_EDGE_TYPES, bypass_tenant_filter
-
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+from app.services import clinical_reference_service
 
 
 # ---------------------------------------------------------------------------
@@ -192,10 +190,12 @@ def sync_substitute_edges_for_medicine(db: Session, medicine_id: int) -> int:
 # INTERACTS_WITH: salt -> salt (curated seed data)
 # ---------------------------------------------------------------------------
 def seed_interaction_edges(db: Session, json_path: Optional[str] = None) -> int:
-    """Idempotent - clears all existing INTERACTS_WITH edges and reloads from the seed file."""
-    json_path = json_path or os.path.join(DATA_DIR, "drug_interactions.json")
-    with open(json_path, encoding="utf-8") as f:
-        data = json.load(f)
+    """Replace the derived graph projection with database-first reference data."""
+    if json_path:
+        with open(json_path, encoding="utf-8") as f:
+            interactions = json.load(f)["interactions"]
+    else:
+        interactions = clinical_reference_service.get_clinical_reference_data(db)["drug_interactions"]
 
     # Curated reference data is global: bypass the tenant guard explicitly so
     # the reload replaces the shared NULL-tenant rows, not a shop's own edges.
@@ -205,7 +205,7 @@ def seed_interaction_edges(db: Session, json_path: Optional[str] = None) -> int:
         ).delete(synchronize_session=False)
 
     count = 0
-    for pair in data["interactions"]:
+    for pair in interactions:
         meta = {"severity": pair["severity"], "note": pair["note"]}
         # Stored both directions - interaction risk is symmetric (A interacts
         # with B is the same fact as B interacts with A), and callers only
@@ -216,7 +216,7 @@ def seed_interaction_edges(db: Session, json_path: Optional[str] = None) -> int:
     return count
 
 
-def check_interactions(db: Session, salt_names: list[str]) -> list[dict]:
+def check_interactions(db: Optional[Session], salt_names: list[str]) -> list[dict]:
     """
     Given a set of salts (e.g. every salt across the medicines in one sale
     or one bill), returns every known interacting pair found WITHIN that
@@ -227,39 +227,27 @@ def check_interactions(db: Session, salt_names: list[str]) -> list[dict]:
     if len(salt_names) < 2:
         return []
 
-    edges = (
-        db.query(models.GraphEdge)
-        .filter(
-            models.GraphEdge.edge_type == "INTERACTS_WITH",
-            models.GraphEdge.source_type == "salt",
-            models.GraphEdge.source_id.in_(salt_names),
-            models.GraphEdge.target_id.in_(salt_names),
-        )
-        .all()
-    )
-
-    seen_pairs = set()
-    results = []
-    for edge in edges:
-        pair_key = tuple(sorted([edge.source_id, edge.target_id]))
-        if pair_key in seen_pairs:
-            continue
-        seen_pairs.add(pair_key)
-        meta = json.loads(edge.edge_metadata) if edge.edge_metadata else {}
-        results.append({
-            "salt_a": pair_key[0], "salt_b": pair_key[1],
-            "severity": meta.get("severity", "unknown"), "note": meta.get("note", ""),
-        })
-    return results
+    requested = set(salt_names)
+    interactions = clinical_reference_service.get_clinical_reference_data(db)["drug_interactions"]
+    return [
+        {
+            "salt_a": pair["salt_a"], "salt_b": pair["salt_b"],
+            "severity": pair["severity"], "note": pair["note"],
+        }
+        for pair in interactions
+        if pair["salt_a"] in requested and pair["salt_b"] in requested
+    ]
 
 
 # ---------------------------------------------------------------------------
 # TREATS: salt -> condition (curated seed data)
 # ---------------------------------------------------------------------------
 def seed_condition_edges(db: Session, json_path: Optional[str] = None) -> int:
-    json_path = json_path or os.path.join(DATA_DIR, "salt_conditions.json")
-    with open(json_path, encoding="utf-8") as f:
-        data = json.load(f)
+    if json_path:
+        with open(json_path, encoding="utf-8") as f:
+            mappings = json.load(f)["mappings"]
+    else:
+        mappings = clinical_reference_service.get_clinical_reference_data(db)["salt_conditions"]
 
     with bypass_tenant_filter(db):
         db.query(models.GraphEdge).filter_by(edge_type="TREATS").filter(
@@ -267,23 +255,35 @@ def seed_condition_edges(db: Session, json_path: Optional[str] = None) -> int:
         ).delete(synchronize_session=False)
 
     count = 0
-    for mapping in data["mappings"]:
+    for mapping in mappings:
+        salt_name = mapping.get("salt_name", mapping.get("salt"))
         for condition in mapping["conditions"]:
-            add_edge(db, "salt", mapping["salt"], "TREATS", "condition", condition, replace=False)
+            add_edge(db, "salt", salt_name, "TREATS", "condition", condition, replace=False)
             count += 1
     return count
 
 
+def sync_reference_graph_edges(db: Session) -> dict[str, int]:
+    """Refresh derived graph edges after baseline seed or admin edits."""
+    return {
+        "interactions": seed_interaction_edges(db),
+        "treats": seed_condition_edges(db),
+    }
+
+
 def get_medicines_for_condition(db: Session, condition_name: str, in_stock_only: bool = True) -> list[dict]:
     """'What treats a Fever' - walks condition <- TREATS <- salt <- CONTAINS <- medicine."""
-    condition_name = condition_name.strip()
-
-    treats_edges = db.query(models.GraphEdge).filter_by(
-        edge_type="TREATS", target_type="condition", target_id=condition_name,
-    ).all()
-    if not treats_edges:
+    condition_key = condition_name.strip().casefold()
+    if not condition_key:
         return []
-    salt_names = [e.source_id for e in treats_edges]
+    reference = clinical_reference_service.get_clinical_reference_data(db)
+    salt_names = [
+        mapping["salt_name"]
+        for mapping in reference["salt_conditions"]
+        if any(condition.casefold() == condition_key for condition in mapping["conditions"])
+    ]
+    if not salt_names:
+        return []
 
     contains_edges = (
         db.query(models.GraphEdge)
@@ -323,28 +323,27 @@ def get_medicine_graph(db: Session, medicine_id: int) -> Optional[dict]:
     contains_edges = get_neighbors(db, "medicine", medicine_id, edge_type="CONTAINS", direction="out")
     salt_names = [e.target_id for e in contains_edges]
 
+    reference = clinical_reference_service.get_clinical_reference_data(db)
+    medicine_salts = set(salt_names)
     interacts = []
-    if salt_names:
-        interaction_edges = (
-            db.query(models.GraphEdge)
-            .filter(models.GraphEdge.edge_type == "INTERACTS_WITH", models.GraphEdge.source_id.in_(salt_names))
-            .all()
-        )
-        for e in interaction_edges:
-            meta = json.loads(e.edge_metadata) if e.edge_metadata else {}
+    for pair in reference["drug_interactions"]:
+        if pair["salt_a"] in medicine_salts:
             interacts.append({
-                "salt": e.source_id, "interacts_with": e.target_id,
-                "severity": meta.get("severity"), "note": meta.get("note"),
+                "salt": pair["salt_a"], "interacts_with": pair["salt_b"],
+                "severity": pair["severity"], "note": pair["note"],
+            })
+        if pair["salt_b"] in medicine_salts:
+            interacts.append({
+                "salt": pair["salt_b"], "interacts_with": pair["salt_a"],
+                "severity": pair["severity"], "note": pair["note"],
             })
 
-    treats = []
-    if salt_names:
-        treats_edges = (
-            db.query(models.GraphEdge)
-            .filter(models.GraphEdge.edge_type == "TREATS", models.GraphEdge.source_id.in_(salt_names))
-            .all()
-        )
-        treats = [{"salt": e.source_id, "condition": e.target_id} for e in treats_edges]
+    treats = [
+        {"salt": mapping["salt_name"], "condition": condition}
+        for mapping in reference["salt_conditions"]
+        if mapping["salt_name"] in medicine_salts
+        for condition in mapping["conditions"]
+    ]
 
     substitute_edges = get_neighbors(db, "medicine", medicine_id, edge_type="SUBSTITUTES", direction="out")
     substitute_ids = [int(e.target_id) for e in substitute_edges]

@@ -35,19 +35,60 @@ from app.config import settings
 
 celery_app = Celery(
     "kush_medical",
-    broker=settings.redis_url,
-    backend=settings.redis_url,
+    broker=settings.celery_broker_url,
+    backend=settings.celery_result_backend,
 )
 
+# Celery is lazy: constructing the app and importing tasks does NOT open a
+# Redis connection, so FastAPI can always start even when the broker is down.
+# Broker failures are handled by app.core.task_dispatch at dispatch time.
+_runtime_conf = {
+    "task_serializer": "json",
+    "result_serializer": "json",
+    "accept_content": ["json"],
+    "timezone": "Asia/Kolkata",
+    "enable_utc": True,
+    "task_track_started": True,
+    "task_time_limit": 180,
+    "task_soft_time_limit": 150,
+
+    # Avoid infinite reconnect loops and half-open sockets on free-tier hosts.
+    "broker_connection_retry_on_startup": True,
+    "broker_connection_max_retries": 3,
+    "broker_transport_options": {
+        "socket_timeout": settings.redis_socket_timeout,
+        "socket_connect_timeout": settings.redis_socket_connect_timeout,
+        # Must exceed the longest task (task_time_limit) so a result is not
+        # consumed by a second worker while the first is still running.
+        "visibility_timeout": 3600,
+    },
+    "result_expires": 24 * 60 * 60,
+    "task_acks_late": True,
+    "worker_prefetch_multiplier": 1,
+    # Tasks that call self.retry() get a bounded exponential backoff.
+    "task_default_retry_delay": 3,
+    "task_max_retries": 3,
+    "task_publish_retry": True,
+    "task_publish_retry_policy": {
+        "max_retries": 3,
+        "interval_start": 0.2,
+        "interval_step": 0.5,
+        "interval_max": 2.0,
+    },
+
+    # Bound to settings so free-tier deployments work with zero infrastructure.
+    "task_always_eager": settings.celery_task_always_eager,
+    "task_eager_propagates": settings.task_eager_propagates,
+}
+
+# rediss:// requires explicit TLS options for both Kombu and the Redis backend.
+if settings.broker_use_ssl:
+    _runtime_conf["broker_use_ssl"] = settings.broker_use_ssl
+if settings.redis_backend_use_ssl:
+    _runtime_conf["redis_backend_use_ssl"] = settings.redis_backend_use_ssl
+
 celery_app.conf.update(
-    task_serializer="json",
-    result_serializer="json",
-    accept_content=["json"],
-    timezone="Asia/Kolkata",
-    enable_utc=True,
-    task_track_started=True,
-    task_time_limit=180,
-    task_soft_time_limit=150,
+    **_runtime_conf,
 
     # ---------------------------------------------------------------------------
     # Celery Beat periodic schedule
@@ -139,7 +180,7 @@ celery_app.conf.update(
             "schedule": crontab(hour=23, minute=15),
         },
 
-        # Kush Pulse — rebuild the k-anonymous heatmap 15 minutes after the
+        # PharmOs Pulse — rebuild the k-anonymous heatmap 15 minutes after the
         # regional scan, only from opted-in tenants' privacy-safe counts.
         "refresh-regional-health-heatmap-daily": {
             "task": "refresh_regional_health_heatmap",

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List, Dict, Any
 from pydantic import BaseModel
@@ -7,7 +7,7 @@ from app.database import get_db
 from app.deps import get_current_user, require_owner
 from app.services import cross_tenant_integrity_service
 from app import models, schemas
-from app.celery_app import celery_app
+from app.core.task_dispatch import dispatch_task
 
 router = APIRouter(prefix="/network-integrity", tags=["network-integrity"])
 
@@ -49,10 +49,16 @@ def update_alert_status(
         raise HTTPException(400, msg)
 
 @router.post("/scan-now")
-def trigger_scan_now(current_user: models.User = Depends(require_owner)):
-    """
-    Triggers scan_cross_tenant_batch_collisions_task.delay() manually.
-    """
+def trigger_scan_now(
+    background_tasks: BackgroundTasks,
+    current_user: models.User = Depends(require_owner),
+):
+    """Manually trigger the cross-tenant collision scan via the dispatcher."""
     from app.services.tasks import scan_cross_tenant_batch_collisions_task
-    task = scan_cross_tenant_batch_collisions_task.delay()
-    return {"status": "queued", "task_id": task.id}
+
+    dispatch = dispatch_task(
+        scan_cross_tenant_batch_collisions_task,
+        background_tasks=background_tasks,
+    )
+    status = dispatch.result.get("status", "queued") if dispatch.executed else "queued"
+    return {"status": status, "task_id": dispatch.task_id}

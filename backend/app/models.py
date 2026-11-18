@@ -10,9 +10,10 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 from datetime import datetime, timezone
 from sqlalchemy import (
     UniqueConstraint,
-    Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum, Boolean, func
+    Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum,
+    Boolean, JSON, event, func,
 )
-from sqlalchemy.orm import relationship
+from sqlalchemy.orm import relationship, validates
 
 from app.database import Base
 
@@ -40,6 +41,67 @@ class Tenant(Base):
     surveillance_opt_in = Column(Boolean, nullable=False, default=False, server_default="0")
 
     users = relationship("User", back_populates="tenant", cascade="all, delete-orphan")
+
+
+def _normalize_clinical_salt(value: str) -> str:
+    return " ".join((value or "").upper().split())
+
+
+class SaltCondition(Base):
+    """Global curated mapping from an active salt to condition categories."""
+    __tablename__ = "salt_conditions"
+    __table_args__ = (
+        UniqueConstraint("salt_name", name="uq_salt_conditions_salt_name"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    salt_name = Column(String(255), nullable=False, index=True)
+    conditions = Column(JSON, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime, nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    @validates("salt_name")
+    def _normalize_salt_name(self, _key, value):
+        return _normalize_clinical_salt(value)
+
+
+class DrugInteraction(Base):
+    """Global curated interaction pair. Pair ordering is canonical and unique."""
+    __tablename__ = "drug_interactions"
+    __table_args__ = (
+        UniqueConstraint("salt_a", "salt_b", name="uq_drug_interactions_salt_pair"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    salt_a = Column(String(255), nullable=False, index=True)
+    salt_b = Column(String(255), nullable=False, index=True)
+    severity = Column(String(30), nullable=False)
+    note = Column(Text, nullable=False)
+    is_active = Column(Boolean, nullable=False, default=True, server_default="1")
+    created_at = Column(DateTime, nullable=False, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(
+        DateTime, nullable=False,
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+    )
+
+    @validates("salt_a", "salt_b")
+    def _normalize_salt_pair_member(self, _key, value):
+        return _normalize_clinical_salt(value)
+
+
+@event.listens_for(DrugInteraction, "before_insert")
+@event.listens_for(DrugInteraction, "before_update")
+def _canonicalize_interaction_pair(_mapper, _connection, interaction):
+    interaction.salt_a, interaction.salt_b = sorted((
+        _normalize_clinical_salt(interaction.salt_a),
+        _normalize_clinical_salt(interaction.salt_b),
+    ))
 
 class Medicine(Base):
     __tablename__ = "medicines"
@@ -768,7 +830,7 @@ class RegionalHealthAlert(Base):
 
 class RegionHeatmapRun(Base):
     """
-    Kush Pulse — one privacy-safe heatmap computation.
+    PharmOs Pulse — one privacy-safe heatmap computation.
 
     DELIBERATELY GLOBAL (no tenant_id): this row describes an aggregate over
     multiple opted-in tenants. The tenant isolation layer must NOT scope it.
@@ -794,7 +856,7 @@ class RegionHeatmapRun(Base):
 
 class RegionHeatmapSnapshot(Base):
     """
-    Kush Pulse — one publishable (region, condition) heatmap cell.
+    PharmOs Pulse — one publishable (region, condition) heatmap cell.
 
     DELIBERATELY GLOBAL (no tenant_id): adding tenant_id would make this
     cross-shop aggregate invisible to every individual shop. Privacy is

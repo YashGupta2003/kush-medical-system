@@ -1,5 +1,6 @@
 const BASE = import.meta.env.VITE_API_BASE_URL || "/api";
-const TOKEN_KEY = "kush_medical_token";
+const TOKEN_KEY = "pharmos_token";
+const LEGACY_TOKEN_KEY = "kush_medical_token";
 
 
 
@@ -9,13 +10,22 @@ const TOKEN_KEY = "kush_medical_token";
 // which is what you want for "stay logged in" behavior.
 // ---------------------------------------------------------------------------
 export function getToken() {
-  return localStorage.getItem(TOKEN_KEY);
+  const token = localStorage.getItem(TOKEN_KEY);
+  if (token) return token;
+  const legacyToken = localStorage.getItem(LEGACY_TOKEN_KEY);
+  if (legacyToken) {
+    localStorage.setItem(TOKEN_KEY, legacyToken);
+    localStorage.removeItem(LEGACY_TOKEN_KEY);
+  }
+  return legacyToken;
 }
 export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
 
 }
 
@@ -161,6 +171,36 @@ export const api = {
   checkInteractions: (saltNames) => apiFetch(`/graph/check-interactions?salts=${encodeURIComponent(saltNames.join(","))}`),
   getMedicinesForCondition: (condition, inStockOnly = true) =>
     apiFetch(`/graph/condition/${encodeURIComponent(condition)}?in_stock_only=${inStockOnly}`),
+
+  // --- Shared clinical reference catalogs (owner only) ---
+  getSaltConditions: ({ q, include_inactive = false } = {}) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (include_inactive) params.set("include_inactive", "true");
+    const query = params.toString();
+    return apiFetch(`/clinical-reference/salt-conditions${query ? `?${query}` : ""}`);
+  },
+  createSaltCondition: (payload) =>
+    apiFetch("/clinical-reference/salt-conditions", { method: "POST", ...jsonBody(payload) }),
+  updateSaltCondition: (id, payload) =>
+    apiFetch(`/clinical-reference/salt-conditions/${id}`, { method: "PUT", ...jsonBody(payload) }),
+  deleteSaltCondition: (id) =>
+    apiFetch(`/clinical-reference/salt-conditions/${id}`, { method: "DELETE" }),
+  getDrugInteractions: ({ q, include_inactive = false } = {}) => {
+    const params = new URLSearchParams();
+    if (q) params.set("q", q);
+    if (include_inactive) params.set("include_inactive", "true");
+    const query = params.toString();
+    return apiFetch(`/clinical-reference/drug-interactions${query ? `?${query}` : ""}`);
+  },
+  createDrugInteraction: (payload) =>
+    apiFetch("/clinical-reference/drug-interactions", { method: "POST", ...jsonBody(payload) }),
+  updateDrugInteraction: (id, payload) =>
+    apiFetch(`/clinical-reference/drug-interactions/${id}`, { method: "PUT", ...jsonBody(payload) }),
+  deleteDrugInteraction: (id) =>
+    apiFetch(`/clinical-reference/drug-interactions/${id}`, { method: "DELETE" }),
+  reseedClinicalData: () =>
+    apiFetch("/clinical-reference/reseed-clinical-data", { method: "POST" }),
   triggerGraphRebuild: () => apiFetch("/graph/rebuild", { method: "POST" }),
   getGraphRebuildStatus: (taskId) => apiFetch(`/graph/rebuild/${taskId}/status`),
 
@@ -391,7 +431,7 @@ export const api = {
   importMedicineList: (formData) =>
     apiFetch("/setup/import-medicine-list", { method: "POST", body: formData }),
 
-  // --- Kush Pulse — privacy-preserving regional heatmap ---
+  // --- PharmOs Pulse — privacy-preserving regional heatmap ---
   getRegionalHeatmap: (params = {}) => {
     const query = new URLSearchParams();
     if (params.condition_name) query.set("condition_name", params.condition_name);

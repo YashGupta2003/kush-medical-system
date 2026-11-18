@@ -31,6 +31,14 @@ describe("Token storage helpers", () => {
     expect(getToken()).toBe("eyJhbGciOiJIUzI1NiJ9.test");
   });
 
+  it("migrates tokens saved by the previous product name", () => {
+    localStorage.setItem("kush_medical_token", "legacy-access-token");
+
+    expect(getToken()).toBe("legacy-access-token");
+    expect(localStorage.getItem("pharmos_token")).toBe("legacy-access-token");
+    expect(localStorage.getItem("kush_medical_token")).toBeNull();
+  });
+
   it("clearToken() wipes access token", () => {
     setToken("access-token");
     clearToken();
@@ -136,6 +144,17 @@ describe("api object completeness", () => {
     expect(typeof api.getMedicineGraph).toBe("function");
     expect(typeof api.checkInteractions).toBe("function");
     expect(typeof api.getMedicinesForCondition).toBe("function");
+
+    // Clinical reference administration
+    expect(typeof api.getSaltConditions).toBe("function");
+    expect(typeof api.createSaltCondition).toBe("function");
+    expect(typeof api.updateSaltCondition).toBe("function");
+    expect(typeof api.deleteSaltCondition).toBe("function");
+    expect(typeof api.getDrugInteractions).toBe("function");
+    expect(typeof api.createDrugInteraction).toBe("function");
+    expect(typeof api.updateDrugInteraction).toBe("function");
+    expect(typeof api.deleteDrugInteraction).toBe("function");
+    expect(typeof api.reseedClinicalData).toBe("function");
 
     // Substitutes
     expect(typeof api.searchSubstitutes).toBe("function");

@@ -5,13 +5,14 @@ this file only shapes requests/responses, matching this codebase's existing
 router convention (see routers/bills.py, routers/stock.py for the same
 pattern).
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import schemas
 from app.services import graph_service
 from app.deps import get_current_user, require_owner
+from app.core.task_dispatch import dispatch_task, get_task_status
 
 router = APIRouter(prefix="/graph", dependencies=[Depends(get_current_user)], tags=["graph"])
 
@@ -55,31 +56,30 @@ def medicines_for_condition(
 
 
 @router.post("/rebuild", response_model=schemas.GraphRebuildResponse, dependencies=[Depends(require_owner)])
-def trigger_rebuild():
+def trigger_rebuild(background_tasks: BackgroundTasks):
     """
-    Owner-only: kicks off a full graph rebuild (CONTAINS + SUBSTITUTES for
-    every medicine, SUPPLIES for every confirmed bill, plus reloading the
-    curated INTERACTS_WITH/TREATS seed data) as a background Celery task -
-    see services/tasks.py's rebuild_graph_task for why this can't run
-    inline in the request.
+    Owner-only: kicks off a full graph rebuild through the shared dispatcher.
+
+    Broker mode enqueues to Celery; eager/fallback mode runs it inline via
+    FastAPI BackgroundTasks so the request never depends on Redis availability.
     """
     from app.services.tasks import rebuild_graph_task
 
-    task = rebuild_graph_task.delay()
-    return schemas.GraphRebuildResponse(task_id=task.id, status="queued")
+    dispatch = dispatch_task(
+        rebuild_graph_task, background_tasks=background_tasks
+    )
+    status = "queued"
+    if dispatch.executed and dispatch.result:
+        status = dispatch.result.get("status", "ok")
+    return schemas.GraphRebuildResponse(task_id=dispatch.task_id, status=status)
 
 
 @router.get("/rebuild/{task_id}/status", response_model=schemas.GraphRebuildStatus)
 def rebuild_status(task_id: str):
     """Poll the status/result of a rebuild task started via POST /graph/rebuild."""
-    from app.celery_app import celery_app
-
-    result = celery_app.AsyncResult(task_id)
-    if result.state == "PENDING":
-        return schemas.GraphRebuildStatus(status="pending")
-    if result.state == "SUCCESS":
-        payload = result.result or {}
-        return schemas.GraphRebuildStatus(status=payload.get("status", "ok"), stats=payload.get("stats"))
-    if result.state == "FAILURE":
-        return schemas.GraphRebuildStatus(status="failed", error=str(result.info))
-    return schemas.GraphRebuildStatus(status=result.state.lower())
+    payload = get_task_status(task_id)
+    return schemas.GraphRebuildStatus(
+        status=payload.get("status", "pending"),
+        stats=payload.get("stats"),
+        error=payload.get("error"),
+    )

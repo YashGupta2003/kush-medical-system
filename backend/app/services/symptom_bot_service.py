@@ -29,11 +29,11 @@ same function is a small, well-defined follow-up once those credentials
 exist.
 """
 import re
+from typing import Optional
 
 from sqlalchemy.orm import Session
 
-from app import models
-from app.services import graph_service
+from app.services import clinical_reference_service, graph_service
 
 PHARMACIST_HANDOFF = (
     "This is a stock/category suggestion only, not a diagnosis or medical advice. "
@@ -41,18 +41,17 @@ PHARMACIST_HANDOFF = (
 )
 
 
-def _known_conditions(db: Session) -> list[str]:
-    """Distinct condition names currently seeded into PharmaGraph's TREATS edges."""
-    rows = (
-        db.query(models.GraphEdge.target_id)
-        .filter(models.GraphEdge.edge_type == "TREATS", models.GraphEdge.target_type == "condition")
-        .distinct()
-        .all()
-    )
-    return sorted({r[0] for r in rows})
+def _known_conditions(db: Optional[Session] = None) -> list[str]:
+    """Distinct active condition names from the shared clinical reference data."""
+    reference = clinical_reference_service.get_clinical_reference_data(db)
+    return sorted({
+        condition
+        for mapping in reference["salt_conditions"]
+        for condition in mapping["conditions"]
+    })
 
 
-def match_symptoms_to_conditions(db: Session, message: str) -> list[str]:
+def match_symptoms_to_conditions(db: Optional[Session], message: str) -> list[str]:
     """
     Simple, deliberately conservative substring matching against the
     curated condition vocabulary - NOT free-form LLM inference over raw

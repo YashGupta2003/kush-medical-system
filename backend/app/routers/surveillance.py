@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, Query
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -6,6 +6,7 @@ from app.database import get_db
 from app.deps import require_owner
 from app.services import surveillance_service, tasks
 from app.schemas import SurveillanceConditionSummary, SurveillanceTrendPoint, SurveillanceSpikeAlert
+from app.core.task_dispatch import dispatch_task
 
 router = APIRouter(
     prefix="/surveillance",
@@ -26,6 +27,8 @@ def get_spikes(days: int = Query(14), z_threshold: float = Query(2.0), db: Sessi
     return surveillance_service.detect_spikes(db, days, z_threshold)
 
 @router.post("/scan-now")
-def trigger_scan():
-    task = tasks.run_surveillance_scan_task.delay()
-    return {"message": "Scan started", "task_id": task.id}
+def trigger_scan(background_tasks: BackgroundTasks):
+    dispatch = dispatch_task(
+        tasks.run_surveillance_scan_task, background_tasks=background_tasks
+    )
+    return {"message": "Scan started", "task_id": dispatch.task_id}

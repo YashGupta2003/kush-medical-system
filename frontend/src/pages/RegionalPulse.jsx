@@ -222,7 +222,7 @@ export default function RegionalPulse() {
 
       <header className="pulse-hero">
         <div>
-          <span className="pulse-hero-tag"><Globe2 size={13} /> Regional Pulse · Kush Shield</span>
+          <span className="pulse-hero-tag"><Globe2 size={13} /> Regional Pulse · PharmOs Shield</span>
           <h1>See the signal. Never the person.</h1>
           <p>
             Privacy-preserving public-health signals from opted-in pharmacies. Aggregated by region and condition,

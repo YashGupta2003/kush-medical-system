@@ -39,9 +39,6 @@ from sqlalchemy.orm import Session
 from app import models
 from app.services import audit_service, expiry_service
 
-SELF_SHOP_NAME = "Kush Medical Hall (this shop)"
-
-
 def _current_tenant_id(db: Session) -> Optional[int]:
     """The active tenant context; request routes and tenant-scoped tasks set it."""
     return db.info.get("tenant_id")
@@ -51,12 +48,18 @@ def _current_tenant_id(db: Session) -> Optional[int]:
 # Nodes
 # ---------------------------------------------------------------------------
 def get_or_create_self_node(db: Session) -> models.PharmacyNode:
-    node = db.query(models.PharmacyNode).filter_by(is_self=True).first()
+    tenant_id = _current_tenant_id(db)
+    tenant = db.get(models.Tenant, tenant_id) if tenant_id is not None else None
+    shop_name = tenant.shop_name if tenant else "This pharmacy"
+    node = db.query(models.PharmacyNode).filter_by(is_self=True, tenant_id=tenant_id).first()
     if node:
+        if node.shop_name != shop_name:
+            node.shop_name = shop_name
+            db.flush()
         return node
     node = models.PharmacyNode(
-        tenant_id=_current_tenant_id(db),
-        shop_name=SELF_SHOP_NAME, is_self=True, opted_in=True,
+        tenant_id=tenant_id,
+        shop_name=shop_name, is_self=True, opted_in=True,
         joined_at=datetime.now(timezone.utc),
     )
     db.add(node)

@@ -14,7 +14,7 @@ Scopes:
 Import pattern for get_current_user / require_owner: always from app.deps,
 never from app.routers.auth or any other router file.
 """
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from typing import List
 from pydantic import BaseModel
@@ -23,6 +23,7 @@ from app.database import get_db
 from app.deps import get_current_user, require_owner
 from app import models, schemas
 from app.services import regional_health_service
+from app.core.task_dispatch import dispatch_task
 
 router = APIRouter(prefix="/regional-health", tags=["regional-health"])
 
@@ -109,13 +110,14 @@ def update_alert_status(
 
 @router.post("/scan-now")
 def trigger_scan_now(
+    background_tasks: BackgroundTasks,
     current_user: models.User = Depends(require_owner),
 ):
-    """
-    Owner-only: manually trigger a regional health spike scan as a Celery task.
-    Imports the actual task function and calls .delay() directly (per the
-    CELERY TASK RULE in the feature spec — never string-based send_task).
-    """
+    """Owner-only regional spike scan via the shared resilient dispatcher."""
     from app.services.tasks import scan_regional_health_spikes_task
-    task = scan_regional_health_spikes_task.delay()
-    return {"status": "queued", "task_id": task.id}
+
+    dispatch = dispatch_task(
+        scan_regional_health_spikes_task, background_tasks=background_tasks
+    )
+    status = dispatch.result.get("status", "queued") if dispatch.executed else "queued"
+    return {"status": status, "task_id": dispatch.task_id}

@@ -1,7 +1,8 @@
-# Kush Medical Hall — Automated Bill Digitization & Rate List System
+# PharmOs — Pharmacy Operating System
 
-A B.Tech CSE major project that replaces the manual "update the Excel rate
-list by hand every 15 days" workflow at a real medical shop with:
+PharmOs is a tenant-aware pharmacy operating system. Each pharmacy registers
+its own shop, owner account, medicine catalog, and operational data. The
+system replaces manual rate-list updates with:
 
 1. Photograph a purchase bill on your phone.
 2. Google Cloud Vision OCR reads every line item, whatever the distributor's
@@ -21,13 +22,13 @@ list by hand every 15 days" workflow at a real medical shop with:
    medicine.
 8. **Duplicate Invoice Detection**: Prevents double-counting inventory and GST by detecting if a bill with the same distributor and invoice number has already been confirmed. Uploading returns a prominent warning banner, and confirming a duplicate returns an HTTP 409 Conflict hard gate.
 9. **Smart Reorder Point Engine**: Calculates data-driven low-stock threshold suggestions based on rolling sales history (30-day default zero-filled series), lead time demand, and safety stock ($Z = 1.65$ for 95% service level). The owner can review suggestions and explicitly apply them to update the low-stock thresholds.
-10. **Kush Pulse — Privacy-Preserving Regional Heatmap**: Aggregates opted-in OTC surveillance counts into regional health signals. A cell is published only when at least 3 pharmacies contribute; otherwise it is suppressed. No shop, customer, bill, medicine, or raw count is ever exposed by the public API.
+10. **PharmOs Pulse — Privacy-Preserving Regional Heatmap**: Aggregates opted-in OTC surveillance counts into regional health signals. A cell is published only when at least 3 pharmacies contribute; otherwise it is suppressed. No shop, customer, bill, medicine, or raw count is ever exposed by the public API.
 
-## Kush Pulse — privacy by design
+## PharmOs Pulse — privacy by design
 
 > **See the signal. Never the person.**
 
-Kush Pulse reads only privacy-safe `(tenant, condition, date, otc_units)` surveillance counts, aggregates them by region and condition over a 7-day window, applies a **k ≥ 3 anonymity rule**, and publishes only signal labels, trends, volume bands, and contributor counts. Snapshot tables deliberately have no `tenant_id` because they are cross-shop aggregates; privacy is enforced by the k-anonymity rule and a sanitized API DTO.
+PharmOs Pulse reads only privacy-safe `(tenant, condition, date, otc_units)` surveillance counts, aggregates them by region and condition over a 7-day window, applies a **k ≥ 3 anonymity rule**, and publishes only signal labels, trends, volume bands, and contributor counts. Snapshot tables deliberately have no `tenant_id` because they are cross-shop aggregates; privacy is enforced by the k-anonymity rule and a sanitized API DTO.
 
 - Backend: `backend/app/services/heatmap_service.py`, `backend/app/routers/heatmap.py`
 - Frontend: `frontend/src/pages/RegionalPulse.jsx` (`/regional-pulse`)
@@ -83,10 +84,10 @@ frontend/
 
 ### 1. MySQL
 ```sql
-CREATE DATABASE kush_medical CHARACTER SET utf8mb4;
+CREATE DATABASE pharmos CHARACTER SET utf8mb4;
 ```
-(Tables are created automatically on first backend run — `scripts/schema.sql`
-is there for reference/your report.)
+The schema is created by the Alembic command in the Backend setup step.
+The legacy `scripts/schema.sql` file is retained as a reference.
 
 ### 2. Google Cloud Vision (OCR)
 1. Go to console.cloud.google.com, create a project.
@@ -103,8 +104,8 @@ python -m venv venv
 source venv/bin/activate        # venv\Scripts\activate on Windows
 pip install -r requirements.txt
 cp .env.example .env            # then edit .env with your MySQL password + key path
-
-python scripts/import_rate_list.py /path/to/kush_medical_rate_list_.xlsx
+alembic upgrade head
+python scripts/import_rate_list.py /path/to/your_pharmacy_rate_list.xlsx
 
 # Run the FastAPI server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -128,6 +129,16 @@ Visit the printed local URL. Because `vite.config.js` sets `host: true`,
 you can also open it from your phone's browser at
 `http://<your-computer's-LAN-IP>:5173` (same wifi) — that's how you'd photograph
 a bill directly from the shop counter.
+
+## Shared clinical reference data
+
+Salt-to-condition mappings and drug-interaction rules are stored in the global
+`salt_conditions` and `drug_interactions` database tables. On first startup,
+PharmOs idempotently seeds empty tables from the JSON files under
+`backend/app/data/`. The files remain as the packaged baseline and fallback.
+Pharmacy owners can manage the live catalog through the protected
+`/v1/clinical-reference` API; changes invalidate Redis and in-memory caches.
+Apply migrations with `alembic upgrade head` before deploying the new version.
 
 ## How the cost formula works
 ```

@@ -1,5 +1,5 @@
 """
-Kush Pulse — Privacy-Preserving Regional Health Heatmap.
+PharmOs Pulse — Privacy-Preserving Regional Health Heatmap.
 
 This module converts opted-in, privacy-safe OTC counts into a regional
 signal map that reveals a trend without revealing a shop, customer, bill,

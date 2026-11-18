@@ -15,8 +15,10 @@ Security note on jwt_secret_key:
   while `TESTING=true` covers scenarios where the settings object might be
   constructed from a subprocess or a non-pytest test runner.
 """
+import ssl
 import sys
 import os
+from typing import Dict
 
 from pydantic_settings import BaseSettings
 from pydantic import Field, model_validator
@@ -28,6 +30,10 @@ class Settings(BaseSettings):
     db_user: str = "root"
     db_password: str = ""
     db_name: str = "kush_medical"
+    # Optional full SQLAlchemy URL. When set (e.g. a managed PostgreSQL
+    # connectionString on Render), it overrides the DB_* fields below.
+    # Leaving it empty preserves the historical MySQL/pymysql behaviour.
+    database_url: str = ""
 
     google_application_credentials: str = "./gcp-vision-key.json"
     ocr_engine: str = "auto"
@@ -35,7 +41,29 @@ class Settings(BaseSettings):
     upload_dir: str = "./uploads"
     fuzzy_match_threshold: int = Field(default=85, description="0-100, RapidFuzz score")
 
+    # ------------------------------------------------------------------
+    # Redis / Celery runtime
+    # ------------------------------------------------------------------
+    # REDIS_URL is the single source of truth. CELERY_BROKER_URL and
+    # CELERY_RESULT_BACKEND may be set independently (e.g. separate broker and
+    # result database), but when left empty they inherit REDIS_URL.
     redis_url: str = "redis://localhost:6379/0"
+    celery_broker_url: str = ""
+    celery_result_backend: str = ""
+
+    # Mode A (free-tier / no worker): CELERY_TASK_ALWAYS_EAGER=true executes
+    # tasks inline. Mode B (managed Redis + worker): keep it false.
+    celery_task_always_eager: bool = False
+    task_eager_propagates: bool = False
+    use_sync_tasks_fallback: bool = True
+
+    # Short transport timeouts stop a broker outage from hanging an API request.
+    redis_socket_timeout: float = 5.0
+    redis_socket_connect_timeout: float = 5.0
+    redis_cache_socket_timeout: float = 1.0
+    # TLS certificate verification mode for rediss:// URLs: none|optional|required
+    redis_ssl_cert_reqs: str = "none"
+
     ocr_confidence_threshold: float = 55.0
 
     # SECURITY: This MUST be set to a long random string in production.
@@ -93,6 +121,20 @@ class Settings(BaseSettings):
         env_file = ".env"
 
     @model_validator(mode="after")
+    def _apply_runtime_defaults(self) -> "Settings":
+        """Inherit broker/backend and build the legacy MySQL URL when needed."""
+        if not self.celery_broker_url:
+            self.celery_broker_url = self.redis_url
+        if not self.celery_result_backend:
+            self.celery_result_backend = self.redis_url
+        if not self.database_url:
+            self.database_url = (
+                f"mysql+pymysql://{self.db_user}:{self.db_password}"
+                f"@{self.db_host}:{self.db_port}/{self.db_name}"
+            )
+        return self
+
+    @model_validator(mode="after")
     def _validate_jwt_secret(self) -> "Settings":
         """
         Raises at startup if jwt_secret_key is still the insecure default
@@ -117,11 +159,35 @@ class Settings(BaseSettings):
         return self
 
     @property
-    def database_url(self) -> str:
-        return (
-            f"mysql+pymysql://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.db_name}"
-        )
+    def is_testing(self) -> bool:
+        return "pytest" in sys.modules or os.environ.get("TESTING", "").lower() == "true"
+
+    @property
+    def broker_use_ssl(self) -> Dict:
+        """Kombu TLS options, populated automatically for rediss:// URLs."""
+        if not self.celery_broker_url.startswith("rediss://"):
+            return {}
+        return {"ssl_cert_reqs": self._ssl_cert_reqs()}
+
+    @property
+    def redis_backend_use_ssl(self) -> Dict:
+        """Celery Redis result-backend TLS options for rediss:// URLs."""
+        if not self.celery_result_backend.startswith("rediss://"):
+            return {}
+        return {"ssl_cert_reqs": self._ssl_cert_reqs()}
+
+    def _ssl_cert_reqs(self):
+        return {
+            "none": ssl.CERT_NONE,
+            "optional": ssl.CERT_OPTIONAL,
+            "required": ssl.CERT_REQUIRED,
+        }.get(self.redis_ssl_cert_reqs.lower(), ssl.CERT_NONE)
+
+    @property
+    def task_execution_mode(self) -> str:
+        if self.celery_task_always_eager:
+            return "eager"
+        return "broker_with_sync_fallback" if self.use_sync_tasks_fallback else "broker_only"
 
 
 settings = Settings()

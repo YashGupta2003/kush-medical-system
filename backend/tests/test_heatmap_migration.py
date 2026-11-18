@@ -1,4 +1,4 @@
-"""Migration tests for the Kush Pulse heatmap schema (0026)."""
+"""Migration tests for the PharmOs Pulse heatmap schema (0026)."""
 import importlib.util
 from pathlib import Path
 

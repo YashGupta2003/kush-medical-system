@@ -1,4 +1,4 @@
-"""Tests for Kush Pulse privacy-preserving regional heatmap."""
+"""Tests for PharmOs Pulse privacy-preserving regional heatmap."""
 from datetime import date, timedelta
 
 from app import models

@@ -85,13 +85,13 @@ def send_message(to: str, body: str) -> bool:
         return False
 
 
-def send_digest(to: str, digest: dict) -> bool:
+def send_digest(to: str, digest: dict, pharmacy_name: str = "PharmOs") -> bool:
     """
     Formats and sends the daily digest as a WhatsApp message.
     Returns True on success, False on no-op/failure.
     """
     lines = [
-        "🏥 *Kush Medical Hall — Daily Digest*",
+        f"🏥 *{pharmacy_name} — PharmOs Daily Digest*",
         "",
         f"📊 Adherence overdue: *{digest.get('adherence_overdue_count', 0)}* customers",
         f"💳 Outstanding credit: *₹{digest.get('outstanding_credit_total', 0):.0f}* "

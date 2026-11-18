@@ -1,5 +1,5 @@
 """
-Kush Medical Hall — FastAPI application entry point.
+PharmOs — FastAPI application entry point.
 
 API Versioning:
   All business routers are mounted under the /v1 prefix. In development the
@@ -32,11 +32,15 @@ from app.routers import (
     health, substitutes, graph, copilot, pos, audit, customers, network,
     symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance, trust_score, smart_purchase, profit,
     prescriptions, register, tenants, setup, network_integrity, regional_health,
+    clinical_reference,
     heatmap
 )
-from app.database import ensure_database_schema_synced
+from app.database import SessionLocal, ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
 from app.config import settings
+from app.core.cache import invalidate_cache_prefix
+from app.services.clinical_reference_service import seed_clinical_data
+from app.services.graph_service import sync_reference_graph_edges
 
 
 # ---------------------------------------------------------------------------
@@ -45,9 +49,9 @@ from app.config import settings
 # so every section of the Swagger UI has a readable summary.
 # ---------------------------------------------------------------------------
 app = FastAPI(
-    title="Kush Medical Hall — Pharmacy Operating System",
+    title="PharmOs — Pharmacy Operating System",
     description=(
-        "## Kush Medical Hall API v1\n\n"
+        "## PharmOs API v1\n\n"
         "A full pharmacy operating system covering:\n"
         "- **OCR Bill Digitisation** — upload invoices; AI extracts line items automatically.\n"
         "- **PharmaGraph** — knowledge graph of medicines, salts, conditions, and interactions.\n"
@@ -68,7 +72,7 @@ app = FastAPI(
     openapi_url="/api/openapi.json",   # served at /api/openapi.json for Vite proxy compatibility
     docs_url="/api/docs",
     redoc_url="/api/redoc",
-    contact={"name": "Kush Medical Hall", "email": "admin@kushmedical.local"},
+    contact={"name": "PharmOs Support"},
     license_info={"name": "Private — All Rights Reserved"},
     openapi_tags=[
         {"name": "auth",           "description": "Login, token refresh, logout, user management."},
@@ -92,7 +96,7 @@ app = FastAPI(
         {"name": "notifications",  "description": "Notification centre — in-app alerts, mark-read, digest trigger."},
         {"name": "cold-chain",     "description": "Cold-chain compliance — units, temperature readings, excursion report."},
         {"name": "surveillance",   "description": "Syndromic surveillance — OTC trend conditions, spike detection (owner only)."},
-        {"name": "heatmap",        "description": "Kush Pulse — k-anonymous regional health heatmap (public-safe reads, owner-only refresh)."},
+        {"name": "heatmap",        "description": "PharmOs Pulse — k-anonymous regional health heatmap (public-safe reads, owner-only refresh)."},
         {"name": "trust-score",    "description": "Supply chain trust scores per distributor (owner only)."},
         {"name": "health",         "description": "System health check — DB, Redis, Celery worker status."},
     ],
@@ -108,6 +112,22 @@ async def on_startup():
     cycles where the DB may not yet be available.
     """
     ensure_database_schema_synced()
+    if not settings.is_testing:
+        db = SessionLocal()
+        try:
+            seed_clinical_data(db)
+            invalidate_cache_prefix("clinical_reference")
+            sync_reference_graph_edges(db)
+            db.commit()
+            invalidate_cache_prefix("clinical_reference")
+        except Exception:
+            db.rollback()
+            _main_logger.exception(
+                "Clinical reference seeding failed; bundled JSON remains the read fallback. "
+                "Ensure Alembic migrations are up to date."
+            )
+        finally:
+            db.close()
     register_all_subscribers()
 
 
@@ -322,6 +342,7 @@ v1_router.include_router(tenants.router)
 v1_router.include_router(network_integrity.router)
 v1_router.include_router(regional_health.router)  # → /v1/regional-health/...
 v1_router.include_router(heatmap.router)          # → /v1/heatmap/...
+v1_router.include_router(clinical_reference.router)  # → /v1/clinical-reference/...
         # → /v1/tenants/...
 
 import sys
@@ -372,6 +393,7 @@ _legacy.include_router(prescriptions.router)
 _legacy.include_router(network_integrity.router)
 _legacy.include_router(regional_health.router)
 _legacy.include_router(heatmap.router)
+_legacy.include_router(clinical_reference.router)
 
 import sys
 if settings.gemini_api_key or "pytest" in sys.modules:
@@ -391,7 +413,7 @@ app.include_router(_legacy)  # bare paths still work — tests pass, scripts wor
 def root():
     return {
         "status": "ok",
-        "service": "kush-medical-backend",
+        "service": "pharmos-backend",
         "architecture": "event-driven-pipeline",
         "api_version": "v1",
         "versioned_base": "/v1",

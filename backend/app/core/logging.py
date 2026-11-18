@@ -1,5 +1,5 @@
 """
-Centralized logging system for Kush Medical System.
+Centralized logging system for PharmOs.
 Provides structured logging across FastAPI API handlers, Celery background workers,
 and core business services.
 """

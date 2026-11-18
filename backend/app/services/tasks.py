@@ -1,5 +1,5 @@
 """
-Celery background tasks for Kush Medical Hall.
+Celery background tasks for PharmOs.
 
 Priority 1 new tasks:
   run_adherence_check_task    — daily adherence scan, fires AdherenceAlertRaisedEvent
@@ -70,13 +70,25 @@ def reprocess_region_task(bill_id: int, x0: int, y0: int, x1: int, y1: int) -> d
 @celery_app.task(bind=True, name="rebuild_graph")
 def rebuild_graph_task(self):
     from app.services import graph_service
-    import redis
+    from app.core.cache import get_redis_client
+    from app.core.logging import get_logger
 
-    r = redis.from_url(settings.redis_url)
-    lock = r.lock("lock:rebuild_graph", timeout=600)
-    
-    if not lock.acquire(blocking=False):
-        return {"status": "skipped", "reason": "Another rebuild is currently in progress."}
+    task_logger = get_logger("tasks")
+
+    # The distributed lock is an optimisation, not a correctness requirement.
+    # Without Redis (eager/fallback mode) the rebuild still runs safely.
+    lock = None
+    r = get_redis_client()
+    if r is not None:
+        try:
+            lock = r.lock("lock:rebuild_graph", timeout=600)
+            if not lock.acquire(blocking=False):
+                return {"status": "skipped", "reason": "Another rebuild is currently in progress."}
+        except Exception as exc:  # noqa: BLE001 - lock failure must not kill the task
+            task_logger.warning(f"Graph rebuild lock unavailable: {exc}. Continuing without it.")
+            lock = None
+    else:
+        task_logger.warning("Redis unavailable for graph rebuild lock; continuing without it.")
 
     db = SessionLocal()
     try:
@@ -87,10 +99,11 @@ def rebuild_graph_task(self):
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
-        try:
-            lock.release()
-        except redis.exceptions.LockError:
-            pass
+        if lock is not None:
+            try:
+                lock.release()
+            except Exception:  # noqa: BLE001 - lock release is best-effort
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -293,7 +306,7 @@ def send_daily_digest_task() -> dict:
                     notification_service.create_notification(
                         db,
                         notification_type="daily_digest",
-                        title="Daily Summary — Kush Medical Hall",
+                        title=f"Daily Summary — {owner.tenant.shop_name}",
                         body="\n".join(body_lines),
                         severity="info",
                         recipient_user_id=owner.id,
@@ -303,7 +316,9 @@ def send_daily_digest_task() -> dict:
 
                 # Best-effort WhatsApp delivery (outside the DB scope block)
                 if owner.whatsapp_number:
-                    whatsapp_service.send_digest(owner.whatsapp_number, digest)
+                    whatsapp_service.send_digest(
+                        owner.whatsapp_number, digest, pharmacy_name=owner.tenant.shop_name
+                    )
 
                 sent += 1
             except Exception as exc:
@@ -556,7 +571,7 @@ def run_surveillance_scan_task() -> dict:
 
 @celery_app.task(name='refresh_regional_health_heatmap')
 def refresh_regional_health_heatmap_task() -> dict:
-    """Rebuild Kush Pulse's k-anonymous regional heatmap snapshot."""
+    """Rebuild PharmOs Pulse's k-anonymous regional heatmap snapshot."""
     from app.services.heatmap_service import refresh_heatmap
 
     db = SessionLocal()

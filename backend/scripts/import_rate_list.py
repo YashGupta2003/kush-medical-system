@@ -11,7 +11,7 @@ Handles two real quirks found in the actual file:
 
 Usage:
     cd backend
-    python scripts/import_rate_list.py /path/to/kush_medical_rate_list_.xlsx
+    python scripts/import_rate_list.py /path/to/your_pharmacy_rate_list.xlsx
 """
 import sys
 import os

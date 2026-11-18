@@ -1,4 +1,4 @@
-"""Kush Pulse — privacy-preserving regional heatmap snapshots.
+"""PharmOs Pulse — privacy-preserving regional heatmap snapshots.
 
 Revision ID: 0026
 Revises: 0025

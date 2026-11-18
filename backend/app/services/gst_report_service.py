@@ -75,7 +75,7 @@ def get_gst_report(db: Session, tenant_id: int, year: int, month: int) -> dict:
     }
 
 
-def generate_gst_report_pdf(report: dict) -> bytes:
+def generate_gst_report_pdf(report: dict, pharmacy_name: str = "Pharmacy") -> bytes:
     """Renders the same report data as a printable PDF for the CA."""
     from reportlab.lib.pagesizes import A4
     from reportlab.lib import colors
@@ -88,7 +88,7 @@ def generate_gst_report_pdf(report: dict) -> bytes:
     styles = getSampleStyleSheet()
     elements = []
 
-    elements.append(Paragraph("Kush Medical Hall — GST Purchase Summary", styles["Title"]))
+    elements.append(Paragraph(f"{pharmacy_name} — GST Purchase Summary", styles["Title"]))
     elements.append(Paragraph(f"Period: {report['month_label']}", styles["Normal"]))
     elements.append(Paragraph(f"Confirmed bills in this period: {report['bill_count']}", styles["Normal"]))
     elements.append(Spacer(1, 12))

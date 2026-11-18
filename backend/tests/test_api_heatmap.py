@@ -1,4 +1,4 @@
-"""API-level tests for Kush Pulse privacy guarantees."""
+"""API-level tests for PharmOs Pulse privacy guarantees."""
 from datetime import date, timedelta
 
 from app import models

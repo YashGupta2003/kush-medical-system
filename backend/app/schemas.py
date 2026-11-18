@@ -1,6 +1,6 @@
 from datetime import datetime, date
 from typing import Optional, List, Generic, TypeVar
-from pydantic import BaseModel, Field, field_validator, ConfigDict
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 T = TypeVar("T")
 
@@ -1117,3 +1117,146 @@ class DistributorConfidenceOut(BaseModel):
     sample_count: int
     low_confidence_fields: List[str]
     status: str
+
+
+def _normalize_clinical_salt(value: str) -> str:
+    return " ".join(value.upper().split())
+
+
+class SaltConditionCreate(BaseModel):
+    salt_name: str = Field(..., min_length=1, max_length=255)
+    conditions: List[str] = Field(..., min_length=1)
+    is_active: bool = True
+
+    @field_validator("salt_name")
+    @classmethod
+    def normalize_salt_name(cls, value: str) -> str:
+        normalized = _normalize_clinical_salt(value)
+        if not normalized:
+            raise ValueError("salt_name must not be blank")
+        return normalized
+
+    @field_validator("conditions")
+    @classmethod
+    def clean_conditions(cls, values: List[str]) -> List[str]:
+        cleaned = [" ".join(value.split()) for value in values if value and value.strip()]
+        unique = list(dict.fromkeys(cleaned))
+        if not unique:
+            raise ValueError("at least one non-empty condition is required")
+        return unique
+
+
+class SaltConditionUpdate(BaseModel):
+    salt_name: Optional[str] = Field(None, min_length=1, max_length=255)
+    conditions: Optional[List[str]] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("salt_name")
+    @classmethod
+    def normalize_salt_name(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        normalized = _normalize_clinical_salt(value)
+        if not normalized:
+            raise ValueError("salt_name must not be blank")
+        return normalized
+
+    @field_validator("conditions")
+    @classmethod
+    def clean_conditions(cls, values: Optional[List[str]]) -> Optional[List[str]]:
+        if values is None:
+            return values
+        cleaned = list(dict.fromkeys(
+            " ".join(value.split()) for value in values if value and value.strip()
+        ))
+        if not cleaned:
+            raise ValueError("at least one non-empty condition is required")
+        return cleaned
+
+
+class SaltConditionOut(BaseModel):
+    id: int
+    salt_name: str
+    conditions: List[str]
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class DrugInteractionCreate(BaseModel):
+    salt_a: str = Field(..., min_length=1, max_length=255)
+    salt_b: str = Field(..., min_length=1, max_length=255)
+    severity: str = Field(..., min_length=1, max_length=30)
+    note: str = Field(..., min_length=1)
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def normalize_pair(self):
+        salt_a = _normalize_clinical_salt(self.salt_a)
+        salt_b = _normalize_clinical_salt(self.salt_b)
+        if not salt_a or not salt_b:
+            raise ValueError("both salts must be non-empty")
+        if salt_a == salt_b:
+            raise ValueError("an interaction must reference two different salts")
+        self.salt_a, self.salt_b = sorted((salt_a, salt_b))
+        self.severity = self.severity.strip().lower()
+        self.note = self.note.strip()
+        if not self.note:
+            raise ValueError("note must not be blank")
+        return self
+
+
+class DrugInteractionUpdate(BaseModel):
+    salt_a: Optional[str] = Field(None, min_length=1, max_length=255)
+    salt_b: Optional[str] = Field(None, min_length=1, max_length=255)
+    severity: Optional[str] = Field(None, min_length=1, max_length=30)
+    note: Optional[str] = None
+    is_active: Optional[bool] = None
+
+    @field_validator("salt_a", "salt_b")
+    @classmethod
+    def normalize_pair_member(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        normalized = _normalize_clinical_salt(value)
+        if not normalized:
+            raise ValueError("salt must not be blank")
+        return normalized
+
+    @field_validator("severity")
+    @classmethod
+    def normalize_severity(cls, value: Optional[str]) -> Optional[str]:
+        return value.strip().lower() if value is not None else value
+
+    @field_validator("note")
+    @classmethod
+    def clean_note(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("note must not be blank")
+        return value
+
+    @model_validator(mode="after")
+    def validate_pair(self):
+        if self.salt_a is not None and self.salt_b is not None:
+            if self.salt_a == self.salt_b:
+                raise ValueError("an interaction must reference two different salts")
+            self.salt_a, self.salt_b = sorted((self.salt_a, self.salt_b))
+        return self
+
+
+class DrugInteractionOut(BaseModel):
+    id: int
+    salt_a: str
+    salt_b: str
+    severity: str
+    note: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
