@@ -6,6 +6,7 @@ backend/.env
 #   console.cloud.google.com → IAM → Service Accounts → Keys → Delete key
 # Generate a new key and replace the file locally.
 backend/gcp-vision-key.json
+uploads/
 backend/uploads/
 __pycache__/
 *.pyc
@@ -14,7 +15,9 @@ frontend/dist/
 .DS_Store
 
 # Test/coverage artifacts
+.coverage
 backend/.coverage
+.pytest_cache/
 backend/.pytest_cache/
 backend/htmlcov/
 
@@ -23,7 +26,14 @@ celerybeat-schedule
 celerybeat-schedule.db
 
 # Redis dump (auto-generated)
+*.rdb
+dump.rdb
 backend/dump.rdb
+
+# Runtime logs
+*.log
+logs/
+backend/logs/
 
 # Any other credential/secret files
 *.pem
