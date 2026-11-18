@@ -51,6 +51,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app import models
+from app.database import bypass_tenant_filter
 from app.services.anomaly_service import _leave_one_out_zscores
 from app.services.matcher import normalize
 from app.services.audit_service import log_event
@@ -207,7 +208,11 @@ def compute_trust_score(db: Session, distributor_id: int, medicine_id: Optional[
     else:
         confidence = "low"
         
-    all_collisions = detect_batch_collisions(db)
+    # Intentionally network-wide: the whole point of a counterfeit batch
+    # collision signal is that it spans shops. Opt out explicitly so this
+    # works identically from a request and from the unscoped Celery task.
+    with bypass_tenant_filter(db):
+        all_collisions = detect_batch_collisions(db)
     my_collisions = [c for c in all_collisions if distributor_id in c["distributor_ids"]]
     
     batch_penalty = 0
@@ -263,12 +268,19 @@ def compute_trust_score(db: Session, distributor_id: int, medicine_id: Optional[
     score = max(score, 0)
     
     try:
+        tenant_id = dist.tenant_id if dist is not None else db.info.get("tenant_id")
         TrustScoreModel = getattr(models, "DistributorTrustScore")
-        ts = db.query(TrustScoreModel).filter(TrustScoreModel.distributor_id == distributor_id).first()
+        ts = db.query(TrustScoreModel).filter(
+            TrustScoreModel.distributor_id == distributor_id,
+            TrustScoreModel.tenant_id == tenant_id,
+        ).first()
         old_score = float(ts.score) if ts else 100.0
-        
+
         if not ts:
-            ts = TrustScoreModel(distributor_id=distributor_id, score=score, confidence=confidence)
+            ts = TrustScoreModel(
+                tenant_id=tenant_id, distributor_id=distributor_id,
+                score=score, confidence=confidence,
+            )
             db.add(ts)
         else:
             ts.score = score
@@ -291,6 +303,7 @@ def compute_trust_score(db: Session, distributor_id: int, medicine_id: Optional[
                 event_bus.publish(evt)
                 
             log_event(db, "distributor_trust_score_drop", distributor_id, {
+                "tenant_id": tenant_id,
                 "distributor_id": distributor_id,
                 "old_score": old_score,
                 "new_score": score,

@@ -42,6 +42,11 @@ from app.services import audit_service, expiry_service
 SELF_SHOP_NAME = "Kush Medical Hall (this shop)"
 
 
+def _current_tenant_id(db: Session) -> Optional[int]:
+    """The active tenant context; request routes and tenant-scoped tasks set it."""
+    return db.info.get("tenant_id")
+
+
 # ---------------------------------------------------------------------------
 # Nodes
 # ---------------------------------------------------------------------------
@@ -49,7 +54,11 @@ def get_or_create_self_node(db: Session) -> models.PharmacyNode:
     node = db.query(models.PharmacyNode).filter_by(is_self=True).first()
     if node:
         return node
-    node = models.PharmacyNode(shop_name=SELF_SHOP_NAME, is_self=True, opted_in=True, joined_at=datetime.now(timezone.utc))
+    node = models.PharmacyNode(
+        tenant_id=_current_tenant_id(db),
+        shop_name=SELF_SHOP_NAME, is_self=True, opted_in=True,
+        joined_at=datetime.now(timezone.utc),
+    )
     db.add(node)
     db.flush()
     return node
@@ -61,6 +70,7 @@ def list_nodes(db: Session) -> list[models.PharmacyNode]:
 
 def add_node(db: Session, shop_name: str, api_base_url: Optional[str] = None, contact_phone: Optional[str] = None) -> models.PharmacyNode:
     node = models.PharmacyNode(
+        tenant_id=_current_tenant_id(db),
         shop_name=shop_name.strip(), api_base_url=api_base_url, contact_phone=contact_phone,
         is_self=False, opted_in=True, joined_at=datetime.now(timezone.utc),
     )
@@ -89,6 +99,7 @@ def create_manual_listing(db: Session, pharmacy_node_id: int, listing_type: str,
                            composition: Optional[str] = None, quantity: Optional[float] = None,
                            expiry_date: Optional[date] = None, note: Optional[str] = None) -> models.NetworkListing:
     listing = models.NetworkListing(
+        tenant_id=_current_tenant_id(db),
         pharmacy_node_id=pharmacy_node_id, listing_type=listing_type, medicine_name=medicine_name.strip(),
         composition=composition, quantity=quantity, expiry_date=expiry_date, note=note, status="open",
     )
@@ -126,6 +137,7 @@ def publish_near_expiry_listings(db: Session, days: int = 60) -> list[models.Net
             continue
 
         listing = models.NetworkListing(
+            tenant_id=self_node.tenant_id if self_node.tenant_id is not None else _current_tenant_id(db),
             pharmacy_node_id=self_node.id, listing_type="near_expiry",
             medicine_name=b["medicine_name"], quantity=b["qty_received"],
             expiry_date=b["expiry_date"], source_batch_id=b["batch_id"],

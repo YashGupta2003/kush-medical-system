@@ -391,6 +391,17 @@ export const api = {
   importMedicineList: (formData) =>
     apiFetch("/setup/import-medicine-list", { method: "POST", body: formData }),
 
+  // --- Kush Pulse — privacy-preserving regional heatmap ---
+  getRegionalHeatmap: (params = {}) => {
+    const query = new URLSearchParams();
+    if (params.condition_name) query.set("condition_name", params.condition_name);
+    if (params.region_code) query.set("region_code", params.region_code);
+    const suffix = query.toString();
+    return apiFetch(`/heatmap/regional${suffix ? `?${suffix}` : ""}`);
+  },
+  getRegionHeatmap: (regionCode) => apiFetch(`/heatmap/regions/${encodeURIComponent(regionCode)}`),
+  refreshRegionalHeatmap: () => apiFetch("/heatmap/refresh", { method: "POST" }),
+
   // --- Regional Health Sentinel ---
   getRegionalParticipation: () => apiFetch("/regional-health/participation"),
   updateRegionalParticipation: (region_code, opt_in) =>

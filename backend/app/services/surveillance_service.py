@@ -22,6 +22,7 @@ from typing import List, Dict, Any
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 
+from app import models
 from app.models import SurveillanceDailyCount
 from app.services import graph_service
 from app.services import anomaly_service
@@ -40,24 +41,43 @@ def get_conditions_for_medicine(db: Session, medicine_id: int) -> List[str]:
             conditions.add(cond.target_id)
     return list(conditions)
 
-def record_sale_signal(db: Session, medicine_id: int, qty_sold: int, sale_date: date = None) -> None:
+def record_sale_signal(db: Session, medicine_id: int, qty_sold: int, sale_date: date = None,
+                       tenant_id: int = None) -> None:
+    """Record an OTC sale signal for the shop that owns the medicine.
+
+    `tenant_id` is mandatory for correctness: the (tenant, condition, date)
+    unique key means one shop's counts must never be merged into another's.
+    Callers that already know it should pass it explicitly; otherwise resolve
+    it from the medicine (or the active session context).
+    """
+    if tenant_id is None:
+        medicine = db.get(models.Medicine, medicine_id)
+        tenant_id = (
+            medicine.tenant_id if medicine is not None
+            else db.info.get("tenant_id")
+        )
+    if tenant_id is None:
+        return  # no tenant to attribute the aggregate to — never guess
+
     if sale_date is None:
         sale_date = date.today()
-    
+
     conditions = get_conditions_for_medicine(db, medicine_id)
     if not conditions:
         return
-        
+
     for condition in conditions:
         record = db.query(SurveillanceDailyCount).filter(
+            SurveillanceDailyCount.tenant_id == tenant_id,
             SurveillanceDailyCount.condition_name == condition,
             SurveillanceDailyCount.count_date == sale_date
         ).first()
-        
+
         if record:
             record.otc_units += qty_sold
         else:
             record = SurveillanceDailyCount(
+                tenant_id=tenant_id,
                 condition_name=condition,
                 count_date=sale_date,
                 otc_units=qty_sold

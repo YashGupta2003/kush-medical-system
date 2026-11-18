@@ -29,6 +29,7 @@ from app.services import audit_service
 
 def create_unit(db: Session, unit_label: str, location_note: Optional[str] = None, min_temp_c: float = 2.0, max_temp_c: float = 8.0) -> ColdChainUnit:
     unit = ColdChainUnit(
+        tenant_id=db.info.get("tenant_id"),
         unit_label=unit_label,
         location_note=location_note,
         min_temp_c=min_temp_c,
@@ -70,6 +71,7 @@ def record_reading(db: Session, unit_id: int, temp_c: float, recorded_by_user_id
         is_excursion = True
 
     reading = ColdChainReading(
+        tenant_id=unit.tenant_id,
         unit_id=unit_id,
         recorded_temp_c=temp_c,
         recorded_by_user_id=recorded_by_user_id,
@@ -85,6 +87,7 @@ def record_reading(db: Session, unit_id: int, temp_c: float, recorded_by_user_id
         event_type="cold_chain_reading",
         reference_id=reading.id,
         payload={
+            "tenant_id": unit.tenant_id,
             "unit_id": unit_id,
             "recorded_temp_c": temp_c,
             "is_excursion": is_excursion,

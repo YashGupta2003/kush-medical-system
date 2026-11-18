@@ -23,6 +23,7 @@ const MODULES = [
   { id: "network", name: "Network", path: "/network", icon: "🌐" },
   { id: "integrity", name: "Network Integrity", path: "/network-integrity", icon: "🛡️" },
   { id: "regional-health", name: "Regional Sentinel", path: "/regional-health", icon: "🌡️" },
+  { id: "regional-pulse", name: "Regional Pulse", path: "/regional-pulse", icon: "🛡️" },
 
 ];
 

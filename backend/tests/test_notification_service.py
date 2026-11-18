@@ -40,17 +40,19 @@ def test_create_notification_creates_row(db_session, owner_user):
     assert notif.related_entity_id == "42"
 
 
-def test_create_notification_broadcast_null_recipient(db_session):
-    """recipient_user_id=None means broadcast to all owners."""
+def test_create_notification_broadcast_null_recipient(db_session, tenant):
+    """recipient_user_id=None means broadcast to all owners in that tenant."""
     notif = notification_service.create_notification(
         db_session,
         notification_type="anomaly_flagged",
         title="Anomaly detected",
         body="Unusual price jump",
         recipient_user_id=None,
+        tenant_id=tenant.id,
     )
     db_session.commit()
     assert notif.recipient_user_id is None
+    assert notif.tenant_id == tenant.id
 
 
 # ---------------------------------------------------------------------------
@@ -107,7 +109,7 @@ def test_owner_sees_broadcast_and_own(db_session, owner_user, staff_user):
     # Broadcast notification (no recipient)
     notification_service.create_notification(
         db_session, notification_type="daily_digest", title="Digest",
-        body="...", recipient_user_id=None,
+        body="...", recipient_user_id=None, tenant_id=owner_user.tenant_id,
     )
     # Owner's own notification
     notification_service.create_notification(
@@ -131,7 +133,7 @@ def test_owner_sees_broadcast_and_own(db_session, owner_user, staff_user):
 def test_staff_sees_only_own(db_session, owner_user, staff_user):
     notification_service.create_notification(
         db_session, notification_type="daily_digest", title="Digest",
-        body="...", recipient_user_id=None,   # broadcast — staff should NOT see
+        body="...", recipient_user_id=None, tenant_id=staff_user.tenant_id,   # broadcast — staff should NOT see
     )
     notification_service.create_notification(
         db_session, notification_type="system", title="Staff note",

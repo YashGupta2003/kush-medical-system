@@ -115,9 +115,12 @@ def set_medicine_composition(db: Session, medicine_id: int, raw_composition: str
 
     medicine.composition = raw_composition.strip() if raw_composition else None
 
-    db.query(models.MedicineSalt).filter_by(medicine_id=medicine_id).delete()
+    db.query(models.MedicineSalt).filter_by(medicine_id=medicine_id).filter(
+        models.MedicineSalt.tenant_id == medicine.tenant_id
+    ).delete(synchronize_session=False)
     for parsed in parse_composition(raw_composition):
         db.add(models.MedicineSalt(
+            tenant_id=medicine.tenant_id,
             medicine_id=medicine_id, salt_name=parsed.salt_name, strength=parsed.strength,
         ))
     db.flush()

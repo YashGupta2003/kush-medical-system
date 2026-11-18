@@ -89,7 +89,9 @@ def resolve_medicine_intent(db: Session, tenant_id: int, parsed_result: VoiceCom
 
     # Reusing the existing fuzzy matcher from matcher.py
     # Tenant isolation is handled automatically by the DB session listener
-    medicine, score, match_type = find_best_match(db, parsed_result.medicine_name)
+    medicine, score, match_type = find_best_match(
+        db, parsed_result.medicine_name, tenant_id=tenant_id
+    )
     
     if not medicine:
         return {

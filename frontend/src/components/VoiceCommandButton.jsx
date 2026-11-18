@@ -44,7 +44,7 @@ export function VoiceCommandButton({ onCommandParsed, onError }) {
           const formData = new FormData();
           formData.append("audio_file", audioBlob, "voice_command.webm");
 
-          const result = await apiFetch("/v1/voice/command", {
+          const result = await apiFetch("/voice/command", {
             method: "POST",
             body: formData,
             // don't set Content-Type header; fetch sets it automatically with boundary for FormData

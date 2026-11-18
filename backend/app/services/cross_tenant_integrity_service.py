@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, or_
 
 from app import models
+from app.database import bypass_tenant_filter
 from app.services.matcher import normalize
 from app.services.audit_service import log_event
 from app.events.bus import event_bus
@@ -21,6 +22,12 @@ def normalize_batch(raw: str) -> str:
 
 
 def scan_cross_tenant_collisions(db: Session, days: int = 365) -> Dict[str, Any]:
+    """Public entry point — explicitly opt out of tenant scoping for this scan."""
+    with bypass_tenant_filter(db):
+        return _scan_cross_tenant_collisions_impl(db, days=days)
+
+
+def _scan_cross_tenant_collisions_impl(db: Session, days: int = 365) -> Dict[str, Any]:
     """
     Scan for cases where the SAME normalized batch for the SAME normalized medicine name
     appears across multiple distinct tenants from different distributors.

@@ -49,7 +49,7 @@ describe('VoiceConfirmationCard', () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/v1/voice/confirm', expect.objectContaining({
+      expect(apiFetch).toHaveBeenCalledWith('/voice/confirm', expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ intent: "sell", medicine_id: 1, quantity: 2 })
       }));
@@ -94,7 +94,7 @@ describe('VoiceConfirmationCard', () => {
     fireEvent.click(confirmBtn);
 
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/v1/voice/confirm', expect.objectContaining({
+      expect(apiFetch).toHaveBeenCalledWith('/voice/confirm', expect.objectContaining({
         method: 'POST',
         body: JSON.stringify({ intent: "sell", medicine_id: 1, quantity: 5 }) // default intent when unclear is 'sell'
       }));

@@ -152,7 +152,7 @@ def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, 
     try:
         # BUG FIX: int(qty_sold) silently truncates float quantities (1.5 → 1).
         # Use round() to get the nearest integer unit count for OTC surveillance.
-        surveillance_service.record_sale_signal(db, medicine_id, round(qty_sold))
+        surveillance_service.record_sale_signal(db, medicine_id, round(qty_sold), tenant_id=tenant_id)
     except Exception as e:
         import logging
         logging.getLogger(__name__).error(f"Surveillance hook failed: {e}")

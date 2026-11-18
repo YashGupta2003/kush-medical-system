@@ -92,7 +92,9 @@ def logout_all(
     db: Session = Depends(get_db),
 ):
     """Revokes ALL refresh tokens for the current user — 'log out everywhere'."""
-    count = revoke_all_tokens_for_user(db, current_user.id)
+    count = revoke_all_tokens_for_user(
+        db, current_user.id, tenant_id=current_user.tenant_id
+    )
     return {"revoked_count": count}
 
 

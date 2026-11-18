@@ -226,6 +226,7 @@ def add_manual_item(bill_id: int, db: Session = Depends(get_db), current_user: m
         raise HTTPException(400, "This bill has already been confirmed - items can no longer be added.")
 
     item = models.BillItem(
+        tenant_id=bill.tenant_id,
         bill_id=bill.id,
         raw_name="",
         qty=0, free_qty=0,

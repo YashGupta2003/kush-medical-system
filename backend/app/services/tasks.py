@@ -18,7 +18,7 @@ from datetime import datetime, timedelta, timezone
 import traceback
 
 from app.celery_app import celery_app
-from app.database import SessionLocal
+from app.database import SessionLocal, tenant_context
 from app import models
 from app.config import settings
 from app.services import image_preprocessing
@@ -33,9 +33,17 @@ def process_bill_task(self, bill_id: int):
     from app.services.pipeline import BillProcessingPipeline
     db = SessionLocal()
     try:
-        task_id = getattr(self.request, "id", None)
-        pipeline = BillProcessingPipeline(bill_id=bill_id, db=db, task_id=task_id)
-        return pipeline.run()
+        # The worker session is intentionally unscoped so it can look up the
+        # bill. From there on, scope every read/write to that bill's tenant:
+        # the pipeline inserts BillItem/MedicineBatch/RateHistory rows, and a
+        # missing tenant_id would make them invisible to their own shop.
+        bill = db.get(models.Bill, bill_id)
+        if not bill:
+            return {"status": "error", "detail": "Bill not found"}
+        with tenant_context(db, bill.tenant_id):
+            task_id = getattr(self.request, "id", None)
+            pipeline = BillProcessingPipeline(bill_id=bill_id, db=db, task_id=task_id)
+            return pipeline.run()
     finally:
         db.close()
 
@@ -116,30 +124,36 @@ def run_adherence_check_task() -> dict:
 
         for alert in alerts:
             try:
-                # Dedup check — don't re-fire for the same pair within 7 days
-                already_notified = notification_service.has_recent_notification(
-                    db,
-                    notification_type="adherence_overdue",
-                    related_entity_type=f"customer:{alert['customer_id']}:medicine",
-                    related_entity_id=str(alert["medicine_id"]),
-                    within_hours=7 * 24,
-                )
-                if already_notified:
-                    skipped += 1
-                    continue
+                # Scope dedup AND the notification write to the customer's
+                # tenant. Without this, one shop's alert suppresses another
+                # shop's identical alert and the row is written with NULL
+                # tenant_id (invisible in every notification centre).
+                customer = db.get(models.Customer, alert["customer_id"])
+                with tenant_context(db, customer.tenant_id if customer else None):
+                    # Dedup check — don't re-fire for the same pair within 7 days
+                    already_notified = notification_service.has_recent_notification(
+                        db,
+                        notification_type="adherence_overdue",
+                        related_entity_type=f"customer:{alert['customer_id']}:medicine",
+                        related_entity_id=str(alert["medicine_id"]),
+                        within_hours=7 * 24,
+                    )
+                    if already_notified:
+                        skipped += 1
+                        continue
 
-                event_bus.publish(AdherenceAlertRaisedEvent(
-                    customer_id=alert["customer_id"],
-                    customer_name=alert.get("customer_name"),
-                    customer_phone=alert["customer_phone"],
-                    medicine_id=alert["medicine_id"],
-                    medicine_name=alert["medicine_name"],
-                    days_overdue=alert["days_overdue"],
-                    avg_gap_days=alert["avg_gap_days"],
-                    db=db,
-                ))
-                db.commit()
-                fired += 1
+                    event_bus.publish(AdherenceAlertRaisedEvent(
+                        customer_id=alert["customer_id"],
+                        customer_name=alert.get("customer_name"),
+                        customer_phone=alert["customer_phone"],
+                        medicine_id=alert["medicine_id"],
+                        medicine_name=alert["medicine_name"],
+                        days_overdue=alert["days_overdue"],
+                        avg_gap_days=alert["avg_gap_days"],
+                        db=db,
+                    ))
+                    db.commit()
+                    fired += 1
             except Exception as exc:
                 db.rollback()
                 errors += 1
@@ -179,27 +193,29 @@ def run_anomaly_scan_task() -> dict:
             if not medicine_id:
                 continue
 
-            already = notification_service.has_recent_notification(
-                db,
-                notification_type="anomaly_flagged",
-                related_entity_type="anomaly:price_jump:medicine",
-                related_entity_id=str(medicine_id),
-                within_hours=24,
-            )
-            if already:
-                skipped += 1
-                continue
+            medicine = db.get(models.Medicine, medicine_id)
+            with tenant_context(db, medicine.tenant_id if medicine else None):
+                already = notification_service.has_recent_notification(
+                    db,
+                    notification_type="anomaly_flagged",
+                    related_entity_type="anomaly:price_jump:medicine",
+                    related_entity_id=str(medicine_id),
+                    within_hours=24,
+                )
+                if already:
+                    skipped += 1
+                    continue
 
-            event_bus.publish(AnomalyFlaggedEvent(
-                anomaly_type="price_jump",
-                medicine_id=medicine_id,
-                medicine_name=anomaly.get("medicine_name", "Unknown"),
-                score=anomaly.get("score", 0.0),
-                detail=anomaly,
-                db=db,
-            ))
-            db.commit()
-            fired += 1
+                event_bus.publish(AnomalyFlaggedEvent(
+                    anomaly_type="price_jump",
+                    medicine_id=medicine_id,
+                    medicine_name=anomaly.get("medicine_name", "Unknown"),
+                    score=anomaly.get("score", 0.0),
+                    detail=anomaly,
+                    db=db,
+                ))
+                db.commit()
+                fired += 1
 
         # Stock adjustment anomalies (last 90 days)
         stock_result = anomaly_service.detect_stock_adjustment_anomalies(db, days=90)
@@ -208,27 +224,29 @@ def run_anomaly_scan_task() -> dict:
             if not medicine_id:
                 continue
 
-            already = notification_service.has_recent_notification(
-                db,
-                notification_type="anomaly_flagged",
-                related_entity_type="anomaly:stock_adjustment:medicine",
-                related_entity_id=str(medicine_id),
-                within_hours=24,
-            )
-            if already:
-                skipped += 1
-                continue
+            medicine = db.get(models.Medicine, medicine_id)
+            with tenant_context(db, medicine.tenant_id if medicine else None):
+                already = notification_service.has_recent_notification(
+                    db,
+                    notification_type="anomaly_flagged",
+                    related_entity_type="anomaly:stock_adjustment:medicine",
+                    related_entity_id=str(medicine_id),
+                    within_hours=24,
+                )
+                if already:
+                    skipped += 1
+                    continue
 
-            event_bus.publish(AnomalyFlaggedEvent(
-                anomaly_type="stock_adjustment",
-                medicine_id=medicine_id,
-                medicine_name=anomaly.get("medicine_name", "Unknown"),
-                score=anomaly.get("score", 0.0),
-                detail=anomaly,
-                db=db,
-            ))
-            db.commit()
-            fired += 1
+                event_bus.publish(AnomalyFlaggedEvent(
+                    anomaly_type="stock_adjustment",
+                    medicine_id=medicine_id,
+                    medicine_name=anomaly.get("medicine_name", "Unknown"),
+                    score=anomaly.get("score", 0.0),
+                    detail=anomaly,
+                    db=db,
+                ))
+                db.commit()
+                fired += 1
 
         return {"status": "ok", "fired": fired, "skipped_dedup": skipped}
     except Exception as e:
@@ -260,26 +278,30 @@ def send_daily_digest_task() -> dict:
 
         for owner in owners:
             try:
-                digest = notification_service.build_daily_digest(db, owner.id)
-                body_lines = [
-                    f"📊 Adherence overdue: {digest['adherence_overdue_count']} customers",
-                    f"💳 Outstanding credit: ₹{digest['outstanding_credit_total']:.0f} ({digest['outstanding_credit_customers']} customers)",
-                    f"⏳ Near-expiry critical: {digest['near_expiry_critical_count']}",
-                    f"📦 Low stock items: {digest['low_stock_count']}",
-                    f"🚨 Anomaly flags: {digest['anomaly_flag_count']}",
-                ]
-                notification_service.create_notification(
-                    db,
-                    notification_type="daily_digest",
-                    title="Daily Summary — Kush Medical Hall",
-                    body="\n".join(body_lines),
-                    severity="info",
-                    recipient_user_id=owner.id,
-                    channel="in_app",
-                )
-                db.commit()
+                # Per-owner scoping is essential here: build_daily_digest()
+                # queries customers, stock and expiry, and the notification
+                # row must belong to the owner's shop — not to every shop.
+                with tenant_context(db, owner.tenant_id):
+                    digest = notification_service.build_daily_digest(db, owner.id)
+                    body_lines = [
+                        f"📊 Adherence overdue: {digest['adherence_overdue_count']} customers",
+                        f"💳 Outstanding credit: ₹{digest['outstanding_credit_total']:.0f} ({digest['outstanding_credit_customers']} customers)",
+                        f"⏳ Near-expiry critical: {digest['near_expiry_critical_count']}",
+                        f"📦 Low stock items: {digest['low_stock_count']}",
+                        f"🚨 Anomaly flags: {digest['anomaly_flag_count']}",
+                    ]
+                    notification_service.create_notification(
+                        db,
+                        notification_type="daily_digest",
+                        title="Daily Summary — Kush Medical Hall",
+                        body="\n".join(body_lines),
+                        severity="info",
+                        recipient_user_id=owner.id,
+                        channel="in_app",
+                    )
+                    db.commit()
 
-                # Best-effort WhatsApp delivery
+                # Best-effort WhatsApp delivery (outside the DB scope block)
                 if owner.whatsapp_number:
                     whatsapp_service.send_digest(owner.whatsapp_number, digest)
 
@@ -308,9 +330,17 @@ def publish_near_expiry_listings_task(days: int = 60) -> dict:
 
     db = SessionLocal()
     try:
-        result = network_service.publish_near_expiry_listings(db, days=days)
-        db.commit()
-        return {"status": "ok", "published_count": len(result)}
+        # This is a cross-tenant scheduled job: loop tenants explicitly and
+        # scope each iteration, otherwise the self-node/listings it writes
+        # get a NULL tenant_id and become invisible to their own shop.
+        tenants = db.query(models.Tenant).filter(models.Tenant.is_active.is_(True)).all()
+        total = 0
+        for tenant in tenants:
+            with tenant_context(db, tenant.id):
+                result = network_service.publish_near_expiry_listings(db, days=days)
+                db.commit()
+                total += len(result)
+        return {"status": "ok", "published_count": total}
     except Exception as e:
         db.rollback()
         return {"status": "failed", "error": str(e)}
@@ -523,6 +553,22 @@ def run_surveillance_scan_task() -> dict:
         return {"status": "failed", "error": str(e)}
     finally:
         db.close()
+
+@celery_app.task(name='refresh_regional_health_heatmap')
+def refresh_regional_health_heatmap_task() -> dict:
+    """Rebuild Kush Pulse's k-anonymous regional heatmap snapshot."""
+    from app.services.heatmap_service import refresh_heatmap
+
+    db = SessionLocal()
+    try:
+        result = refresh_heatmap(db)
+        return {"status": "ok", "result": result}
+    except Exception as e:
+        db.rollback()
+        return {"status": "failed", "error": str(e)}
+    finally:
+        db.close()
+
 
 @celery_app.task(name='generate_smart_purchase_order')
 def generate_smart_purchase_order_task() -> dict:

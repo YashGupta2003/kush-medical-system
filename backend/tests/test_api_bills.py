@@ -21,6 +21,7 @@ def test_confirm_bill_happy_path(client, staff_headers, sample_medicine, sample_
     db_session.commit()
 
     item = models.BillItem(
+        tenant_id=tenant.id,
         bill_id=bill.id,
         raw_name="AMLOKIND AT TAB",
         qty=10,

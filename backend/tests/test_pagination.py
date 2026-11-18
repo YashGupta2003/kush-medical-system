@@ -72,6 +72,7 @@ def test_get_ledger_paginated_shape(client, db_session, tenant, owner_headers, o
     from decimal import Decimal
     for i in range(3):
         entry = models.CustomerCredit(
+            tenant_id=customer.tenant_id,
             customer_id=customer.id,
             change_amount=Decimal("100"),
             resulting_balance=Decimal(str(100 * (i + 1))),

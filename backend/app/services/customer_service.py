@@ -122,6 +122,7 @@ def _add_credit_entry(db: Session, customer: models.Customer, change_amount: Dec
     current = get_customer_balance(db, customer.id)
     new_balance = current + change_amount
     entry = models.CustomerCredit(
+        tenant_id=customer.tenant_id,
         customer_id=customer.id, change_amount=change_amount, resulting_balance=new_balance,
         reason=reason, reference_sale_id=reference_sale_id, note=note,
     )

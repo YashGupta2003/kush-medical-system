@@ -138,6 +138,13 @@ celery_app.conf.update(
             "task": "scan_regional_health_spikes",
             "schedule": crontab(hour=23, minute=15),
         },
+
+        # Kush Pulse — rebuild the k-anonymous heatmap 15 minutes after the
+        # regional scan, only from opted-in tenants' privacy-safe counts.
+        "refresh-regional-health-heatmap-daily": {
+            "task": "refresh_regional_health_heatmap",
+            "schedule": crontab(hour=23, minute=30),
+        },
     },
 )
 

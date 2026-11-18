@@ -42,6 +42,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import asc
 
 from app import models
+from app.database import bypass_tenant_filter
 
 # Fixed starting point for the very first entry in the chain - an entry
 # whose previous_hash is anything OTHER than this is either not the first
@@ -65,11 +66,18 @@ def _sha256(text: str) -> str:
 
 
 def get_last_entry(db: Session) -> Optional[models.AuditLedgerEntry]:
-    return (
-        db.query(models.AuditLedgerEntry)
-        .order_by(models.AuditLedgerEntry.id.desc())
-        .first()
-    )
+    """Return the last entry in the GLOBAL hash chain.
+
+    The chain is deliberately network-wide: an entry written by tenant A must
+    link to the preceding entry from tenant B. Reading it through the normal
+    tenant filter would silently start a second, unverifiable chain per shop.
+    """
+    with bypass_tenant_filter(db):
+        return (
+            db.query(models.AuditLedgerEntry)
+            .order_by(models.AuditLedgerEntry.id.desc())
+            .first()
+        )
 
 
 def log_event(db: Session, event_type: str, reference_id: Optional[int], payload: dict) -> models.AuditLedgerEntry:
@@ -99,8 +107,13 @@ def log_event(db: Session, event_type: str, reference_id: Optional[int], payload
 
     entry_hash = _sha256(payload_hash + previous_hash)
 
+    # Callers usually pass domain IDs, not tenant_id. Fall back to the active
+    # session context so the entry is visible to the shop it belongs to; a
+    # genuinely global operation (cross-tenant scan) may still pass None.
+    tenant_id = payload.get("tenant_id") or db.info.get("tenant_id")
+
     entry = models.AuditLedgerEntry(
-        tenant_id=payload.get("tenant_id"),
+        tenant_id=tenant_id,
         event_type=event_type,
         reference_id=reference_id,
         payload_json=canonical,
@@ -136,11 +149,14 @@ def verify_chain(db: Session) -> dict:
     single later entry also showing up as "broken" once the chain has
     already diverged from expectation.
     """
-    entries = (
-        db.query(models.AuditLedgerEntry)
-        .order_by(asc(models.AuditLedgerEntry.id))
-        .all()
-    )
+    # The integrity guarantee covers the whole network-wide chain. A tenant-
+    # scoped walk would look "valid" while ignoring every other shop's rows.
+    with bypass_tenant_filter(db):
+        entries = (
+            db.query(models.AuditLedgerEntry)
+            .order_by(asc(models.AuditLedgerEntry.id))
+            .all()
+        )
 
     broken_at: list[dict] = []
     expected_previous = GENESIS_HASH

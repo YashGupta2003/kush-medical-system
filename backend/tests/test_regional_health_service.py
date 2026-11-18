@@ -22,6 +22,7 @@ Plus API-level auth tests (staff can view, only owner can mutate).
 import pytest
 from datetime import date, timedelta
 from app import models
+from app.database import tenant_context
 from app.services import regional_health_service
 
 
@@ -90,6 +91,30 @@ def test_two_tenants_same_region_spike_creates_one_alert(db_session):
     spike_date_alerts = [a for a in alerts if a.total_regional_units >= 300]  # 200+180 spike combined
     assert len(spike_date_alerts) == 1
     assert spike_date_alerts[0].contributing_tenant_count == 2
+
+
+def test_scan_stays_global_when_called_from_a_tenant_request(db_session):
+    """The scan-now endpoint runs with a tenant context — it must still scan all shops."""
+    t1 = _make_tenant(db_session, "t1-context", region_code="PUNE", opt_in=True)
+    t2 = _make_tenant(db_session, "t2-context", region_code="PUNE", opt_in=True)
+
+    _spike_series(db_session, t1.id, "Fever", days=14, spike_day_offset=1,
+                  spike_value=200, baseline=3)
+    _spike_series(db_session, t2.id, "Fever", days=14, spike_day_offset=1,
+                  spike_value=180, baseline=4)
+
+    with tenant_context(db_session, t1.id):
+        result = regional_health_service.scan_regional_spikes(
+            db_session, days=14, z_threshold=2.0
+        )
+
+    assert result["regions_scanned"] == 1
+    alert = (
+        db_session.query(models.RegionalHealthAlert)
+        .filter_by(region_code="PUNE", condition_name="Fever")
+        .one()
+    )
+    assert alert.contributing_tenant_count == 2
 
 
 # ---------------------------------------------------------------------------

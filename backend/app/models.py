@@ -766,6 +766,66 @@ class RegionalHealthAlert(Base):
     )
 
 
+class RegionHeatmapRun(Base):
+    """
+    Kush Pulse — one privacy-safe heatmap computation.
+
+    DELIBERATELY GLOBAL (no tenant_id): this row describes an aggregate over
+    multiple opted-in tenants. The tenant isolation layer must NOT scope it.
+    Only sanitized, k-anonymous results are stored here — never shop names,
+    tenant identifiers, customer records or raw sale rows.
+    """
+    __tablename__ = "region_heatmap_runs"
+
+    id = Column(Integer, primary_key=True, index=True)
+    window_start = Column(Date, nullable=False)
+    window_end = Column(Date, nullable=False)
+    window_days = Column(Integer, nullable=False)
+    published_cells = Column(Integer, nullable=False, default=0)
+    suppressed_cells = Column(Integer, nullable=False, default=0)
+    regions_scanned = Column(Integer, nullable=False, default=0)
+    payload_hash = Column(String(64), nullable=False)
+    created_at = Column(DateTime, server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint("window_start", "window_end", name="uix_heatmap_run_window"),
+    )
+
+
+class RegionHeatmapSnapshot(Base):
+    """
+    Kush Pulse — one publishable (region, condition) heatmap cell.
+
+    DELIBERATELY GLOBAL (no tenant_id): adding tenant_id would make this
+    cross-shop aggregate invisible to every individual shop. Privacy is
+    enforced by the k>=3 contributor rule in heatmap_service.py and by the
+    sanitized API DTO — not by tenant-scoping this table.
+
+    `total_units` is kept internally for explainability/debugging only. The
+    public API exposes `public_volume_band` instead and never this value.
+    """
+    __tablename__ = "region_heatmap_snapshots"
+
+    id = Column(Integer, primary_key=True, index=True)
+    run_id = Column(Integer, ForeignKey("region_heatmap_runs.id", ondelete="CASCADE"), nullable=False, index=True)
+    region_code = Column(String(50), nullable=False, index=True)
+    condition_name = Column(String(150), nullable=False, index=True)
+    signal_level = Column(String(20), nullable=False)       # stable | watch | elevated | critical
+    trend = Column(String(10), nullable=False)              # up | down | stable
+    trend_labels_json = Column(Text, nullable=True)         # signal labels only — never raw counts
+    contributor_count = Column(Integer, nullable=False)
+    public_volume_band = Column(String(20), nullable=False) # low | moderate | high | very high
+    total_units = Column(Integer, nullable=False)           # internal only; never serialized publicly
+    z_score = Column(Numeric(6, 3), nullable=False)
+    confidence = Column(String(10), nullable=False)         # low | medium | high
+    payload_hash = Column(String(64), nullable=False)
+    computed_at = Column(DateTime, nullable=False)
+
+    __table_args__ = (
+        UniqueConstraint("run_id", "region_code", "condition_name", name="uix_heatmap_cell_run_region_condition"),
+    )
+
+
 class DistributorBillTemplate(Base):
     """
     Adaptive Distributor Memory (ADM): Stores the learned header signature

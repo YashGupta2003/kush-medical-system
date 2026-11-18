@@ -31,6 +31,7 @@ Deduplication strategy for adherence alerts:
   for adherence alerts encode "customer:{customer_id}:medicine:{medicine_id}" —
   no separate dedup table needed.
 """
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
@@ -39,11 +40,66 @@ from sqlalchemy import desc, and_
 
 from app import models
 from app.core.logging import get_logger
+from app.database import bypass_tenant_filter
 
 logger = get_logger("notification_service")
 
 # How long before an adherence/low-stock alert can fire again for the same entity.
 NOTIFICATION_DEDUP_HOURS = 7 * 24   # 7 days
+
+# Related entity descriptors used by the event subscribers, mapped to the
+# tenant-scoped model that can supply the tenant_id for the notification.
+_RELATED_ENTITY_MODELS = {
+    "medicine": models.Medicine,
+    "customer": models.Customer,
+    "distributor": models.Distributor,
+    "cold_chain_unit": models.ColdChainUnit,
+}
+
+
+def _resolve_tenant_id(
+    db: Session,
+    *,
+    explicit_tenant_id: Optional[int],
+    recipient_user_id: Optional[int],
+    related_entity_type: Optional[str],
+    related_entity_id: Optional[str],
+) -> Optional[int]:
+    """Resolve the tenant for a notification without ever guessing blindly."""
+    if explicit_tenant_id is not None:
+        return explicit_tenant_id
+
+    # Prefer the recipient's own tenant over the session context: fan-out
+    # handlers (cross-tenant alerts) deliberately notify users in other shops.
+    if recipient_user_id is not None:
+        # A broadcast may target a user in another shop, so resolve the
+        # recipient outside the caller's tenant filter.
+        with bypass_tenant_filter(db):
+            user = db.get(models.User, recipient_user_id)
+        if user is not None:
+            return user.tenant_id
+
+    active = db.info.get("tenant_id")
+    if active is not None:
+        return active
+
+    if related_entity_type and related_entity_id:
+        model = _RELATED_ENTITY_MODELS.get(related_entity_type)
+        if model is None and related_entity_type.startswith(("customer:", "anomaly:")):
+            if related_entity_type.endswith(":medicine"):
+                model = models.Medicine
+            elif related_entity_type.startswith("customer:"):
+                model = models.Customer
+        match = re.search(r"\d+", str(related_entity_id))
+        if model is not None and match:
+            with bypass_tenant_filter(db):
+                entity = db.get(model, int(match.group(0)))
+            if entity is not None:
+                return getattr(entity, "tenant_id", None)
+
+    # Unscoped/global callers (e.g. legacy tasks) get a NULL tenant_id, which
+    # is exactly what the isolation layer treats as "not visible to any shop".
+    return None
 
 
 def create_notification(
@@ -58,19 +114,34 @@ def create_notification(
     related_entity_id: Optional[str] = None,
     channel: str = "in_app",
     send_whatsapp: bool = False,
+    tenant_id: Optional[int] = None,
 ) -> models.Notification:
     """
     Single write path for all notifications.
 
-    recipient_user_id=None means "all owner accounts" — the frontend's
-    unread-count query handles this by filtering for (recipient_user_id=user.id
-    OR recipient_user_id IS NULL) combined with role='owner'.
+    recipient_user_id=None means "all owner accounts in the same tenant" —
+    reads always combine that with an explicit `tenant_id == user.tenant_id`
+    predicate, so a broadcast can never leak across shops.
+
+    `tenant_id` may be passed explicitly by callers that already know it.
+    Otherwise it is resolved (in order) from the active session tenant
+    context, the recipient user's tenant, or the related entity's tenant.
+    A NULL tenant_id is never silently accepted: it makes the row invisible
+    to every tenant under the global isolation filter.
 
     If send_whatsapp=True, attempts WhatsApp delivery via whatsapp_service.
     On failure (including Twilio not configured), logs the error and
     continues — the in_app record is always written regardless.
     """
+    tenant_id = _resolve_tenant_id(
+        db,
+        explicit_tenant_id=tenant_id,
+        recipient_user_id=recipient_user_id,
+        related_entity_type=related_entity_type,
+        related_entity_id=related_entity_id,
+    )
     notif = models.Notification(
+        tenant_id=tenant_id,
         recipient_user_id=recipient_user_id,
         notification_type=notification_type,
         title=title,
@@ -117,19 +188,20 @@ def has_recent_notification(
     Used by Celery tasks to avoid re-alerting for the same condition daily.
     """
     cutoff = datetime.now(timezone.utc) - timedelta(hours=within_hours)
-    existing = (
-        db.query(models.Notification)
-        .filter(
-            and_(
-                models.Notification.notification_type == notification_type,
-                models.Notification.related_entity_type == related_entity_type,
-                models.Notification.related_entity_id == str(related_entity_id),
-                models.Notification.created_at >= cutoff,
-            )
+    q = db.query(models.Notification).filter(
+        and_(
+            models.Notification.notification_type == notification_type,
+            models.Notification.related_entity_type == related_entity_type,
+            models.Notification.related_entity_id == str(related_entity_id),
+            models.Notification.created_at >= cutoff,
         )
-        .first()
     )
-    return existing is not None
+    # Explicit defence in depth: even if this is called from an unscoped
+    # Celery session, one shop's alert cannot suppress another shop's alert.
+    active_tenant = db.info.get("tenant_id")
+    if active_tenant is not None:
+        q = q.filter(models.Notification.tenant_id == active_tenant)
+    return q.first() is not None
 
 
 def get_notifications_for_user(
@@ -165,7 +237,9 @@ def get_notifications_for_user_paginated(
     Paginated version — returns (items, total).  Used by the paginated
     notifications router endpoint (Task 2).
     """
-    q = db.query(models.Notification)
+    q = db.query(models.Notification).filter(
+        models.Notification.tenant_id == user.tenant_id
+    )
 
     if user.role == "owner":
         q = q.filter(
@@ -190,7 +264,10 @@ def get_notifications_for_user_paginated(
 
 def get_unread_count(db: Session, user: models.User) -> int:
     """Fast unread count for the NavBar badge — single COUNT query."""
-    q = db.query(models.Notification).filter(models.Notification.is_read.is_(False))
+    q = db.query(models.Notification).filter(
+        models.Notification.is_read.is_(False),
+        models.Notification.tenant_id == user.tenant_id,
+    )
 
     if user.role == "owner":
         q = q.filter(
@@ -214,6 +291,10 @@ def mark_read(db: Session, notification_id: int, user: models.User) -> Optional[
     if not notif:
         return None
 
+    # A broadcast row from another tenant must never be markable by this user.
+    if notif.tenant_id != user.tenant_id:
+        return None
+
     # Ownership check: can mark their own, or broadcast (null recipient) if owner
     is_mine = notif.recipient_user_id == user.id
     is_broadcast_for_owner = notif.recipient_user_id is None and user.role == "owner"
@@ -227,7 +308,13 @@ def mark_read(db: Session, notification_id: int, user: models.User) -> Optional[
 
 def mark_all_read(db: Session, user: models.User) -> int:
     """Marks all of the user's unread notifications as read. Returns count updated."""
-    q = db.query(models.Notification).filter(models.Notification.is_read.is_(False))
+    # The tenant predicate is essential: without it, the broadcast branch
+    # (recipient_user_id IS NULL) matches EVERY shop's broadcast rows and
+    # marks them read in a single global bulk UPDATE.
+    q = db.query(models.Notification).filter(
+        models.Notification.is_read.is_(False),
+        models.Notification.tenant_id == user.tenant_id,
+    )
 
     if user.role == "owner":
         q = q.filter(

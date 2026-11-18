@@ -100,6 +100,7 @@ def create_refresh_token(db: Session, user: models.User) -> str:
     expires = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
 
     token_row = models.RefreshToken(
+        tenant_id=user.tenant_id,
         user_id=user.id,
         token_hash=_hash_token(raw),
         expires_at=expires,
@@ -139,17 +140,22 @@ def verify_refresh_token(db: Session, raw_token: str) -> Optional[models.User]:
     return user
 
 
-def revoke_refresh_token(db: Session, raw_token: str) -> bool:
+def revoke_refresh_token(db: Session, raw_token: str, tenant_id: Optional[int] = None) -> bool:
     """
     Revokes a specific refresh token (e.g. on explicit logout from a device).
     Returns True if found and revoked, False if not found.
+
+    The raw token is globally unique, so an unscoped logout (which has no
+    authenticated user dependency) can safely look it up by hash alone. When
+    a tenant is known we add the explicit predicate anyway.
     """
     token_hash = _hash_token(raw_token)
-    token_row = (
-        db.query(models.RefreshToken)
-        .filter(models.RefreshToken.token_hash == token_hash)
-        .first()
+    query = db.query(models.RefreshToken).filter(
+        models.RefreshToken.token_hash == token_hash
     )
+    if tenant_id is not None:
+        query = query.filter(models.RefreshToken.tenant_id == tenant_id)
+    token_row = query.first()
     if not token_row:
         return False
     token_row.revoked = True
@@ -157,18 +163,23 @@ def revoke_refresh_token(db: Session, raw_token: str) -> bool:
     return True
 
 
-def revoke_all_tokens_for_user(db: Session, user_id: int) -> int:
+def revoke_all_tokens_for_user(db: Session, user_id: int, tenant_id: Optional[int] = None) -> int:
     """
     Revokes all active refresh tokens for a user — used on password change
     or explicit "log out all devices" action. Returns count revoked.
+
+    Never issue a bulk UPDATE without a tenant predicate: in an unscoped
+    session that would revoke the same user's sessions in every shop.
     """
-    count = (
-        db.query(models.RefreshToken)
-        .filter(
-            models.RefreshToken.user_id == user_id,
-            models.RefreshToken.revoked.is_(False),
-        )
-        .update({"revoked": True}, synchronize_session=False)
+    if tenant_id is None:
+        user = db.get(models.User, user_id)
+        tenant_id = user.tenant_id if user is not None else None
+    query = db.query(models.RefreshToken).filter(
+        models.RefreshToken.user_id == user_id,
+        models.RefreshToken.revoked.is_(False),
     )
+    if tenant_id is not None:
+        query = query.filter(models.RefreshToken.tenant_id == tenant_id)
+    count = query.update({"revoked": True}, synchronize_session=False)
     db.commit()
     return count

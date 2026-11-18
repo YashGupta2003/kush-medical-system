@@ -20,7 +20,7 @@ export function VoiceConfirmationCard({ parsedResult, onConfirm, onCancel }) {
         quantity: parseInt(quantity, 10),
       };
       
-      const res = await apiFetch("/v1/voice/confirm", {
+      const res = await apiFetch("/voice/confirm", {
         method: "POST",
         body: JSON.stringify(payload),
         headers: {

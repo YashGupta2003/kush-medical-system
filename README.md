@@ -21,6 +21,19 @@ list by hand every 15 days" workflow at a real medical shop with:
    medicine.
 8. **Duplicate Invoice Detection**: Prevents double-counting inventory and GST by detecting if a bill with the same distributor and invoice number has already been confirmed. Uploading returns a prominent warning banner, and confirming a duplicate returns an HTTP 409 Conflict hard gate.
 9. **Smart Reorder Point Engine**: Calculates data-driven low-stock threshold suggestions based on rolling sales history (30-day default zero-filled series), lead time demand, and safety stock ($Z = 1.65$ for 95% service level). The owner can review suggestions and explicitly apply them to update the low-stock thresholds.
+10. **Kush Pulse — Privacy-Preserving Regional Heatmap**: Aggregates opted-in OTC surveillance counts into regional health signals. A cell is published only when at least 3 pharmacies contribute; otherwise it is suppressed. No shop, customer, bill, medicine, or raw count is ever exposed by the public API.
+
+## Kush Pulse — privacy by design
+
+> **See the signal. Never the person.**
+
+Kush Pulse reads only privacy-safe `(tenant, condition, date, otc_units)` surveillance counts, aggregates them by region and condition over a 7-day window, applies a **k ≥ 3 anonymity rule**, and publishes only signal labels, trends, volume bands, and contributor counts. Snapshot tables deliberately have no `tenant_id` because they are cross-shop aggregates; privacy is enforced by the k-anonymity rule and a sanitized API DTO.
+
+- Backend: `backend/app/services/heatmap_service.py`, `backend/app/routers/heatmap.py`
+- Frontend: `frontend/src/pages/RegionalPulse.jsx` (`/regional-pulse`)
+- API: `GET /v1/heatmap/regional`, `GET /v1/heatmap/regions/{region_code}`, `POST /v1/heatmap/refresh` (owner only)
+- Migration: `backend/alembic/versions/0026_region_heatmap.py`
+- Daily refresh: Celery beat task `refresh_regional_health_heatmap`
 
 ## Stack
 - **Backend**: Python, FastAPI, SQLAlchemy

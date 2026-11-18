@@ -43,6 +43,7 @@ def create_batch_from_confirmed_item(db: Session, bill_item: models.BillItem) ->
     bill = bill_item.bill
 
     batch = models.MedicineBatch(
+        tenant_id=bill_item.tenant_id if bill_item.tenant_id is not None else (bill.tenant_id if bill else None),
         medicine_id=bill_item.medicine_id,
         batch_no=bill_item.batch,
         expiry_date=parsed_date,

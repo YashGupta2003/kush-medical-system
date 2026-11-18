@@ -24,12 +24,14 @@ Edge lifecycle:
 """
 import json
 import os
+from contextlib import nullcontext
 from typing import Optional
 
 from sqlalchemy.orm import Session
 from sqlalchemy import and_
 
 from app import models
+from app.database import GLOBAL_GRAPH_EDGE_TYPES, bypass_tenant_filter
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
 
@@ -42,28 +44,53 @@ def add_edge(
     db: Session,
     source_type: str, source_id, edge_type: str, target_type: str, target_id,
     weight: Optional[float] = None, metadata: Optional[dict] = None,
-    replace: bool = True,
+    replace: bool = True, tenant_id: Optional[int] = None,
 ) -> models.GraphEdge:
     """
     Creates (or, if replace=True, first deletes any existing edge with the
     same source/type/target and recreates it) a single directed edge. This
     upsert-like behavior is what makes every sync_* function below safe to
     call repeatedly without accumulating duplicate/stale edges.
+
+    `tenant_id` is MANDATORY for derived edges (CONTAINS/SUPPLIES/SUBSTITUTES):
+    an edge with NULL tenant_id would be invisible to the shop that created
+    it. Curated reference edges (INTERACTS_WITH/TREATS) are deliberately
+    global and pass tenant_id=None.
     """
     source_id, target_id = str(source_id), str(target_id)
 
-    if replace:
-        db.query(models.GraphEdge).filter_by(
-            source_type=source_type, source_id=source_id, edge_type=edge_type,
-            target_type=target_type, target_id=target_id,
-        ).delete()
+    if tenant_id is None and edge_type not in GLOBAL_GRAPH_EDGE_TYPES:
+        # Fall back to the active session tenant. A NULL tenant is only
+        # tolerated in fully unscoped sessions (legacy rows / backfill jobs),
+        # where there is no tenant to stamp and no tenant that could read the
+        # edge anyway.
+        tenant_id = db.info.get("tenant_id")
 
-    edge = models.GraphEdge(
-        source_type=source_type, source_id=source_id, edge_type=edge_type,
-        target_type=target_type, target_id=target_id, weight=weight,
-        edge_metadata=json.dumps(metadata) if metadata else None,
-    )
-    db.add(edge)
+    is_global = edge_type in GLOBAL_GRAPH_EDGE_TYPES
+    # Curated global rows must stay NULL even when add_edge() is called from
+    # a tenant-scoped request. before_flush would otherwise stamp them with
+    # the active tenant and make them invisible to every other shop.
+    isolation_scope = bypass_tenant_filter(db) if is_global else nullcontext()
+
+    with isolation_scope:
+        if replace:
+            q = db.query(models.GraphEdge).filter_by(
+                source_type=source_type, source_id=source_id, edge_type=edge_type,
+                target_type=target_type, target_id=target_id,
+            )
+            if is_global:
+                q = q.filter(models.GraphEdge.tenant_id.is_(None))
+            else:
+                q = q.filter(models.GraphEdge.tenant_id == tenant_id)
+            q.delete(synchronize_session=False)
+
+        edge = models.GraphEdge(
+            tenant_id=None if is_global else tenant_id,
+            source_type=source_type, source_id=source_id, edge_type=edge_type,
+            target_type=target_type, target_id=target_id, weight=weight,
+            edge_metadata=json.dumps(metadata) if metadata else None,
+        )
+        db.add(edge)
     return edge
 
 
@@ -97,15 +124,21 @@ def get_neighbors(
 # CONTAINS: medicine -> salt (derived from MedicineSalt, kept live)
 # ---------------------------------------------------------------------------
 def sync_contains_edges_for_medicine(db: Session, medicine_id: int) -> None:
+    medicine = db.get(models.Medicine, medicine_id)
+    if medicine is None:
+        return
+    tenant_id = medicine.tenant_id
+
     db.query(models.GraphEdge).filter_by(
         source_type="medicine", source_id=str(medicine_id), edge_type="CONTAINS",
-    ).delete()
+    ).filter(models.GraphEdge.tenant_id == tenant_id).delete(synchronize_session=False)
 
     salts = db.query(models.MedicineSalt).filter_by(medicine_id=medicine_id).all()
     for salt in salts:
         add_edge(
             db, "medicine", medicine_id, "CONTAINS", "salt", salt.salt_name,
-            metadata={"strength": salt.strength} if salt.strength else None, replace=False,
+            metadata={"strength": salt.strength} if salt.strength else None,
+            replace=False, tenant_id=tenant_id,
         )
 
 
@@ -115,7 +148,13 @@ def sync_contains_edges_for_medicine(db: Session, medicine_id: int) -> None:
 def sync_supplies_edge(db: Session, distributor_id: Optional[int], medicine_id: int) -> None:
     if not distributor_id:
         return
-    add_edge(db, "distributor", distributor_id, "SUPPLIES", "medicine", medicine_id)
+    medicine = db.get(models.Medicine, medicine_id)
+    if medicine is None:
+        return
+    add_edge(
+        db, "distributor", distributor_id, "SUPPLIES", "medicine", medicine_id,
+        tenant_id=medicine.tenant_id,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -125,12 +164,15 @@ def sync_substitute_edges_for_medicine(db: Session, medicine_id: int) -> int:
     """Returns the number of substitute edges written for this medicine."""
     from app.services import composition_service
 
+    medicine = db.get(models.Medicine, medicine_id)
+    if medicine is None:
+        return 0
+
     db.query(models.GraphEdge).filter_by(
         source_type="medicine", source_id=str(medicine_id), edge_type="SUBSTITUTES",
-    ).delete()
+    ).filter(models.GraphEdge.tenant_id == medicine.tenant_id).delete(synchronize_session=False)
 
-    medicine = db.get(models.Medicine, medicine_id)
-    if not medicine or not medicine.composition:
+    if not medicine.composition:
         return 0
 
     substitutes = composition_service.find_substitutes(
@@ -140,7 +182,8 @@ def sync_substitute_edges_for_medicine(db: Session, medicine_id: int) -> int:
         weight = round(100 * sub["matched_salts"] / sub["query_salts"], 2) if sub["query_salts"] else None
         add_edge(
             db, "medicine", medicine_id, "SUBSTITUTES", "medicine", sub["medicine_id"],
-            weight=weight, metadata={"match_type": sub["match_type"]}, replace=False,
+            weight=weight, metadata={"match_type": sub["match_type"]},
+            replace=False, tenant_id=medicine.tenant_id,
         )
     return len(substitutes)
 
@@ -154,7 +197,12 @@ def seed_interaction_edges(db: Session, json_path: Optional[str] = None) -> int:
     with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    db.query(models.GraphEdge).filter_by(edge_type="INTERACTS_WITH").delete()
+    # Curated reference data is global: bypass the tenant guard explicitly so
+    # the reload replaces the shared NULL-tenant rows, not a shop's own edges.
+    with bypass_tenant_filter(db):
+        db.query(models.GraphEdge).filter_by(edge_type="INTERACTS_WITH").filter(
+            models.GraphEdge.tenant_id.is_(None)
+        ).delete(synchronize_session=False)
 
     count = 0
     for pair in data["interactions"]:
@@ -213,7 +261,10 @@ def seed_condition_edges(db: Session, json_path: Optional[str] = None) -> int:
     with open(json_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    db.query(models.GraphEdge).filter_by(edge_type="TREATS").delete()
+    with bypass_tenant_filter(db):
+        db.query(models.GraphEdge).filter_by(edge_type="TREATS").filter(
+            models.GraphEdge.tenant_id.is_(None)
+        ).delete(synchronize_session=False)
 
     count = 0
     for mapping in data["mappings"]:

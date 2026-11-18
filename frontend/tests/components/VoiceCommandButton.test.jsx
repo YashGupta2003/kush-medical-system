@@ -94,7 +94,7 @@ describe('VoiceCommandButton', () => {
     await waitFor(() => expect(mockMediaRecorderStop).toHaveBeenCalled());
     
     await waitFor(() => {
-      expect(apiFetch).toHaveBeenCalledWith('/v1/voice/command', expect.objectContaining({
+      expect(apiFetch).toHaveBeenCalledWith('/voice/command', expect.objectContaining({
         method: 'POST',
       }));
       expect(onCommandParsed).toHaveBeenCalledWith({ parsed: { intent: "sell" } });

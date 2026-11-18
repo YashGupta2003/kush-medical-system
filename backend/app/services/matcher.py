@@ -88,45 +88,59 @@ def _weighted_score(target_name: str, target_pack: Optional[int], target_company
     return score
 
 
-def find_learned_mapping(db: Session, raw_name: str, distributor_id: Optional[int]) -> Optional[Medicine]:
+def _mapping_query(db: Session, raw_name: str, distributor_id: Optional[int], tenant_id: Optional[int]):
+    q = db.query(UserMapping).filter(UserMapping.raw_name == raw_name)
+    # Explicit predicate: learned mappings are per-shop, and a global Celery
+    # session would otherwise match another tenant's learned mapping.
+    if tenant_id is not None:
+        q = q.filter(UserMapping.tenant_id == tenant_id)
+    if distributor_id is not None:
+        q = q.filter(UserMapping.distributor_id == distributor_id)
+    else:
+        q = q.filter(UserMapping.distributor_id.is_(None))
+    return q
+
+
+def find_learned_mapping(db: Session, raw_name: str, distributor_id: Optional[int],
+                         tenant_id: Optional[int] = None) -> Optional[Medicine]:
     normalized = normalize(raw_name)
     if not normalized:
         return None
+    if tenant_id is None:
+        tenant_id = db.info.get("tenant_id")
 
+    mapping = _mapping_query(db, normalized, distributor_id, tenant_id).first()
+    if mapping:
+        return db.get(Medicine, mapping.medicine_id)
+
+    # Fall back to a distributor-independent mapping, still within the shop.
     if distributor_id is not None:
-        mapping = (
-            db.query(UserMapping)
-            .filter(UserMapping.raw_name == normalized, UserMapping.distributor_id == distributor_id)
-            .first()
-        )
-        if mapping:
-            return db.get(Medicine, mapping.medicine_id)
-
-    general_mapping = (
-        db.query(UserMapping)
-        .filter(UserMapping.raw_name == normalized, UserMapping.distributor_id.is_(None))
-        .first()
-    )
-    if general_mapping:
-        return db.get(Medicine, general_mapping.medicine_id)
+        general = _mapping_query(db, normalized, None, tenant_id).first()
+        if general:
+            return db.get(Medicine, general.medicine_id)
 
     return None
 
 
-def save_learned_mapping(db: Session, raw_name: str, medicine_id: int, distributor_id: Optional[int]) -> None:
+def save_learned_mapping(db: Session, raw_name: str, medicine_id: int, distributor_id: Optional[int],
+                         tenant_id: Optional[int] = None) -> None:
     normalized = normalize(raw_name)
     if not normalized:
         return
+    if tenant_id is None:
+        tenant_id = db.info.get("tenant_id")
+    if tenant_id is None:
+        medicine = db.get(Medicine, medicine_id)
+        tenant_id = medicine.tenant_id if medicine is not None else None
 
-    existing = (
-        db.query(UserMapping)
-        .filter(UserMapping.raw_name == normalized, UserMapping.distributor_id == distributor_id)
-        .first()
-    )
+    existing = _mapping_query(db, normalized, distributor_id, tenant_id).first()
     if existing:
         existing.medicine_id = medicine_id
     else:
-        db.add(UserMapping(raw_name=normalized, medicine_id=medicine_id, distributor_id=distributor_id))
+        db.add(UserMapping(
+            tenant_id=tenant_id, raw_name=normalized,
+            medicine_id=medicine_id, distributor_id=distributor_id,
+        ))
     db.flush()
 
 
@@ -135,16 +149,22 @@ def find_best_match(
     raw_name: str,
     distributor_id: Optional[int] = None,
     raw_context: Optional[str] = None,
+    tenant_id: Optional[int] = None,
 ) -> tuple[Optional[Medicine], float, str]:
     target = normalize(raw_name)
     if not target:
         return None, 0.0, "unmatched"
+    if tenant_id is None:
+        tenant_id = db.info.get("tenant_id")
 
-    learned = find_learned_mapping(db, raw_name, distributor_id)
+    learned = find_learned_mapping(db, raw_name, distributor_id, tenant_id=tenant_id)
     if learned:
         return learned, 100.0, "learned"
 
-    candidates = db.query(Medicine.id, Medicine.normalized_name, Medicine.unit, Medicine.company).all()
+    candidates_query = db.query(Medicine.id, Medicine.normalized_name, Medicine.unit, Medicine.company)
+    if tenant_id is not None:
+        candidates_query = candidates_query.filter(Medicine.tenant_id == tenant_id)
+    candidates = candidates_query.all()
     if not candidates:
         return None, 0.0, "unmatched"
 

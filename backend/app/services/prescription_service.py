@@ -260,7 +260,8 @@ def process_prescription(db: Session, prescription_id: int) -> Dict[str, Any]:
         # Stage 4-6: Match + stock check + substitute
         for drug in parsed_drugs:
             medicine, confidence, match_status = find_best_match(
-                db, drug["raw_name"], distributor_id=None
+                db, drug["raw_name"], distributor_id=None,
+                tenant_id=prescription.tenant_id,
             )
 
             in_stock = None
@@ -284,6 +285,7 @@ def process_prescription(db: Session, prescription_id: int) -> Dict[str, Any]:
                         logger.warning(f"PIE: Substitute lookup failed for '{drug['raw_name']}': {sub_err}")
 
             item = models.PrescriptionItem(
+                tenant_id=prescription.tenant_id,
                 prescription_id=prescription.id,
                 medicine_id=medicine.id if medicine else None,
                 raw_name=str(drug["raw_name"])[:255],
@@ -447,6 +449,7 @@ def add_manual_item(
         return None
         
     item = models.PrescriptionItem(
+        tenant_id=prescription.tenant_id,
         prescription_id=prescription_id,
         medicine_id=medicine_id,
         raw_name=medicine.particulars,

@@ -18,7 +18,7 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 from fastapi.testclient import TestClient
 
-from app.database import Base, get_db
+from app.database import Base, get_db, install_tenant_isolation
 from app.main import app
 from app import models
 from app.services.auth_service import hash_password, create_access_token
@@ -32,7 +32,13 @@ def db_session():
         poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    # Install the SAME tenant-isolation listeners used by production's
+    # SessionLocal. Previously tests used a bare sessionmaker, so every test
+    # ran with isolation disabled and gave false assurance about the single
+    # most security-sensitive layer in the system.
+    TestingSessionLocal = install_tenant_isolation(
+        sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    )
     session = TestingSessionLocal()
     try:
         yield session
@@ -44,6 +50,10 @@ def db_session():
 @pytest.fixture()
 def client(db_session):
     def override_get_db():
+        # Mirror production get_db(): never inherit tenant context between
+        # requests that happen to share this session (tests reuse it).
+        db_session.info.pop("tenant_id", None)
+        db_session.info.pop("skip_tenant_filter", None)
         try:
             yield db_session
         finally:

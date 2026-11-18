@@ -43,6 +43,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app import models
+from app.database import bypass_tenant_filter
 from app.events.bus import event_bus
 from app.events.events import RegionalHealthSpikeEvent
 from app.services import anomaly_service
@@ -118,6 +119,16 @@ def update_region_participation(
 # ---------------------------------------------------------------------------
 
 def scan_regional_spikes(
+    db: Session,
+    days: int = 14,
+    z_threshold: float = 2.0,
+) -> dict:
+    """Public entry point — opt out of tenant scoping for this aggregate scan."""
+    with bypass_tenant_filter(db):
+        return _scan_regional_spikes_impl(db, days=days, z_threshold=z_threshold)
+
+
+def _scan_regional_spikes_impl(
     db: Session,
     days: int = 14,
     z_threshold: float = 2.0,

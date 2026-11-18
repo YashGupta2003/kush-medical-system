@@ -98,6 +98,7 @@ def handle_bill_confirmed_rate_history(event: BillConfirmedEvent) -> None:
 
                 if rate_changed or mrp_changed:
                     history = models.RateHistory(
+                        tenant_id=medicine.tenant_id if medicine.tenant_id is not None else bill.tenant_id,
                         medicine_id=medicine.id, bill_item_id=item.id,
                         old_net_rate=old_rate, new_net_rate=new_rate,
                         old_mrp=old_mrp, new_mrp=new_mrp,
@@ -145,7 +146,7 @@ def handle_bill_confirmed_learning(event: BillConfirmedEvent) -> None:
         if item and edit.medicine_id:
             save_learned_mapping(
                 db, raw_name=item.raw_name, medicine_id=edit.medicine_id,
-                distributor_id=bill.distributor_id,
+                distributor_id=bill.distributor_id, tenant_id=bill.tenant_id,
             )
 
 
@@ -466,7 +467,8 @@ def handle_cross_tenant_collision(event: CrossTenantCollisionDetectedEvent) -> N
                 recipient_user_id=owner.id,
                 related_entity_type="cross_tenant_alert",
                 related_entity_id=str(event.alert_id),
-                channel="in_app"
+                channel="in_app",
+                tenant_id=owner.tenant_id if owner.tenant_id is not None else t_id,
             )
 
 
@@ -522,6 +524,7 @@ def handle_regional_health_spike(event: RegionalHealthSpikeEvent) -> None:
                 related_entity_type="regional_health_alert",
                 related_entity_id=str(event.alert_id),
                 channel="in_app",
+                tenant_id=owner.tenant_id if owner.tenant_id is not None else tenant.id,
             )
 
 

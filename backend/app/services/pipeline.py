@@ -124,10 +124,12 @@ class BillProcessingPipeline:
                 )
 
                 medicine, confidence, match_status = find_best_match(
-                    self.db, f.get("name", ""), distributor_id=bill.distributor_id
+                    self.db, f.get("name", ""), distributor_id=bill.distributor_id,
+                    tenant_id=bill.tenant_id,
                 )
 
                 item = models.BillItem(
+                    tenant_id=bill.tenant_id,
                     bill_id=bill.id,
                     medicine_id=medicine.id if medicine else None,
                     raw_name=str(f.get("name", "") or "")[:255].strip(),

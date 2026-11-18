@@ -31,7 +31,8 @@ from app.routers import (
     bills, medicines, dashboard, stock, expiry, analytics, auth, gst,
     health, substitutes, graph, copilot, pos, audit, customers, network,
     symptom_bot, forecast, anomalies, notifications, cold_chain, surveillance, trust_score, smart_purchase, profit,
-    prescriptions, register, tenants, setup, network_integrity, regional_health
+    prescriptions, register, tenants, setup, network_integrity, regional_health,
+    heatmap
 )
 from app.database import ensure_database_schema_synced
 from app.events.subscribers import register_all_subscribers
@@ -91,6 +92,7 @@ app = FastAPI(
         {"name": "notifications",  "description": "Notification centre — in-app alerts, mark-read, digest trigger."},
         {"name": "cold-chain",     "description": "Cold-chain compliance — units, temperature readings, excursion report."},
         {"name": "surveillance",   "description": "Syndromic surveillance — OTC trend conditions, spike detection (owner only)."},
+        {"name": "heatmap",        "description": "Kush Pulse — k-anonymous regional health heatmap (public-safe reads, owner-only refresh)."},
         {"name": "trust-score",    "description": "Supply chain trust scores per distributor (owner only)."},
         {"name": "health",         "description": "System health check — DB, Redis, Celery worker status."},
     ],
@@ -319,6 +321,7 @@ v1_router.include_router(register.router)       # → /v1/register/...
 v1_router.include_router(tenants.router)
 v1_router.include_router(network_integrity.router)
 v1_router.include_router(regional_health.router)  # → /v1/regional-health/...
+v1_router.include_router(heatmap.router)          # → /v1/heatmap/...
         # → /v1/tenants/...
 
 import sys
@@ -368,6 +371,7 @@ _legacy.include_router(profit.router)
 _legacy.include_router(prescriptions.router)
 _legacy.include_router(network_integrity.router)
 _legacy.include_router(regional_health.router)
+_legacy.include_router(heatmap.router)
 
 import sys
 if settings.gemini_api_key or "pytest" in sys.modules:
