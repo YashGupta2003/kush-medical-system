@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
+from app.core.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.services import stock_service, reorder_intelligence
 from app.deps import get_current_user
 
@@ -57,6 +58,7 @@ def record_sale(
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_user),
 ):
+    # Tenant-scoped existence check for a clear 404 (service also validates).
     medicine = db.query(models.Medicine).filter_by(id=payload.medicine_id, tenant_id=current_user.tenant_id).first()
     if not medicine:
         raise HTTPException(404, "Medicine not found")
@@ -64,6 +66,12 @@ def record_sale(
         return stock_service.record_sale(
             db, current_user.tenant_id, payload.medicine_id, payload.qty_sold, created_by_user_id=current_user.id,
         )
+    except NotFoundError as e:
+        raise HTTPException(404, str(e))
+    except ConflictError as e:
+        raise HTTPException(409, str(e))
+    except ValidationError as e:
+        raise HTTPException(400, str(e))
     except ValueError as e:
         raise HTTPException(400, str(e))
 
@@ -146,6 +154,12 @@ def record_adjustment(
         return stock_service.record_adjustment(
             db, payload.medicine_id, payload.new_total_stock, payload.note, created_by_user_id=current_user.id,
         )
+    except NotFoundError as e:
+        raise HTTPException(404, str(e))
+    except ConflictError as e:
+        raise HTTPException(409, str(e))
+    except ValidationError as e:
+        raise HTTPException(400, str(e))
     except ValueError as e:
         raise HTTPException(400, str(e))
 

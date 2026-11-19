@@ -16,7 +16,16 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from app import models
+from app.core.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.services import audit_service, surveillance_service
+
+
+def _to_decimal(value) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
 
 
 def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decimal,
@@ -35,7 +44,7 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
     This fires only on the crossing, not on every sale while already below
     threshold (which would spam an alert for every single tablet sold).
     """
-    old_balance = Decimal(str(medicine.current_stock or 0))
+    old_balance = _to_decimal(medicine.current_stock)
     new_balance = old_balance + change_qty
     medicine.current_stock = new_balance
     entry = models.StockLedger(
@@ -49,7 +58,7 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
     # --- Priority 1: Low-stock crossing detection ---
     threshold = medicine.low_stock_threshold
     if threshold is not None:
-        threshold_d = Decimal(str(threshold))
+        threshold_d = _to_decimal(threshold)
         crossed_below = old_balance >= threshold_d and new_balance < threshold_d
         if crossed_below:
             try:
@@ -80,7 +89,7 @@ def add_stock_from_confirmed_bill_item(db: Session, bill_item: models.BillItem) 
     medicine = db.get(models.Medicine, bill_item.medicine_id)
     if not medicine:
         return
-    received = Decimal(str(bill_item.qty or 0)) + Decimal(str(bill_item.free_qty or 0))
+    received = _to_decimal(bill_item.qty) + _to_decimal(bill_item.free_qty)
     if received <= 0:
         return
     _add_ledger_entry(
@@ -125,39 +134,58 @@ def get_stock_snapshot(db: Session, tenant_id: int, medicine_id: int) -> Optiona
     }
 
 
+def _run_sale_surveillance(db: Session, tenant_id: int, medicine_id: int, qty_sold: Decimal) -> None:
+    # Best-effort side signal; never fail the sale because surveillance cannot run.
+    try:
+        # record_sale_signal flushes; it participates in the current transaction if
+        # called before commit, or will require a follow-up commit if called after.
+        surveillance_service.record_sale_signal(
+            db, medicine_id, int(qty_sold.to_integral_value(rounding="ROUND_HALF_UP")),
+            tenant_id=tenant_id,
+        )
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).error(f"Surveillance hook failed: {e}")
+
+
 def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None,
-                 created_by_user_id: Optional[int] = None) -> dict:
+                 created_by_user_id: Optional[int] = None, commit: bool = True) -> dict:
     """
-    customer_id (Pillar 5) and created_by_user_id (Pillar 6) are both
-    optional and default to None - a walk-in cash sale with no customer
-    profile and no captured staff identity works exactly as before, fully
-    backward compatible with every existing caller.
+    Record a single sale. Raises domain errors for missing medicine or
+    insufficient stock. When commit=True (default), commits the transaction and
+    runs best-effort surveillance; when False, caller owns the transaction.
     """
+    qty_d = _to_decimal(qty_sold)
+    if qty_d <= 0:
+        raise ValidationError("Quantity sold must be greater than 0")
+
     medicine = db.query(models.Medicine).filter_by(id=medicine_id, tenant_id=tenant_id).first()
     if not medicine:
-        raise ValueError("Medicine not found")
-    if qty_sold > float(medicine.current_stock or 0):
-        raise ValueError("Insufficient stock")
+        raise NotFoundError("Medicine not found")
 
-    sale = models.Sale(tenant_id=tenant_id, medicine_id=medicine_id, qty_sold=qty_sold, sold_at=datetime.now(timezone.utc), customer_id=customer_id)
+    current = _to_decimal(medicine.current_stock)
+    if qty_d > current:
+        raise ConflictError("Insufficient stock")
+
+    sale = models.Sale(
+        tenant_id=tenant_id, medicine_id=medicine_id, qty_sold=qty_d,
+        sold_at=datetime.now(timezone.utc), customer_id=customer_id,
+    )
     db.add(sale)
     db.flush()
 
     _add_ledger_entry(
-        db, medicine, -Decimal(str(qty_sold)), reason="sale",
-        sale_id=sale.id, note=f"Sold {qty_sold} units", created_by_user_id=created_by_user_id,
+        db, medicine, -qty_d, reason="sale",
+        sale_id=sale.id, note=f"Sold {float(qty_d)} units", created_by_user_id=created_by_user_id,
     )
-    db.commit()
 
-    # --- Feature 1: Syndromic Surveillance Hook ---
-    try:
-        # BUG FIX: int(qty_sold) silently truncates float quantities (1.5 → 1).
-        # Use round() to get the nearest integer unit count for OTC surveillance.
-        surveillance_service.record_sale_signal(db, medicine_id, round(qty_sold), tenant_id=tenant_id)
-    except Exception as e:
-        import logging
-        logging.getLogger(__name__).error(f"Surveillance hook failed: {e}")
-        # Never crash the sale
+    if commit:
+        db.commit()
+        _run_sale_surveillance(db, tenant_id, medicine_id, qty_d)
+        db.commit()
+        db.refresh(sale)
+    else:
+        _run_sale_surveillance(db, tenant_id, medicine_id, qty_d)
 
     snapshot = get_stock_snapshot(db, tenant_id, medicine_id)
     snapshot["sale_id"] = sale.id
@@ -288,23 +316,13 @@ def delete_reorder_item(db: Session, reorder_item_id: int) -> bool:
 
 def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None,
                        created_by_user_id: Optional[int] = None) -> dict:
-    """
-    Manual inventory correction (e.g. a physical stock count didn't match
-    the system). This is the single most fraud/error-prone stock event in
-    the whole system - it's the one path that lets a number be overridden
-    with no upstream bill or sale to cross-check it against - so it's
-    logged BOTH to TrustChain's tamper-evident ledger (Pillar 4: if a
-    'previous_stock'/'new_stock' pair is ever quietly edited after the
-    fact, verify_chain() will detect it) AND, via created_by_user_id, made
-    attributable to a specific staff account (Pillar 6: anomaly_service.py's
-    detect_stock_adjustment_anomalies reads this exact field to flag a
-    disproportionate share of adjustments coming from one account).
-    """
-    medicine = db.get(models.Medicine, medicine_id)
+    medicine = db.query(models.Medicine).filter(models.Medicine.id == medicine_id).first()
     if not medicine:
-        raise ValueError("Medicine not found")
-    current = Decimal(str(medicine.current_stock or 0))
-    target = Decimal(str(new_total_stock))
+        raise NotFoundError("Medicine not found")
+    current = _to_decimal(medicine.current_stock)
+    target = _to_decimal(new_total_stock)
+    if target < 0:
+        raise ValidationError("Stock cannot be negative")
     diff = target - current
     ledger_entry = _add_ledger_entry(
         db, medicine, diff, reason="manual_adjustment",

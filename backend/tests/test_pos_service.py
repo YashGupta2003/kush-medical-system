@@ -114,3 +114,38 @@ class TestRecordCartSale:
         result = pos_service.record_cart_sale(db_session, tenant.id, [{"medicine_id": sample_medicine.id, "qty_sold": 1}])
         assert result["status"] == "recorded"
         assert len(result["results"]) == 1
+
+    def test_duplicate_lines_are_merged_before_recording(self, db_session, tenant, sample_medicine):
+        """Issue 2: same medicine listed twice should be processed once with combined qty."""
+        start = float(sample_medicine.current_stock)
+        result = pos_service.record_cart_sale(
+            db_session, tenant.id,
+            [
+                {"medicine_id": sample_medicine.id, "qty_sold": 1},
+                {"medicine_id": sample_medicine.id, "qty_sold": 2},
+            ],
+        )
+        assert result["status"] == "recorded"
+        assert len(result["results"]) == 1
+        db_session.refresh(sample_medicine)
+        assert float(sample_medicine.current_stock) == start - 3
+        # Only one sale/ledger effect for the merged line.
+        sales = db_session.query(models.Sale).filter_by(medicine_id=sample_medicine.id).all()
+        assert len(sales) == 1
+        assert float(sales[0].qty_sold) == 3.0
+
+    def test_insufficient_stock_raises_domain_conflict_and_leaves_no_partial_state(self, db_session, tenant):
+        """Issue 2: cart sale must fail cleanly (no partial commits) on insufficient stock."""
+        from app.core.domain_errors import ConflictError
+        from decimal import Decimal
+        med = _medicine(db_session, tenant, "LOW TAB", "Paracetamol 500mg", stock=1)
+        before = float(med.current_stock)
+        import pytest
+        with pytest.raises(ConflictError):
+            pos_service.record_cart_sale(
+                db_session, tenant.id,
+                [{"medicine_id": med.id, "qty_sold": 2}],
+            )
+        db_session.refresh(med)
+        assert float(med.current_stock) == before
+        assert db_session.query(models.Sale).filter_by(medicine_id=med.id).count() == 0

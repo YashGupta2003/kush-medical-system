@@ -36,6 +36,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc, or_
 
 from app import models
+from app.core.domain_errors import NotFoundError, ValidationError
 from app.services import audit_service
 
 # Adherence heuristic thresholds - see compute_adherence_alerts()'s
@@ -145,13 +146,14 @@ def _add_credit_entry(db: Session, customer: models.Customer, change_amount: Dec
 
 
 def charge_credit(db: Session, customer_id: int, amount: float, tenant_id: Optional[int] = None,
-                   note: Optional[str] = None, reference_sale_id: Optional[int] = None) -> dict:
+                   note: Optional[str] = None, reference_sale_id: Optional[int] = None,
+                   commit: bool = True) -> dict:
     """Records a sale given "on credit" (udhaar) - increases what this customer owes."""
     if amount <= 0:
-        raise ValueError("Credit amount must be greater than 0")
+        raise ValidationError("Credit amount must be greater than 0")
     customer = db.query(models.Customer).filter_by(id=customer_id, tenant_id=tenant_id).first() if tenant_id else db.get(models.Customer, customer_id)
     if not customer:
-        raise ValueError("Customer not found")
+        raise NotFoundError("Customer not found")
 
     entry = _add_credit_entry(db, customer, Decimal(str(amount)), "credit_sale", reference_sale_id, note)
 
@@ -161,18 +163,19 @@ def charge_credit(db: Session, customer_id: int, amount: float, tenant_id: Optio
         "amount": float(amount), "new_balance": float(entry.resulting_balance), "note": note,
     })
 
-    db.commit()
+    if commit:
+        db.commit()
     return {"customer_id": customer.id, "change_amount": float(amount), "resulting_balance": float(entry.resulting_balance)}
 
 
 def record_payment(db: Session, customer_id: int, amount: float, tenant_id: Optional[int] = None,
-                   note: Optional[str] = None) -> dict:
+                   note: Optional[str] = None, commit: bool = True) -> dict:
     """Records a payment against an outstanding udhaar balance."""
     if amount <= 0:
-        raise ValueError("Payment amount must be greater than 0")
+        raise ValidationError("Payment amount must be greater than 0")
     customer = db.query(models.Customer).filter_by(id=customer_id, tenant_id=tenant_id).first() if tenant_id else db.get(models.Customer, customer_id)
     if not customer:
-        raise ValueError("Customer not found")
+        raise NotFoundError("Customer not found")
 
     entry = _add_credit_entry(db, customer, -Decimal(str(amount)), "payment_received", None, note)
 
@@ -182,7 +185,8 @@ def record_payment(db: Session, customer_id: int, amount: float, tenant_id: Opti
         "amount": float(amount), "new_balance": float(entry.resulting_balance), "note": note,
     })
 
-    db.commit()
+    if commit:
+        db.commit()
     return {"customer_id": customer.id, "change_amount": float(-amount), "resulting_balance": float(entry.resulting_balance)}
 
 
@@ -267,7 +271,8 @@ def compute_adherence_alerts(db: Session, tenant_id: Optional[int] = None, custo
     Only sales linked to a customer WITH consent_given_at set are
     considered - adherence tracking uses purchase-pattern data in a
     health-relevant way, so it requires the customer's explicit opt-in
-    (unlike the credit ledger, which any customer can be tracked in).\n    """
+    (unlike the credit ledger, which any customer can be tracked in).
+    """
     query = (
         db.query(models.Sale)
         .join(models.Customer, models.Sale.customer_id == models.Customer.id)
