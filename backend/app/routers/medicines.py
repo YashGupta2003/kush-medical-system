@@ -65,7 +65,8 @@ def create_medicine(
 
     if new_med.current_stock > 0:
         stock_service.record_adjustment(
-            db, new_med.id, new_med.current_stock, "Initial stock upon creation", created_by_user_id=current_user.id
+            db, new_med.id, new_med.current_stock, "Initial stock upon creation",
+            created_by_user_id=current_user.id, tenant_id=current_user.tenant_id,
         )
         db.refresh(new_med)
 

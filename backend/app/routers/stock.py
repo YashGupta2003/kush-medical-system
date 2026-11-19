@@ -152,7 +152,8 @@ def record_adjustment(
         raise HTTPException(404, "Medicine not found")
     try:
         return stock_service.record_adjustment(
-            db, payload.medicine_id, payload.new_total_stock, payload.note, created_by_user_id=current_user.id,
+            db, payload.medicine_id, payload.new_total_stock, payload.note,
+            created_by_user_id=current_user.id, tenant_id=current_user.tenant_id,
         )
     except NotFoundError as e:
         raise HTTPException(404, str(e))

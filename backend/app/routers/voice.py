@@ -82,7 +82,8 @@ def handle_voice_confirm(
                 medicine_id=req.medicine_id,
                 new_total_stock=new_total_stock,
                 note="Voice command restock",
-                created_by_user_id=current_user.id
+                created_by_user_id=current_user.id,
+                tenant_id=tenant.id,
             )
             return {"status": "success", "message": "Restock recorded successfully", "details": result}
 

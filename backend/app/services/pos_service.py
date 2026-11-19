@@ -177,10 +177,13 @@ def record_cart_sale(
     try:
         results = []
         total_value = Decimal("0.00")
-        for entry in merged:
+        # Lock medicines in deterministic order to avoid deadlocks on multi-item carts.
+        ordered = sorted(merged, key=lambda x: int(x["medicine_id"]))
+        for entry in ordered:
             med_id = int(entry["medicine_id"])
             qty_d = _to_decimal(entry["qty_sold"])
-            medicine = db.query(models.Medicine).filter_by(id=med_id, tenant_id=tenant_id).first()
+
+            medicine = stock_service._get_medicine_for_update(db, tenant_id, med_id)
             if not medicine:
                 raise NotFoundError(f"Medicine {med_id} not found")
 
@@ -225,7 +228,7 @@ def record_cart_sale(
         db.commit()
 
         # Best-effort surveillance signals after commit; each is persisted independently.
-        for entry in merged:
+        for entry in ordered:
             stock_service._run_sale_surveillance(db, tenant_id, int(entry["medicine_id"]), _to_decimal(entry["qty_sold"]))
         db.commit()
 

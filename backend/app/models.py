@@ -9,7 +9,7 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
 from datetime import datetime, timezone
 from sqlalchemy import (
-    UniqueConstraint,
+    UniqueConstraint, CheckConstraint,
     Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum,
     Boolean, JSON, event, func, Index,
 )
@@ -107,6 +107,7 @@ class Medicine(Base):
     __tablename__ = "medicines"
     __table_args__ = (
         UniqueConstraint("tenant_id", "barcode", name="uq_medicines_tenant_barcode"),
+        CheckConstraint("current_stock >= 0", name="ck_medicines_current_stock_non_negative"),
     )
 
     id = Column(Integer, primary_key=True, index=True)

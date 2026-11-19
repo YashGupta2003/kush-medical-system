@@ -8,12 +8,12 @@ the event fires exactly once at the moment of crossing, not on every
 subsequent sale while already below threshold — preventing notification spam.
 """
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
+from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
-from sqlalchemy import desc
 
 from app import models
 from app.core.domain_errors import ConflictError, NotFoundError, ValidationError
@@ -26,6 +26,23 @@ def _to_decimal(value) -> Decimal:
     if isinstance(value, Decimal):
         return value
     return Decimal(str(value))
+
+
+def _supports_for_update(db: Session) -> bool:
+    try:
+        bind = db.get_bind()
+        return bool(bind and bind.dialect.name not in ("sqlite",))
+    except Exception:
+        return False
+
+
+def _get_medicine_for_update(db: Session, tenant_id: Optional[int], medicine_id: int) -> Optional[models.Medicine]:
+    q = db.query(models.Medicine).filter(models.Medicine.id == medicine_id)
+    if tenant_id is not None:
+        q = q.filter(models.Medicine.tenant_id == tenant_id)
+    if _supports_for_update(db):
+        q = q.with_for_update()
+    return q.first()
 
 
 def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decimal,
@@ -86,9 +103,12 @@ def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decima
 def add_stock_from_confirmed_bill_item(db: Session, bill_item: models.BillItem) -> None:
     if not bill_item.medicine_id:
         return
-    medicine = db.get(models.Medicine, bill_item.medicine_id)
+    medicine = _get_medicine_for_update(db, bill_item.tenant_id, bill_item.medicine_id)
     if not medicine:
         return
+    # Defensive: never allow a cross-tenant bill item to mutate another tenant's stock.
+    if bill_item.tenant_id is not None and medicine.tenant_id != bill_item.tenant_id:
+        raise ConflictError("Bill item and medicine tenant mismatch")
     received = _to_decimal(bill_item.qty) + _to_decimal(bill_item.free_qty)
     if received <= 0:
         return
@@ -154,12 +174,15 @@ def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, 
     Record a single sale. Raises domain errors for missing medicine or
     insufficient stock. When commit=True (default), commits the transaction and
     runs best-effort surveillance; when False, caller owns the transaction.
+
+    Concurrency: locks the medicine row (when supported) and rechecks stock
+    inside the transaction to prevent negative inventory under races.
     """
     qty_d = _to_decimal(qty_sold)
     if qty_d <= 0:
         raise ValidationError("Quantity sold must be greater than 0")
 
-    medicine = db.query(models.Medicine).filter_by(id=medicine_id, tenant_id=tenant_id).first()
+    medicine = _get_medicine_for_update(db, tenant_id, medicine_id)
     if not medicine:
         raise NotFoundError("Medicine not found")
 
@@ -315,8 +338,8 @@ def delete_reorder_item(db: Session, reorder_item_id: int) -> bool:
 
 
 def record_adjustment(db: Session, medicine_id: int, new_total_stock: float, note: Optional[str] = None,
-                       created_by_user_id: Optional[int] = None) -> dict:
-    medicine = db.query(models.Medicine).filter(models.Medicine.id == medicine_id).first()
+                       created_by_user_id: Optional[int] = None, tenant_id: Optional[int] = None) -> dict:
+    medicine = _get_medicine_for_update(db, tenant_id, medicine_id)
     if not medicine:
         raise NotFoundError("Medicine not found")
     current = _to_decimal(medicine.current_stock)
