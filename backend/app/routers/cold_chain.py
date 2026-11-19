@@ -19,13 +19,17 @@ router = APIRouter(prefix="/cold-chain", tags=["cold-chain"])
 
 @router.post("/units", response_model=ColdChainUnitOut)
 def create_unit(unit: ColdChainUnitCreate, db: Session = Depends(get_db), current_user = Depends(require_owner)):
-    return cold_chain_service.create_unit(
-        db=db,
-        unit_label=unit.unit_label,
-        location_note=unit.location_note,
-        min_temp_c=unit.min_temp_c,
-        max_temp_c=unit.max_temp_c
-    )
+    try:
+        return cold_chain_service.create_unit(
+            db=db,
+            unit_label=unit.unit_label,
+            location_note=unit.location_note,
+            min_temp_c=unit.min_temp_c,
+            max_temp_c=unit.max_temp_c,
+            tenant_id=current_user.tenant_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 @router.get("/units", response_model=List[ColdChainUnitOut])
 def list_units(active_only: bool = True, db: Session = Depends(get_db), current_user = Depends(get_current_user)):

@@ -111,15 +111,19 @@ def lookup_tenant(payload: dict, db: Session = Depends(get_db)):
     if not identifier:
         raise HTTPException(400, "email or username is required")
         
-    # Try by tenant email
+    # Try by tenant email (globally unique identifier).
     tenant = db.query(models.Tenant).filter(models.Tenant.email == identifier.lower()).first()
-    
-    # Fallback to checking by username (assuming for now usernames are somewhat unique across tenants, or just picking first)
+
+    # Fallback to username only when it uniquely identifies a tenant. Usernames
+    # are tenant-scoped, so the same username may exist in different shops; in
+    # that case we must not guess a tenant (and must not leak ambiguity).
     if not tenant:
-        user = db.query(models.User).filter(models.User.username == identifier).first()
-        if user:
-            tenant = db.query(models.Tenant).filter(models.Tenant.id == user.tenant_id).first()
-            
+        users = db.query(models.User).filter(models.User.username == identifier).all()
+        tenant_ids = {u.tenant_id for u in users if u.tenant_id is not None}
+        if len(tenant_ids) == 1:
+            tenant = db.get(models.Tenant, next(iter(tenant_ids)))
+
     if not tenant:
+        # Do not reveal whether a username exists in multiple tenants.
         raise HTTPException(404, "No shop found with this email or username")
     return {"tenant_id": tenant.id, "slug": tenant.slug, "shop_name": tenant.shop_name}

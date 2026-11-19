@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -116,7 +117,10 @@ def create_user(
     db: Session = Depends(get_db),
 ):
     """Owner-only: create a new Staff (or additional Owner) account."""
-    existing = db.query(models.User).filter(models.User.username == payload.username, models.User.tenant_id == current_user.tenant_id).first()
+    existing = db.query(models.User).filter(
+        models.User.username == payload.username,
+        models.User.tenant_id == current_user.tenant_id,
+    ).first()
     if existing:
         raise HTTPException(400, "That username is already taken")
 
@@ -129,7 +133,11 @@ def create_user(
         is_active=True,
     )
     db.add(user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(400, "That username is already taken")
     db.refresh(user)
     return user
 

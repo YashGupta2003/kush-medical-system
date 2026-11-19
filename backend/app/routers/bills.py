@@ -8,6 +8,7 @@ from app.core.rate_limit import limiter
 from fastapi import Depends
 from app.config import settings
 from fastapi import UploadFile, File, Form, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -32,18 +33,29 @@ router = APIRouter(prefix="/bills", tags=["bills"])
 def _resolve_distributor(db: Session, name: Optional[str], tenant_id: Optional[int] = None) -> Optional[models.Distributor]:
     if not name:
         return None
-    # BUG FIX: Filter by tenant_id to prevent cross-tenant distributor sharing.
-    # Previously the lookup ignored tenant_id, allowing distributors from one
-    # tenant to be linked to another tenant's bills.
+    normalized_name = name.strip().upper()
+    if not normalized_name:
+        return None
+
     distributor = db.query(models.Distributor).filter(
-        models.Distributor.name == name.upper(),
+        models.Distributor.name == normalized_name,
         models.Distributor.tenant_id == tenant_id,
     ).first()
-    if not distributor:
-        distributor = models.Distributor(name=name.upper(), tenant_id=tenant_id)
-        db.add(distributor)
-        db.flush()
-    return distributor
+    if distributor:
+        return distributor
+
+    try:
+        with db.begin_nested():
+            distributor = models.Distributor(name=normalized_name, tenant_id=tenant_id)
+            db.add(distributor)
+            db.flush()
+            return distributor
+    except IntegrityError:
+        # Another request created the same tenant-scoped distributor concurrently.
+        return db.query(models.Distributor).filter(
+            models.Distributor.name == normalized_name,
+            models.Distributor.tenant_id == tenant_id,
+        ).first()
 
 
 def _create_queued_bill(db: Session, file_bytes: bytes, filename: str, tenant_id: int,

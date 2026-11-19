@@ -31,6 +31,7 @@ from decimal import Decimal
 from statistics import mean
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import desc, or_
 
@@ -59,13 +60,25 @@ def get_or_create_customer(db: Session, phone: str, tenant_id: int, name: Option
         db.flush()
         return customer
 
-    customer = models.Customer(
-        phone=phone, name=name, tenant_id=tenant_id,
-        consent_given_at=datetime.now(timezone.utc) if consented else None,
-    )
-    db.add(customer)
-    db.flush()
-    return customer
+    try:
+        with db.begin_nested():
+            customer = models.Customer(
+                phone=phone, name=name, tenant_id=tenant_id,
+                consent_given_at=datetime.now(timezone.utc) if consented else None,
+            )
+            db.add(customer)
+            db.flush()
+            return customer
+    except IntegrityError:
+        customer = db.query(models.Customer).filter_by(phone=phone, tenant_id=tenant_id).first()
+        if not customer:
+            raise
+        if name and not customer.name:
+            customer.name = name
+        if consented and not customer.consent_given_at:
+            customer.consent_given_at = datetime.now(timezone.utc)
+        db.flush()
+        return customer
 
 
 def search_customers(db: Session, tenant_id: int, q: Optional[str] = None, limit: int = 20) -> list[models.Customer]:

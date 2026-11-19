@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional
 
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
@@ -240,14 +241,22 @@ def add_manual_reorder_item(
     tenant_id: Optional[int] = None,
 ) -> models.ReorderItem:
     if distributor_name_new and not distributor_id:
-        existing = db.query(models.Distributor).filter_by(name=distributor_name_new.upper(), tenant_id=tenant_id).first()
+        normalized_name = distributor_name_new.strip().upper()
+        existing = db.query(models.Distributor).filter_by(name=normalized_name, tenant_id=tenant_id).first()
         if existing:
             distributor_id = existing.id
         else:
-            new_distributor = models.Distributor(name=distributor_name_new.upper(), tenant_id=tenant_id)
-            db.add(new_distributor)
-            db.flush()
-            distributor_id = new_distributor.id
+            try:
+                with db.begin_nested():
+                    new_distributor = models.Distributor(name=normalized_name, tenant_id=tenant_id)
+                    db.add(new_distributor)
+                    db.flush()
+                    distributor_id = new_distributor.id
+            except IntegrityError:
+                existing = db.query(models.Distributor).filter_by(name=normalized_name, tenant_id=tenant_id).first()
+                if not existing:
+                    raise
+                distributor_id = existing.id
 
     item = models.ReorderItem(
         medicine_id=medicine_id, custom_name=custom_name, distributor_id=distributor_id,
