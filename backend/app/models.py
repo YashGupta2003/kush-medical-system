@@ -157,6 +157,9 @@ class Distributor(Base):
 
 class Bill(Base):
     __tablename__ = "bills"
+    __table_args__ = (
+        UniqueConstraint("confirmed_invoice_key", name="uq_bills_confirmed_invoice_key"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
@@ -182,6 +185,8 @@ class Bill(Base):
     preprocessing_notes = Column(Text, nullable=True)
     checksum = Column(String(64), nullable=True, index=True)
     detected_header_tokens = Column(Text, nullable=True)
+    # DB-level guard for confirmed-invoice uniqueness races (set on confirm).
+    confirmed_invoice_key = Column(String(255), nullable=True)
 
     distributor = relationship("Distributor", back_populates="bills")
     items = relationship("BillItem", back_populates="bill", cascade="all, delete-orphan")
