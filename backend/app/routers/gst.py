@@ -20,7 +20,8 @@ def gst_report(
 ):
     """Owner-only: GST slab-wise breakdown for a given month (defaults to current month)."""
     today = date.today()
-    return gst_report_service.get_gst_report(db, current_user.tenant_id, year or today.year, month or today.month)
+    y, m = year or today.year, month or today.month
+    return gst_report_service.get_gst_report(db, current_user.tenant_id, y, m)
 
 
 @router.get("/report/pdf")

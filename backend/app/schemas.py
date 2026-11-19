@@ -430,22 +430,55 @@ class GstSlabBreakdown(BaseModel):
     taxable_amount: float
     cgst: float
     sgst: float
+    igst: float = 0.0
     total_tax: float
     total_amount: float
     item_count: int
+
+
+class GstSalesOutputSlab(BaseModel):
+    gst_pct: float
+    taxable_amount: float
+    cgst: float
+    sgst: float
+    igst: float = 0.0
+    total_tax: float
+    total_amount: float
+    item_count: int
+
+
+class GstSalesOutputEstimate(BaseModel):
+    period_basis: str = "sale.sold_at"
+    slabs: list[GstSalesOutputSlab] = Field(default_factory=list)
+    grand_taxable_amount: float = 0.0
+    grand_cgst: float = 0.0
+    grand_sgst: float = 0.0
+    grand_igst: float = 0.0
+    grand_total_tax: float = 0.0
+    grand_total_amount: float = 0.0
+    sale_count: int = 0
+    note: Optional[str] = None
 
 
 class GstReport(BaseModel):
     year: int
     month: int
     month_label: str
+    period_basis: str = "bill.invoice_date"
     slabs: list[GstSlabBreakdown]
     grand_taxable_amount: float
     grand_cgst: float
     grand_sgst: float
+    grand_igst: float = 0.0
     grand_total_tax: float
     grand_total_amount: float
     bill_count: int
+    # Issue 6: undated separation/warnings and additive sales/output estimates
+    undated_bill_count: int = 0
+    undated_bill_ids: list[int] = Field(default_factory=list)
+    assumed_intrastate_bill_count: int = 0
+    warnings: list[str] = Field(default_factory=list)
+    sales_output_estimates: Optional[GstSalesOutputEstimate] = None
 
 
 # ---------------------------------------------------------------------------
