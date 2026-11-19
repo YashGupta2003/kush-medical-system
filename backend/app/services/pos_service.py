@@ -49,7 +49,7 @@ caller's request-scoped session rolls back everything - a cart is never
 half-recorded, and neither is its credit charge.
 """
 from datetime import datetime, timezone
-from decimal import Decimal
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -165,6 +165,10 @@ def record_cart_sale(
     status="needs_confirmation" with the check details. Only once
     confirmed (or if there were never any flags) does it record all
     items atomically in a single transaction.
+
+    Issue 5: creates one sale invoice per cart and persists sale-time
+    pricing/GST/profit snapshots per line. Totals/credit are derived from
+    snapshots using Decimal with ROUND_HALF_UP at defined points.
     """
     merged = _merged_items(items)
     if not merged:
@@ -176,24 +180,49 @@ def record_cart_sale(
 
     try:
         results = []
-        total_value = Decimal("0.00")
         # Lock medicines in deterministic order to avoid deadlocks on multi-item carts.
         ordered = sorted(merged, key=lambda x: int(x["medicine_id"]))
+        sold_at = datetime.now(timezone.utc)
+        invoice = stock_service.create_sale_invoice(
+            db, tenant_id=tenant_id, customer_id=customer_id,
+            payment_mode=payment_mode or "cash",
+            created_by_user_id=created_by_user_id, sold_at=sold_at,
+        )
+
+        subtotal_total = Decimal("0.00")
+        tax_total = Decimal("0.00")
+        total_value = Decimal("0.00")
+        profit_total = Decimal("0.00")
+
         for entry in ordered:
             med_id = int(entry["medicine_id"])
-            qty_d = _to_decimal(entry["qty_sold"])
+            qty_d = stock_service._to_decimal(entry["qty_sold"])
 
             medicine = stock_service._get_medicine_for_update(db, tenant_id, med_id)
             if not medicine:
                 raise NotFoundError(f"Medicine {med_id} not found")
 
-            current = _to_decimal(medicine.current_stock)
+            current = stock_service._to_decimal(medicine.current_stock)
             if qty_d > current:
                 raise ConflictError(f"Insufficient stock for {medicine.particulars}")
 
+            line = stock_service.build_sale_line_snapshot(db, medicine, qty_d)
             sale = models.Sale(
-                tenant_id=tenant_id, medicine_id=med_id, qty_sold=qty_d,
-                sold_at=datetime.now(timezone.utc), customer_id=customer_id,
+                tenant_id=tenant_id,
+                sale_invoice_id=invoice.id,
+                medicine_id=med_id,
+                qty_sold=qty_d,
+                sold_at=sold_at,
+                customer_id=customer_id,
+                medicine_name_snapshot=line["medicine_name_snapshot"],
+                medicine_composition_snapshot=line["medicine_composition_snapshot"],
+                unit_mrp_snapshot=line["unit_mrp_snapshot"],
+                unit_cost_snapshot=line["unit_cost_snapshot"],
+                gst_pct_snapshot=line["gst_pct_snapshot"],
+                line_subtotal=line["line_subtotal"],
+                line_tax_amount=line["line_tax_amount"],
+                line_total=line["line_total"],
+                line_profit=line["line_profit"],
             )
             db.add(sale)
             db.flush()
@@ -210,17 +239,24 @@ def record_cart_sale(
                 "low_stock_threshold": float(medicine.low_stock_threshold) if medicine.low_stock_threshold is not None else None,
                 "last_purchase": None,
             }
-            snapshot["sale_id"] = sale.id
+            snapshot.update(stock_service._sale_snapshot_payload(sale, invoice))
             results.append(snapshot)
 
-            if medicine.mrp is not None:
-                total_value += (_to_decimal(medicine.mrp) * qty_d)
+            subtotal_total += line["line_subtotal"]
+            tax_total += line["line_tax_amount"]
+            total_value += line["line_total"]
+            profit_total += line["line_profit"]
+
+        invoice.subtotal_amount = stock_service._q2(subtotal_total)
+        invoice.tax_amount = stock_service._q2(tax_total)
+        invoice.total_amount = stock_service._q2(total_value)
+        invoice.total_profit = stock_service._q2(profit_total)
 
         credit_result = None
-        if payment_mode == "credit" and customer_id and total_value > 0:
+        if payment_mode == "credit" and customer_id and invoice.total_amount > 0:
             item_names = ", ".join(r.get("medicine_name") or str(r.get("medicine_id")) for r in results)
             credit_result = customer_service.charge_credit(
-                db, customer_id, float(total_value.quantize(Decimal("0.01"))),
+                db, customer_id, float(invoice.total_amount),
                 tenant_id=tenant_id, note=f"Cart sale: {item_names}", commit=False,
             )
 
@@ -229,7 +265,7 @@ def record_cart_sale(
 
         # Best-effort surveillance signals after commit; each is persisted independently.
         for entry in ordered:
-            stock_service._run_sale_surveillance(db, tenant_id, int(entry["medicine_id"]), _to_decimal(entry["qty_sold"]))
+            stock_service._run_sale_surveillance(db, tenant_id, int(entry["medicine_id"]), stock_service._to_decimal(entry["qty_sold"]))
         db.commit()
 
     except Exception:
@@ -238,7 +274,12 @@ def record_cart_sale(
 
     return {
         "status": "recorded", **check, "results": results,
-        "total_value": float(total_value.quantize(Decimal("0.01"))),
+        "total_value": float(invoice.total_amount),
         "payment_mode": payment_mode,
         "credit_balance_after": credit_result["resulting_balance"] if credit_result else None,
+        "sale_invoice_id": invoice.id,
+        "sale_invoice_number": invoice.invoice_number,
+        "subtotal_amount": float(invoice.subtotal_amount),
+        "tax_amount": float(invoice.tax_amount),
+        "total_profit": float(invoice.total_profit),
     }

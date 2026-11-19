@@ -256,6 +256,17 @@ class StockSnapshot(BaseModel):
     low_stock_threshold: Optional[float] = None
     last_purchase: Optional[LastPurchaseInfo] = None
     sale_id: Optional[int] = None
+    # Issue 5: additive sale invoice/snapshot fields (backward-compatible)
+    sale_invoice_id: Optional[int] = None
+    sale_invoice_number: Optional[str] = None
+    qty_sold: Optional[float] = None
+    unit_mrp_snapshot: Optional[float] = None
+    unit_cost_snapshot: Optional[float] = None
+    gst_pct_snapshot: Optional[float] = None
+    line_subtotal: Optional[float] = None
+    line_tax_amount: Optional[float] = None
+    line_total: Optional[float] = None
+    line_profit: Optional[float] = None
 
 
 class ReorderMedicineItem(BaseModel):
@@ -599,6 +610,12 @@ class CartSaleResponse(BaseModel):
     total_value: Optional[float] = None            # NEW (Pillar 5)
     payment_mode: Optional[str] = None              # NEW (Pillar 5)
     credit_balance_after: Optional[float] = None    # NEW (Pillar 5)
+    # Issue 5: additive sale invoice/snapshot totals (backward-compatible)
+    sale_invoice_id: Optional[int] = None
+    sale_invoice_number: Optional[str] = None
+    subtotal_amount: Optional[float] = None
+    tax_amount: Optional[float] = None
+    total_profit: Optional[float] = None
 
 # ---------------------------------------------------------------------------
 # TrustChain — Tamper-Evident Audit Trail (Pillar 4)
