@@ -23,6 +23,8 @@ system replaces manual rate-list updates with:
 8. **Duplicate Invoice Detection**: Prevents double-counting inventory and GST by detecting if a bill with the same distributor and invoice number has already been confirmed. Uploading returns a prominent warning banner, and confirming a duplicate returns an HTTP 409 Conflict hard gate.
 9. **Smart Reorder Point Engine**: Calculates data-driven low-stock threshold suggestions based on rolling sales history (30-day default zero-filled series), lead time demand, and safety stock ($Z = 1.65$ for 95% service level). The owner can review suggestions and explicitly apply them to update the low-stock thresholds.
 10. **PharmOs Pulse — Privacy-Preserving Regional Heatmap**: Aggregates opted-in OTC surveillance counts into regional health signals. A cell is published only when at least 3 pharmacies contribute; otherwise it is suppressed. No shop, customer, bill, medicine, or raw count is ever exposed by the public API.
+11. **Sale invoices & snapshot-based accounting**: POS and single-sale flows persist tenant-scoped sale invoices and sale-time pricing/GST/profit snapshots (Decimal, rounded at defined points). Sales/profit lookups use stored snapshots (with legacy fallback) so historical realized values are not distorted by later medicine price changes.
+12. **GST report correctness**: Purchase GST reporting uses `invoice_date`-based perioding (undated confirmed bills are excluded from the period and surfaced with warnings), applies CGST/SGST or IGST based on GSTIN state codes when available, and includes additive sale/output GST estimates derived from sale snapshots for the selected period. See `docs/MIGRATION_NOTES.md` for migration chain (through `0031`) and operational notes.
 
 ## PharmOs Pulse — privacy by design
 
@@ -164,6 +166,7 @@ matched the invoice's printed totals exactly.
   be before it's auto-linked — tune it against your own data.
 - Duplicate invoice detection relies on resolved distributor ID and normalized invoice number; bills uploaded without an invoice number or distributor cannot be deduplicated until those fields are filled in.
 - The Smart Reorder Point Engine safety-stock formula assumes roughly steady demand over the rolling window; it will be less reliable for highly seasonal medicines or sudden one-off bulk orders.
+- GST reporting depends on accurate invoice dates and GSTIN data for precise perioding and inter/intra-state splits; undated bills are excluded from period totals and reported as warnings, and sales/output GST estimates are indicative (derived from recorded sale snapshots) rather than a filing-ready return. See `docs/MIGRATION_NOTES.md`.
 
 
 ## Suggested next features (good "future work" section for your report)
