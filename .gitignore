@@ -30,6 +30,11 @@ celerybeat-schedule.db
 dump.rdb
 backend/dump.rdb
 
+# SQLite database files
+*.db
+*.sqlite3
+backend/*.db
+
 # Runtime logs
 *.log
 logs/

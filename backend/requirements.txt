@@ -18,7 +18,7 @@ pytesseract==0.3.13
 opencv-python-headless==4.10.0.84
 numpy==1.26.4
 celery==5.4.0
-redis==5.0.8
+redis>=6.1.0
 alembic==1.13.3
 python-jose[cryptography]==3.3.0
 passlib[bcrypt]==1.7.4
