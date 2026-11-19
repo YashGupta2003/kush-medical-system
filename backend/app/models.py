@@ -9,9 +9,9 @@ rate_history   -> audit trail: every time a medicine's rate/MRP changes, and why
 """
 from datetime import datetime, timezone
 from sqlalchemy import (
-    UniqueConstraint,
+    UniqueConstraint, CheckConstraint,
     Column, Integer, String, Numeric, DateTime, Date, ForeignKey, Text, Enum,
-    Boolean, JSON, event, func,
+    Boolean, JSON, event, func, Index,
 )
 from sqlalchemy.orm import relationship, validates
 
@@ -105,6 +105,10 @@ def _canonicalize_interaction_pair(_mapper, _connection, interaction):
 
 class Medicine(Base):
     __tablename__ = "medicines"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "barcode", name="uq_medicines_tenant_barcode"),
+        CheckConstraint("current_stock >= 0", name="ck_medicines_current_stock_non_negative"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
@@ -120,7 +124,7 @@ class Medicine(Base):
 
     current_stock = Column(Numeric(10, 2), default=0, nullable=False)
     low_stock_threshold = Column(Numeric(10, 2), nullable=True)
-    barcode = Column(String(64), nullable=True, unique=True, index=True)
+    barcode = Column(String(64), nullable=True, index=True)
 
     # --- Substitute Medicine Suggestion feature ---
     composition = Column(String(500), nullable=True)   # raw display text, e.g. "Paracetamol 650mg"
@@ -137,10 +141,13 @@ class Medicine(Base):
 
 class Distributor(Base):
     __tablename__ = "distributors"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "name", name="uq_distributors_tenant_name"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-    name = Column(String(150), nullable=False, unique=True)    # e.g. "RATHORE MEDICOS"
+    name = Column(String(150), nullable=False)    # e.g. "RATHORE MEDICOS"
     gstin = Column(String(20))
     address = Column(String(255))
     phone = Column(String(50))
@@ -150,6 +157,9 @@ class Distributor(Base):
 
 class Bill(Base):
     __tablename__ = "bills"
+    __table_args__ = (
+        UniqueConstraint("confirmed_invoice_key", name="uq_bills_confirmed_invoice_key"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
@@ -175,6 +185,8 @@ class Bill(Base):
     preprocessing_notes = Column(Text, nullable=True)
     checksum = Column(String(64), nullable=True, index=True)
     detected_header_tokens = Column(Text, nullable=True)
+    # DB-level guard for confirmed-invoice uniqueness races (set on confirm).
+    confirmed_invoice_key = Column(String(255), nullable=True)
 
     distributor = relationship("Distributor", back_populates="bills")
     items = relationship("BillItem", back_populates="bill", cascade="all, delete-orphan")
@@ -316,10 +328,13 @@ class MedicineBatch(Base):
 
 class User(Base):
     __tablename__ = "users"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "username", name="uq_users_tenant_username"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-    username = Column(String(50), nullable=False, unique=True, index=True)
+    username = Column(String(50), nullable=False, index=True)
     password_hash = Column(String(255), nullable=False)
     full_name = Column(String(100), nullable=True)
     role = Column(Enum("owner", "staff", name="user_role"), nullable=False, default="staff")
@@ -445,10 +460,13 @@ class Customer(Base):
     tracking. See app/services/customer_service.py's module docstring.
     """
     __tablename__ = "customers"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "phone", name="uq_customers_tenant_phone"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-    phone = Column(String(15), nullable=False, unique=True, index=True)
+    phone = Column(String(15), nullable=False, index=True)
     name = Column(String(100), nullable=True)
     consent_given_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
@@ -628,10 +646,13 @@ class ColdChainUnit(Base):
     "was each individual medicine at the right temp."
     """
     __tablename__ = "cold_chain_units"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "unit_label", name="uq_cold_chain_units_tenant_label"),
+    )
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
-    unit_label = Column(String(100), nullable=False, unique=True)
+    unit_label = Column(String(100), nullable=False)
     location_note = Column(String(255), nullable=True)
     min_temp_c = Column(Numeric(5, 2), nullable=False, default=2.0)
     max_temp_c = Column(Numeric(5, 2), nullable=False, default=8.0)

@@ -48,12 +48,23 @@ If any item fails, the whole request's exception propagates and the
 caller's request-scoped session rolls back everything - a cart is never
 half-recorded, and neither is its credit charge.
 """
+from datetime import datetime, timezone
+from decimal import Decimal
 from typing import Optional
 
 from sqlalchemy.orm import Session
 
 from app import models
+from app.core.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.services import graph_service, stock_service, customer_service
+
+
+def _to_decimal(value) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    return Decimal(str(value))
 
 
 def _medicine_salts(db: Session, medicine_id: int) -> list[str]:
@@ -125,6 +136,19 @@ def check_cart_interactions(db: Session, tenant_id: int, items: list[dict]) -> d
     }
 
 
+def _merged_items(items: list[dict]) -> list[dict]:
+    merged: dict[int, Decimal] = {}
+    for entry in items:
+        med_id = entry.get("medicine_id")
+        if med_id is None:
+            continue
+        qty = _to_decimal(entry.get("qty_sold"))
+        if qty <= 0:
+            raise ValidationError("Quantity sold must be greater than 0")
+        merged[int(med_id)] = merged.get(int(med_id), Decimal("0")) + qty
+    return [{"medicine_id": mid, "qty_sold": qty} for mid, qty in merged.items()]
+
+
 def record_cart_sale(
     db: Session,
     tenant_id: int,
@@ -139,40 +163,82 @@ def record_cart_sale(
     salts - see check_cart_interactions). If any are found and
     confirm_override is not True, records NOTHING and returns
     status="needs_confirmation" with the check details. Only once
-    confirmed (or if there were never any flags) does it call
-    stock_service.record_sale for every item in the cart.
-
-    customer_id/payment_mode (Pillar 5) and created_by_user_id (Pillar 6)
-    are all optional - a plain walk-in cash sale with none of them set
-    works exactly as it always has.
+    confirmed (or if there were never any flags) does it record all
+    items atomically in a single transaction.
     """
-    check = check_cart_interactions(db, tenant_id, items)
+    merged = _merged_items(items)
+    if not merged:
+        raise ValidationError("Cart must contain at least one valid item")
+
+    check = check_cart_interactions(db, tenant_id, [{"medicine_id": i["medicine_id"], "qty_sold": float(i["qty_sold"])} for i in merged])
     if check["has_interactions"] and not confirm_override:
         return {"status": "needs_confirmation", **check, "results": []}
 
-    results = []
-    total_value = 0.0
-    for entry in items:
-        snapshot = stock_service.record_sale(
-            db, tenant_id, entry["medicine_id"], entry["qty_sold"],
-            customer_id=customer_id, created_by_user_id=created_by_user_id,
-        )
-        results.append(snapshot)
+    try:
+        results = []
+        total_value = Decimal("0.00")
+        # Lock medicines in deterministic order to avoid deadlocks on multi-item carts.
+        ordered = sorted(merged, key=lambda x: int(x["medicine_id"]))
+        for entry in ordered:
+            med_id = int(entry["medicine_id"])
+            qty_d = _to_decimal(entry["qty_sold"])
 
-        medicine = db.query(models.Medicine).filter_by(id=entry["medicine_id"], tenant_id=tenant_id).first()
-        if medicine and medicine.mrp is not None:
-            total_value += float(medicine.mrp) * float(entry["qty_sold"])
+            medicine = stock_service._get_medicine_for_update(db, tenant_id, med_id)
+            if not medicine:
+                raise NotFoundError(f"Medicine {med_id} not found")
 
-    credit_result = None
-    if payment_mode == "credit" and customer_id and total_value > 0:
-        item_names = ", ".join(r["medicine_name"] for r in results)
-        credit_result = customer_service.charge_credit(
-            db, customer_id, total_value, note=f"Cart sale: {item_names}",
-        )
+            current = _to_decimal(medicine.current_stock)
+            if qty_d > current:
+                raise ConflictError(f"Insufficient stock for {medicine.particulars}")
+
+            sale = models.Sale(
+                tenant_id=tenant_id, medicine_id=med_id, qty_sold=qty_d,
+                sold_at=datetime.now(timezone.utc), customer_id=customer_id,
+            )
+            db.add(sale)
+            db.flush()
+
+            stock_service._add_ledger_entry(
+                db, medicine, -qty_d, reason="sale",
+                sale_id=sale.id, note=f"Sold {float(qty_d)} units", created_by_user_id=created_by_user_id,
+            )
+
+            snapshot = stock_service.get_stock_snapshot(db, tenant_id, med_id) or {
+                "medicine_id": med_id,
+                "medicine_name": medicine.particulars,
+                "current_stock": float(medicine.current_stock or 0),
+                "low_stock_threshold": float(medicine.low_stock_threshold) if medicine.low_stock_threshold is not None else None,
+                "last_purchase": None,
+            }
+            snapshot["sale_id"] = sale.id
+            results.append(snapshot)
+
+            if medicine.mrp is not None:
+                total_value += (_to_decimal(medicine.mrp) * qty_d)
+
+        credit_result = None
+        if payment_mode == "credit" and customer_id and total_value > 0:
+            item_names = ", ".join(r.get("medicine_name") or str(r.get("medicine_id")) for r in results)
+            credit_result = customer_service.charge_credit(
+                db, customer_id, float(total_value.quantize(Decimal("0.01"))),
+                tenant_id=tenant_id, note=f"Cart sale: {item_names}", commit=False,
+            )
+
+        # Commit all stock/sale/credit mutations atomically.
+        db.commit()
+
+        # Best-effort surveillance signals after commit; each is persisted independently.
+        for entry in ordered:
+            stock_service._run_sale_surveillance(db, tenant_id, int(entry["medicine_id"]), _to_decimal(entry["qty_sold"]))
+        db.commit()
+
+    except Exception:
+        db.rollback()
+        raise
 
     return {
         "status": "recorded", **check, "results": results,
-        "total_value": round(total_value, 2),
+        "total_value": float(total_value.quantize(Decimal("0.01"))),
         "payment_mode": payment_mode,
         "credit_balance_after": credit_result["resulting_balance"] if credit_result else None,
     }

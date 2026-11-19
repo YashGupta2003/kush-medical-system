@@ -1,5 +1,6 @@
 from typing import List, Optional, Union
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -41,12 +42,31 @@ def create_medicine(
         composition=payload.composition
     )
     db.add(new_med)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        # Re-check likely conflicts to return a clean, tenant-safe error.
+        name_clash = db.query(models.Medicine).filter(
+            models.Medicine.tenant_id == current_user.tenant_id,
+            models.Medicine.normalized_name == norm,
+        ).first()
+        if name_clash:
+            raise HTTPException(400, "Medicine with this name already exists")
+        if payload.barcode:
+            barcode_clash = db.query(models.Medicine).filter(
+                models.Medicine.tenant_id == current_user.tenant_id,
+                models.Medicine.barcode == payload.barcode,
+            ).first()
+            if barcode_clash:
+                raise HTTPException(400, f"This barcode is already linked to '{barcode_clash.particulars}'")
+        raise HTTPException(400, "Medicine could not be created due to a conflicting value")
     db.refresh(new_med)
 
     if new_med.current_stock > 0:
         stock_service.record_adjustment(
-            db, new_med.id, new_med.current_stock, "Initial stock upon creation", created_by_user_id=current_user.id
+            db, new_med.id, new_med.current_stock, "Initial stock upon creation",
+            created_by_user_id=current_user.id, tenant_id=current_user.tenant_id,
         )
         db.refresh(new_med)
 
@@ -121,7 +141,11 @@ def assign_barcode(medicine_id: int, payload: schemas.BarcodeAssignRequest, db: 
         raise HTTPException(400, f"This barcode is already linked to '{clash.particulars}'")
 
     medicine.barcode = payload.barcode
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(400, "This barcode is already linked to another medicine")
     db.refresh(medicine)
     return medicine
 

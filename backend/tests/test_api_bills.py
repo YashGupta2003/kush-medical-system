@@ -92,6 +92,14 @@ def test_duplicate_warning_at_upload_and_409_at_confirm(client, staff_headers, s
 
     new_bill_id = res_json["bill_id"]
 
+    # Move uploaded bill into a confirmable review state for the duplicate hard-gate check.
+    # (Issue 4 enforces valid status transitions; upload/OCR may leave status queued.)
+    db_session.expire_all()
+    new_bill = db_session.get(models.Bill, new_bill_id)
+    assert new_bill is not None
+    new_bill.status = "pending_review"
+    db_session.commit()
+
     # Attempting to confirm the duplicate bill returns HTTP 409 Conflict
     confirm_payload = {
         "bill_id": new_bill_id,

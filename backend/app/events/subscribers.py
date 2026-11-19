@@ -202,7 +202,10 @@ def handle_bill_confirmed_graph_sync(event: BillConfirmedEvent) -> None:
 def handle_bill_confirmed_cache_invalidation(event: BillConfirmedEvent) -> None:
     """
     Subscriber: Invalidates cached analytics, dashboard, and GST reports upon confirmation.
+    Suppressed when the publisher will run this as a post-commit side effect.
     """
+    if getattr(event, "skip_cache_invalidation", False):
+        return
     logger.info(f"[SUBSCRIBER: CacheInvalidation] Flushed analytics caches for Bill #{event.bill_id}")
     invalidate_analytics_cache()
 

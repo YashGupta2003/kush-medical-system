@@ -8,6 +8,7 @@ from app.core.rate_limit import limiter
 from app.config import settings
 from app.database import get_db
 from app.deps import get_current_tenant, get_current_user
+from app.core.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.core.upload_validation import validate_audio_upload
 from app.services import voice_command_service, stock_service
 from app import models
@@ -62,33 +63,39 @@ def handle_voice_confirm(
     if not medicine or medicine.tenant_id != tenant.id:
         raise HTTPException(status_code=404, detail="Medicine not found")
 
-    if req.intent == "sell":
-        result = stock_service.record_sale(
-            db=db,
-            tenant_id=tenant.id,
-            medicine_id=req.medicine_id,
-            qty_sold=float(req.quantity),
-            created_by_user_id=current_user.id
-        )
-        db.commit()
-        return {"status": "success", "message": "Sale recorded successfully", "details": result}
+    try:
+        if req.intent == "sell":
+            result = stock_service.record_sale(
+                db=db,
+                tenant_id=tenant.id,
+                medicine_id=req.medicine_id,
+                qty_sold=float(req.quantity),
+                created_by_user_id=current_user.id
+            )
+            return {"status": "success", "message": "Sale recorded successfully", "details": result}
 
-    elif req.intent == "restock":
-        current_stock = float(medicine.current_stock) if medicine.current_stock else 0.0
-        new_total_stock = current_stock + float(req.quantity)
-        result = stock_service.record_adjustment(
-            db=db,
-            medicine_id=req.medicine_id,
-            new_total_stock=new_total_stock,
-            note="Voice command restock",
-            created_by_user_id=current_user.id
-        )
-        db.commit()
-        return {"status": "success", "message": "Restock recorded successfully", "details": result}
+        elif req.intent == "restock":
+            current_stock = float(medicine.current_stock) if medicine.current_stock else 0.0
+            new_total_stock = current_stock + float(req.quantity)
+            result = stock_service.record_adjustment(
+                db=db,
+                medicine_id=req.medicine_id,
+                new_total_stock=new_total_stock,
+                note="Voice command restock",
+                created_by_user_id=current_user.id,
+                tenant_id=tenant.id,
+            )
+            return {"status": "success", "message": "Restock recorded successfully", "details": result}
 
-    elif req.intent == "check_stock":
-        result = stock_service.get_stock_snapshot(db, tenant.id, req.medicine_id)
-        return {"status": "success", "message": "Stock snapshot retrieved", "details": result}
-    
-    else:
-        raise HTTPException(status_code=400, detail=f"Unsupported intent: {req.intent}")
+        elif req.intent == "check_stock":
+            result = stock_service.get_stock_snapshot(db, tenant.id, req.medicine_id)
+            return {"status": "success", "message": "Stock snapshot retrieved", "details": result}
+
+        else:
+            raise HTTPException(status_code=400, detail=f"Unsupported intent: {req.intent}")
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except ConflictError as e:
+        raise HTTPException(status_code=409, detail=str(e))
+    except ValidationError as e:
+        raise HTTPException(status_code=400, detail=str(e))

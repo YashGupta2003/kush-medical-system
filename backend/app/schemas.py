@@ -161,6 +161,7 @@ class ConfirmBillRequest(BaseModel):
     items: List[BillItemEdit]
     invoice_no: Optional[str] = None
     distributor_name: Optional[str] = None
+    invoice_date: Optional[date] = None
 
 
 class SmartThresholdSuggestion(BaseModel):

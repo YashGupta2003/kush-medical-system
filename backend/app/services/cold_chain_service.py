@@ -19,6 +19,8 @@ reporting and unit management are owner-only (financial/regulatory scope).
 """
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Dict, Any
+
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 from app.models import ColdChainUnit, ColdChainReading, MedicineBatch, Medicine, User
@@ -27,17 +29,40 @@ from app.events.bus import event_bus
 from app.services import audit_service
 
 
-def create_unit(db: Session, unit_label: str, location_note: Optional[str] = None, min_temp_c: float = 2.0, max_temp_c: float = 8.0) -> ColdChainUnit:
+def create_unit(
+    db: Session,
+    unit_label: str,
+    location_note: Optional[str] = None,
+    min_temp_c: float = 2.0,
+    max_temp_c: float = 8.0,
+    tenant_id: Optional[int] = None,
+) -> ColdChainUnit:
+    normalized_label = (unit_label or "").strip()
+    if not normalized_label:
+        raise ValueError("unit_label is required")
+
+    effective_tenant_id = tenant_id if tenant_id is not None else db.info.get("tenant_id")
+    existing = db.query(ColdChainUnit).filter(
+        ColdChainUnit.tenant_id == effective_tenant_id,
+        ColdChainUnit.unit_label == normalized_label,
+    ).first()
+    if existing:
+        raise ValueError("A cold-chain unit with this label already exists")
+
     unit = ColdChainUnit(
-        tenant_id=db.info.get("tenant_id"),
-        unit_label=unit_label,
+        tenant_id=effective_tenant_id,
+        unit_label=normalized_label,
         location_note=location_note,
         min_temp_c=min_temp_c,
         max_temp_c=max_temp_c,
-        is_active=True
+        is_active=True,
     )
     db.add(unit)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise ValueError("A cold-chain unit with this label already exists")
     db.refresh(unit)
     return unit
 
@@ -48,7 +73,7 @@ def list_units(db: Session, active_only: bool = True) -> List[ColdChainUnit]:
     return query.all()
 
 def get_unit(db: Session, unit_id: int) -> Optional[ColdChainUnit]:
-    return db.query(ColdChainUnit).filter(ColdChainUnit.id == unit_id).first()
+    return db.get(ColdChainUnit, unit_id)
 
 def update_unit(db: Session, unit_id: int, **kwargs) -> Optional[ColdChainUnit]:
     unit = get_unit(db, unit_id)

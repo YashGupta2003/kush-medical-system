@@ -1,6 +1,7 @@
+import json
 import os
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Optional, List
 
 from fastapi import APIRouter, Request, BackgroundTasks
@@ -8,6 +9,7 @@ from app.core.rate_limit import limiter
 from fastapi import Depends
 from app.config import settings
 from fastapi import UploadFile, File, Form, HTTPException, Query
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, joinedload
 
 from app.database import get_db
@@ -19,6 +21,7 @@ from app.services.image_preprocessing import correct_orientation
 from app.deps import get_current_user, get_current_user_flexible
 from app.events.bus import event_bus
 from app.events.events import BillConfirmedEvent, BillUploadedEvent
+from app.events.subscribers import handle_bill_confirmed_cache_invalidation
 from app.services.duplicate_checker import compute_file_checksum, check_duplicate_bill
 from app.services import duplicate_service
 from app.core.logging import get_logger
@@ -28,22 +31,77 @@ logger = get_logger("bills_router")
 
 router = APIRouter(prefix="/bills", tags=["bills"])
 
+CONFIRMABLE_BILL_STATUSES = {"pending_review", "needs_attention"}
+
+
+def _request_id(request: Request) -> str:
+    return getattr(getattr(request, "state", None), "request_id", "unknown")
+
+
+def _supports_for_update(db: Session) -> bool:
+    try:
+        bind = db.get_bind()
+        return bool(bind and bind.dialect.name not in ("sqlite",))
+    except Exception:
+        return False
+
+
+def _set_bill_invoice_date_fields(bill: models.Bill, inv_date) -> None:
+    """Apply invoice_date and keep derived year/month consistent."""
+    if inv_date is None:
+        bill.invoice_date = None
+        # Preserve existing year/month when date unknown (legacy behavior).
+        return
+    if isinstance(inv_date, datetime):
+        dt = inv_date
+    elif isinstance(inv_date, date):
+        dt = datetime(inv_date.year, inv_date.month, inv_date.day, tzinfo=timezone.utc)
+    else:
+        # Defensive: accept ISO-like strings if any caller passes them.
+        try:
+            dt = datetime.fromisoformat(str(inv_date))
+        except Exception:
+            raise HTTPException(status_code=400, detail="Invalid invoice_date")
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    bill.invoice_date = dt
+    bill.year = dt.year
+    bill.month = dt.month
+
+
+def _confirmed_invoice_key(tenant_id: Optional[int], distributor_id: Optional[int], invoice_no: Optional[str]) -> Optional[str]:
+    norm = duplicate_service.normalize_invoice_no(invoice_no)
+    if tenant_id is None or distributor_id is None or norm is None:
+        return None
+    return f"{tenant_id}:{distributor_id}:{norm}"
+
 
 def _resolve_distributor(db: Session, name: Optional[str], tenant_id: Optional[int] = None) -> Optional[models.Distributor]:
     if not name:
         return None
-    # BUG FIX: Filter by tenant_id to prevent cross-tenant distributor sharing.
-    # Previously the lookup ignored tenant_id, allowing distributors from one
-    # tenant to be linked to another tenant's bills.
+    normalized_name = name.strip().upper()
+    if not normalized_name:
+        return None
+
     distributor = db.query(models.Distributor).filter(
-        models.Distributor.name == name.upper(),
+        models.Distributor.name == normalized_name,
         models.Distributor.tenant_id == tenant_id,
     ).first()
-    if not distributor:
-        distributor = models.Distributor(name=name.upper(), tenant_id=tenant_id)
-        db.add(distributor)
-        db.flush()
-    return distributor
+    if distributor:
+        return distributor
+
+    try:
+        with db.begin_nested():
+            distributor = models.Distributor(name=normalized_name, tenant_id=tenant_id)
+            db.add(distributor)
+            db.flush()
+            return distributor
+    except IntegrityError:
+        # Another request created the same tenant-scoped distributor concurrently.
+        return db.query(models.Distributor).filter(
+            models.Distributor.name == normalized_name,
+            models.Distributor.tenant_id == tenant_id,
+        ).first()
 
 
 def _create_queued_bill(db: Session, file_bytes: bytes, filename: str, tenant_id: int,
@@ -355,111 +413,182 @@ def reprocess_region(bill_id: int, payload: schemas.RegionOcrRequest, db: Sessio
 
 
 @router.post("/confirm", response_model=List[schemas.ChangeSummaryItem])
-def confirm_bill(payload: schemas.ConfirmBillRequest, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+def confirm_bill(
+    payload: schemas.ConfirmBillRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(get_current_user),
+):
     """
     Confirms a bill and publishes BillConfirmedEvent to the central EventBus pipeline.
     Decoupled subscribers automatically process stock increments, batch/expiry creation,
-    learned distributor mappings, rate history auditing, and cache invalidation.
+    learned distributor mappings, rate history auditing, and graph sync. Cache
+    invalidation (non-DB side effect) runs only after a successful commit.
     """
-    bill = db.query(models.Bill).filter(models.Bill.id == payload.bill_id, models.Bill.tenant_id == current_user.tenant_id).first()
-    if not bill:
-        raise HTTPException(404, "Bill not found")
+    req_id = _request_id(request)
 
-    if bill.status == "confirmed":
-        raise HTTPException(400, "This bill has already been confirmed.")
-
-    # Apply optional invoice_no and distributor_name corrections if provided during review
-    if payload.distributor_name is not None and payload.distributor_name.strip():
-        dist = _resolve_distributor(db, payload.distributor_name.strip(), tenant_id=current_user.tenant_id)
-        bill.distributor_id = dist.id
-    if payload.invoice_no is not None:
-        bill.invoice_no = payload.invoice_no
-
-    # Hard gate check for duplicate confirmed invoice before confirming
-    dup_bill = duplicate_service.find_confirmed_duplicate(
-        db, distributor_id=bill.distributor_id, invoice_no=bill.invoice_no, exclude_bill_id=bill.id
-    )
-    if dup_bill:
-        conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
-        raise HTTPException(
-            status_code=409,
-            detail=f"Bill #{dup_bill.id} with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}. Please double-check or update the invoice number before confirming."
-        )
-
-    changes: List[schemas.ChangeSummaryItem] = []
-
-    # Instantiate domain event
-    event = BillConfirmedEvent(
-        bill_id=bill.id,
-        db=db,
-        items_edits=payload.items,
-        distributor_id=bill.distributor_id,
-    )
-    # Attach changes output collector
-    object.__setattr__(event, "changes_output", changes)
-
-    # Calculate ADM field corrections before DB rows are mutated
-    if bill.distributor_id and bill.detected_header_tokens:
-        import json
-        from app.services.distributor_memory_service import learn_from_confirmed_bill
-        
-        field_corrections = {}
-        items_by_id = {item.id: item for item in bill.items}
-        
-        for edit in payload.items:
-            db_item = items_by_id.get(edit.id)
-            if not db_item:
-                continue
-            
-            for attr in ("raw_name", "qty", "free_qty", "mrp", "rate", 
-                         "discount_pct", "special_discount_pct", "gst_pct", "exp_date"):
-                submitted_val = getattr(edit, attr, None)
-                if submitted_val is not None:
-                    db_val = getattr(db_item, attr, None)
-                    # Use float conversion for numeric comparisons to avoid str/Decimal mismatches
-                    if isinstance(submitted_val, (int, float)) and isinstance(db_val, (int, float)):
-                        is_corrected = float(submitted_val) != float(db_val)
-                    else:
-                        is_corrected = str(submitted_val).strip() != str(db_val).strip()
-                    
-                    # If this field has ever been submitted across any item, track if it was corrected
-                    if attr not in field_corrections or is_corrected:
-                        field_corrections[attr] = is_corrected
-                        
-        try:
-            detected_data = json.loads(bill.detected_header_tokens)
-            header_tokens = detected_data.get("header_tokens", [])
-            column_field_map = detected_data.get("column_field_map", {})
-            if header_tokens:
-                learn_from_confirmed_bill(
-                    db, current_user.tenant_id, bill.distributor_id,
-                    header_tokens, column_field_map, field_corrections
-                )
-        except Exception as e:
-            logger.error(f"[CONFIRM BILL] ADM learning failed silently: {e}", exc_info=True)
-
-    # BUG FIX #5: Publish event TRANSACTIONALLY.
-    # transactional=True means: if ANY subscriber raises an exception, the
-    # EventBus re-raises after all subscribers have been attempted. We then
-    # rollback the DB session here, preventing partial state (e.g. stock
-    # incremented but expiry entry never created). This is the "poor-man's
-    # Outbox Pattern" — all side-effects commit atomically or not at all.
     try:
+        q = db.query(models.Bill).options(joinedload(models.Bill.items)).filter(
+            models.Bill.id == payload.bill_id,
+            models.Bill.tenant_id == current_user.tenant_id,
+        )
+        if _supports_for_update(db):
+            q = q.with_for_update()
+        bill = q.first()
+        if not bill:
+            raise HTTPException(404, "Bill not found")
+
+        bill_status = bill.status.value if hasattr(bill.status, "value") else str(bill.status)
+        if bill_status == "confirmed":
+            raise HTTPException(400, "This bill has already been confirmed.")
+        if bill_status not in CONFIRMABLE_BILL_STATUSES:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Bill cannot be confirmed from status '{bill_status}'.",
+            )
+
+        # Apply optional corrections if provided during review
+        if payload.distributor_name is not None and payload.distributor_name.strip():
+            dist = _resolve_distributor(db, payload.distributor_name.strip(), tenant_id=current_user.tenant_id)
+            bill.distributor_id = dist.id
+        if payload.invoice_no is not None:
+            bill.invoice_no = payload.invoice_no
+        if getattr(payload, "invoice_date", None) is not None:
+            _set_bill_invoice_date_fields(bill, payload.invoice_date)
+
+        # Validate edited items belong to this bill (prevent cross-bill/foreign edits).
+        items_by_id = {item.id: item for item in bill.items}
+        seen_item_ids = set()
+        for edit in payload.items:
+            if edit.id in seen_item_ids:
+                raise HTTPException(status_code=400, detail="Duplicate bill item edit submitted")
+            seen_item_ids.add(edit.id)
+            if edit.id not in items_by_id:
+                raise HTTPException(status_code=400, detail="One or more edited items do not belong to this bill")
+
+        # Compute dedup key for DB guard (confirmed invoices only, when dedup-able).
+        dedup_key = _confirmed_invoice_key(bill.tenant_id, bill.distributor_id, bill.invoice_no)
+        bill.confirmed_invoice_key = dedup_key
+
+        # Hard gate check for duplicate confirmed invoice before confirming.
+        dup_bill = duplicate_service.find_confirmed_duplicate(
+            db, distributor_id=bill.distributor_id, invoice_no=bill.invoice_no, exclude_bill_id=bill.id
+        )
+        if dup_bill:
+            conf_date = dup_bill.uploaded_at.strftime('%Y-%m-%d') if dup_bill.uploaded_at else "earlier date"
+            raise HTTPException(
+                status_code=409,
+                detail=f"Bill #{dup_bill.id} with invoice number '{bill.invoice_no}' was already confirmed on {conf_date}. Please double-check or update the invoice number before confirming."
+            )
+
+        changes: List[schemas.ChangeSummaryItem] = []
+
+        # Instantiate domain event
+        event = BillConfirmedEvent(
+            bill_id=bill.id,
+            db=db,
+            items_edits=payload.items,
+            distributor_id=bill.distributor_id,
+        )
+        # Attach changes output collector and suppress pre-commit cache invalidation.
+        object.__setattr__(event, "changes_output", changes)
+        object.__setattr__(event, "skip_cache_invalidation", True)
+
+        # ADM learning: isolate in savepoint so learning failures/partial flushes
+        # cannot abort or corrupt the bill confirmation transaction.
+        if bill.distributor_id and bill.detected_header_tokens:
+            try:
+                with db.begin_nested():
+                    from app.services.distributor_memory_service import learn_from_confirmed_bill
+
+                    field_corrections = {}
+                    for edit in payload.items:
+                        db_item = items_by_id.get(edit.id)
+                        if not db_item:
+                            continue
+
+                        for attr in ("raw_name", "qty", "free_qty", "mrp", "rate",
+                                     "discount_pct", "special_discount_pct", "gst_pct", "exp_date"):
+                            submitted_val = getattr(edit, attr, None)
+                            if submitted_val is not None:
+                                db_val = getattr(db_item, attr, None)
+                                # Use float conversion for numeric comparisons to avoid str/Decimal mismatches
+                                if isinstance(submitted_val, (int, float)) and isinstance(db_val, (int, float)):
+                                    is_corrected = float(submitted_val) != float(db_val)
+                                else:
+                                    is_corrected = str(submitted_val).strip() != str(db_val).strip()
+
+                                # If this field has ever been submitted across any item, track if it was corrected
+                                if attr not in field_corrections or is_corrected:
+                                    field_corrections[attr] = is_corrected
+
+                    detected_data = json.loads(bill.detected_header_tokens)
+                    header_tokens = detected_data.get("header_tokens", [])
+                    column_field_map = detected_data.get("column_field_map", {})
+                    if header_tokens:
+                        learn_from_confirmed_bill(
+                            db, current_user.tenant_id, bill.distributor_id,
+                            header_tokens, column_field_map, field_corrections
+                        )
+            except Exception as adm_exc:
+                # Savepoint rolled back by context manager on exception; log and continue.
+                logger.error(
+                    "[CONFIRM BILL] ADM learning failed for bill_id=%s request_id=%s: %s",
+                    bill.id, req_id, adm_exc, exc_info=True,
+                )
+
+        # Publish event TRANSACTIONALLY (DB side effects). Cache invalidation is
+        # intentionally skipped here and executed after commit.
         event_bus.publish(event, transactional=True)
         bill.status = "confirmed"
         db.commit()
+
+        # Post-commit, non-DB side effects.
+        try:
+            handle_bill_confirmed_cache_invalidation(event)
+        except Exception as cache_exc:
+            logger.error(
+                "[CONFIRM BILL] Post-commit cache invalidation failed for bill_id=%s request_id=%s: %s",
+                bill.id, req_id, cache_exc, exc_info=True,
+            )
+
+        return changes
+
+    except HTTPException:
+        raise
+    except IntegrityError as ie:
+        db.rollback()
+        # Likely DB uniqueness guard for confirmed invoices (race) or other constraint.
+        logger.warning(
+            "[CONFIRM BILL] Integrity error for bill_id=%s request_id=%s: %s",
+            payload.bill_id, req_id, ie, exc_info=True,
+        )
+        # Best-effort: if the bill is now confirmed or a duplicate exists, report conflict.
+        try:
+            existing = db.query(models.Bill).filter(
+                models.Bill.id == payload.bill_id,
+                models.Bill.tenant_id == current_user.tenant_id,
+            ).first()
+            if existing and (existing.status == "confirmed" or getattr(existing.status, "value", None) == "confirmed"):
+                raise HTTPException(status_code=409, detail="This bill has already been confirmed.")
+        except HTTPException:
+            raise
+        except Exception:
+            pass
+        raise HTTPException(
+            status_code=409,
+            detail="A confirmed bill with this distributor and invoice number already exists, or the confirmation conflicts with existing data.",
+        )
     except Exception as exc:
         db.rollback()
-        logger.error(f"[CONFIRM BILL] Atomic event pipeline failed for Bill #{bill.id}: {exc}", exc_info=True)
+        logger.error(
+            "[CONFIRM BILL] Confirmation failed for bill_id=%s request_id=%s: %s",
+            payload.bill_id, req_id, exc, exc_info=True,
+        )
         raise HTTPException(
             status_code=500,
-            detail=(
-                f"Bill confirmation failed: one or more processing steps errored. "
-                f"All changes have been rolled back — no partial state was committed. "
-                f"Please retry. Details: {exc}"
-            ),
+            detail="Bill confirmation failed. Please retry.",
         )
-    return changes
 
 
 def _bill_to_out(db: Session, bill: models.Bill) -> schemas.BillOut:
