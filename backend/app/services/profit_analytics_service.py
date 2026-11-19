@@ -4,7 +4,14 @@ No existing function computed profit margin, so this is added as its own
 module rather than bolted inline into copilot_service.py, matching this
 codebase's one-module-per-concern convention (see cost_calculator.py,
 matcher.py, etc. for the same pattern).
+
+Issue 5: sale-derived/realized profit metrics prefer persisted sale-time
+snapshots (not current Medicine prices), with safe fallback for legacy rows.
+Catalog/rate-history analytics that are inherently current (e.g. compression,
+substitute recommendations) continue to use current/rate data.
 """
+from datetime import datetime, timedelta, timezone
+from decimal import Decimal, ROUND_HALF_UP
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -12,22 +19,98 @@ from sqlalchemy.orm import Session
 from app import models
 from app.services import graph_service
 
+Q2 = Decimal("0.01")
+
+
+def _d(value) -> Decimal:
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    try:
+        return Decimal(str(value))
+    except Exception:
+        return Decimal("0")
+
+
+def _q2(value: Decimal) -> Decimal:
+    return _d(value).quantize(Q2, rounding=ROUND_HALF_UP)
+
 
 def _margin_pct(mrp, net_rate) -> Optional[float]:
-    if mrp is None or net_rate is None or mrp <= 0:
+    mrp_d = _d(mrp)
+    if mrp_d <= 0 or mrp is None or net_rate is None:
         return None
-    return round(float((mrp - net_rate) / mrp) * 100, 2)
+    pct = ((_d(mrp) - _d(net_rate)) / mrp_d) * Decimal("100")
+    return float(_q2(pct))
+
+
+def _sale_line_realized(sale: models.Sale, medicine: Optional[models.Medicine] = None) -> Optional[dict]:
+    """Return realized totals/profit for a sale line from snapshots, with legacy fallback."""
+    qty = _d(getattr(sale, "qty_sold", None))
+    if qty <= 0:
+        return None
+
+    med = medicine or getattr(sale, "medicine", None)
+
+    mrp = getattr(sale, "unit_mrp_snapshot", None)
+    cost = getattr(sale, "unit_cost_snapshot", None)
+    line_total = getattr(sale, "line_total", None)
+    line_profit = getattr(sale, "line_profit", None)
+    line_subtotal = getattr(sale, "line_subtotal", None)
+    line_tax = getattr(sale, "line_tax_amount", None)
+
+    if mrp is None and med is not None:
+        mrp = getattr(med, "mrp", None)
+    if cost is None and med is not None:
+        cost = getattr(med, "net_rate", None)
+
+    mrp_d = _d(mrp) if mrp is not None else None
+    cost_d = _d(cost) if cost is not None else None
+
+    if line_total is None:
+        if mrp_d is None:
+            return None
+        line_total = _q2(mrp_d * qty)
+    else:
+        line_total = _q2(_d(line_total))
+
+    if line_profit is None:
+        if mrp_d is None or cost_d is None:
+            line_profit = None
+        else:
+            line_profit = _q2((mrp_d - cost_d) * qty)
+    else:
+        line_profit = _q2(_d(line_profit))
+
+    return {
+        "sale_id": sale.id,
+        "medicine_id": sale.medicine_id,
+        "qty": qty,
+        "line_total": line_total,
+        "line_profit": line_profit,
+        "line_subtotal": _q2(_d(line_subtotal)) if line_subtotal is not None else None,
+        "line_tax_amount": _q2(_d(line_tax)) if line_tax is not None else None,
+        "unit_mrp": mrp_d,
+        "unit_cost": cost_d,
+    }
+
+
+def _realized_margin_pct(line_total: Decimal, line_profit: Optional[Decimal]) -> Optional[Decimal]:
+    if line_profit is None or line_total is None or line_total <= 0:
+        return None
+    return _q2((line_profit / line_total) * Decimal("100"))
 
 
 def get_profit_margin_analysis(db: Session, tenant_id: int, condition: Optional[str] = None) -> dict:
     """
-    Average profit margin % ((MRP - net_rate) / MRP) across the whole shop's
-    priced catalog, and optionally for medicines associated with a specific
-    condition (via PharmaGraph's TREATS edges - e.g. condition="Bacterial
-    Infection" as a proxy for "antibiotics") so the two can be compared.
+    Average profit margin % across the whole shop's priced catalog, and
+    optionally for medicines associated with a specific condition (via
+    PharmaGraph's TREATS edges) so the two can be compared.
 
-    Medicines missing an MRP or net_rate are excluded rather than treated as
-    zero margin - a missing price isn't a 0% margin, it's just unknown.
+    Issue 5: realized/sale-derived metrics prefer persisted sale-time snapshots
+    (not current Medicine prices), with legacy fallback for older rows. Catalog
+    metrics remain available for backward compatibility.
     """
     all_medicines = db.query(models.Medicine).filter(
         models.Medicine.tenant_id == tenant_id,
@@ -37,11 +120,38 @@ def get_profit_margin_analysis(db: Session, tenant_id: int, condition: Optional[
     ).all()
 
     shop_margins = [m for m in (_margin_pct(med.mrp, med.net_rate) for med in all_medicines) if m is not None]
-    shop_avg = round(sum(shop_margins) / len(shop_margins), 2) if shop_margins else None
+    catalog_shop_avg = round(sum(shop_margins) / len(shop_margins), 2) if shop_margins else None
 
+    # Realized (sales snapshot) shop margin
+    sales = db.query(models.Sale).filter(models.Sale.tenant_id == tenant_id).all()
+    realized_margins = []
+    realized_revenue = Decimal("0.00")
+    realized_profit = Decimal("0.00")
+    for sale in sales:
+        line = _sale_line_realized(sale, getattr(sale, "medicine", None))
+        if not line:
+            continue
+        realized_revenue += line["line_total"]
+        if line["line_profit"] is not None:
+            realized_profit += line["line_profit"]
+        m = _realized_margin_pct(line["line_total"], line["line_profit"])
+        if m is not None:
+            realized_margins.append(m)
+    realized_shop_avg = float(_q2(sum(realized_margins, Decimal("0")) / Decimal(len(realized_margins)))) if realized_margins else None
+    realized_overall_margin = float(_realized_margin_pct(realized_revenue, realized_profit)) if realized_revenue > 0 and realized_margins is not None else None
+
+    shop_avg = realized_shop_avg if realized_shop_avg is not None else catalog_shop_avg
     result = {
         "shop_average_margin_pct": shop_avg,
         "shop_priced_medicine_count": len(shop_margins),
+        # Additive/backward-compatible fields
+        "catalog_shop_average_margin_pct": catalog_shop_avg,
+        "realized_shop_average_margin_pct": realized_shop_avg,
+        "realized_overall_margin_pct": realized_overall_margin,
+        "realized_sales_line_count": len(realized_margins),
+        "realized_revenue": float(_q2(realized_revenue)),
+        "realized_profit": float(_q2(realized_profit)),
+        "source": "sale_snapshots" if realized_shop_avg is not None else "catalog",
     }
 
     if condition:
@@ -50,11 +160,29 @@ def get_profit_margin_analysis(db: Session, tenant_id: int, condition: Optional[
         matched = [m for m in all_medicines if m.id in matched_ids]
         cond_margins = [x for x in (_margin_pct(m.mrp, m.net_rate) for m in matched) if x is not None]
 
+        # Realized margin for condition-related medicines (from sale snapshots)
+        realized_cond = []
+        for sale in sales:
+            if sale.medicine_id not in matched_ids:
+                continue
+            line = _sale_line_realized(sale, getattr(sale, "medicine", None))
+            if not line:
+                continue
+            m = _realized_margin_pct(line["line_total"], line["line_profit"])
+            if m is not None:
+                realized_cond.append(m)
+        realized_cond_avg = float(_q2(sum(realized_cond, Decimal("0")) / Decimal(len(realized_cond)))) if realized_cond else None
+        catalog_cond_avg = round(sum(cond_margins) / len(cond_margins), 2) if cond_margins else None
+        cond_avg = realized_cond_avg if realized_cond_avg is not None else catalog_cond_avg
+
         result["condition"] = condition
-        result["condition_average_margin_pct"] = round(sum(cond_margins) / len(cond_margins), 2) if cond_margins else None
+        result["condition_average_margin_pct"] = cond_avg
         result["condition_priced_medicine_count"] = len(cond_margins)
-        if shop_avg is not None and result["condition_average_margin_pct"] is not None:
-            result["difference_vs_shop_average_pct"] = round(result["condition_average_margin_pct"] - shop_avg, 2)
+        result["catalog_condition_average_margin_pct"] = catalog_cond_avg
+        result["realized_condition_average_margin_pct"] = realized_cond_avg
+        result["condition_realized_sales_line_count"] = len(realized_cond)
+        if shop_avg is not None and cond_avg is not None:
+            result["difference_vs_shop_average_pct"] = round(cond_avg - shop_avg, 2)
 
     return result
 

@@ -111,8 +111,11 @@ def _memory_invalidate(prefix: str) -> int:
 
 
 def invalidate_analytics_cache() -> None:
-    """Invalidate cached analytics/dashboard/GST entries in Redis and memory."""
-    memory_count = _memory_invalidate("kush_cache:")
+    """Invalidate cached analytics/dashboard/GST/profit entries in Redis and memory."""
+    prefixes = ("kush_cache:", "analytics:")
+    memory_count = 0
+    for prefix in prefixes:
+        memory_count += _memory_invalidate(prefix)
     if memory_count:
         logger.info(f"Invalidated {memory_count} in-memory cache keys.")
 
@@ -120,10 +123,13 @@ def invalidate_analytics_cache() -> None:
     if not r:
         return
     try:
-        keys = r.keys("kush_cache:*")
-        if keys:
-            r.delete(*keys)
-            logger.info(f"Invalidated {len(keys)} Redis cache keys under 'kush_cache:*'")
+        deleted = 0
+        for prefix in prefixes:
+            keys = r.keys(f"{prefix}*")
+            if keys:
+                deleted += r.delete(*keys)
+        if deleted:
+            logger.info(f"Invalidated {deleted} Redis cache keys under analytics/GST prefixes")
     except Exception as exc:  # noqa: BLE001 - cache invalidation is best-effort
         logger.warning(f"Redis cache invalidation warning: {exc}")
 

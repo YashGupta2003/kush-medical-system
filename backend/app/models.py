@@ -258,18 +258,67 @@ class UserMapping(Base):
     medicine = relationship("Medicine")
     distributor = relationship("Distributor")
 
+class SaleInvoice(Base):
+    __tablename__ = "sale_invoices"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "invoice_number", name="uq_sale_invoices_tenant_invoice_number"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    invoice_number = Column(String(64), nullable=False, index=True)
+    customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)
+    payment_mode = Column(String(20), nullable=False, default="cash")
+    subtotal_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    tax_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    total_amount = Column(Numeric(12, 2), nullable=False, default=0)
+    total_profit = Column(Numeric(12, 2), nullable=False, default=0)
+    created_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    sold_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+    customer = relationship("Customer")
+    created_by = relationship("User")
+    sales = relationship("Sale", back_populates="invoice")
+
+
+class SaleInvoiceCounter(Base):
+    __tablename__ = "sale_invoice_counters"
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="uq_sale_invoice_counters_tenant_id"),
+    )
+
+    id = Column(Integer, primary_key=True, index=True)
+    tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=False, index=True)
+    last_number = Column(Integer, nullable=False, default=0)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
+
+
 class Sale(Base):
     __tablename__ = "sales"
 
     id = Column(Integer, primary_key=True, index=True)
     tenant_id = Column(Integer, ForeignKey("tenants.id"), nullable=True, index=True)
+    sale_invoice_id = Column(Integer, ForeignKey("sale_invoices.id"), nullable=True, index=True)
     medicine_id = Column(Integer, ForeignKey("medicines.id"), nullable=False, index=True)
     qty_sold = Column(Numeric(10, 2), nullable=False)
     sold_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     customer_id = Column(Integer, ForeignKey("customers.id"), nullable=True, index=True)   # NEW (Pillar 5)
 
+    # Issue 5: pricing/GST/profit snapshots captured at sale time (legacy rows backfilled)
+    medicine_name_snapshot = Column(String(255), nullable=True)
+    medicine_composition_snapshot = Column(String(500), nullable=True)
+    unit_mrp_snapshot = Column(Numeric(10, 2), nullable=True)
+    unit_cost_snapshot = Column(Numeric(10, 2), nullable=True)
+    gst_pct_snapshot = Column(Numeric(5, 2), nullable=True)
+    line_subtotal = Column(Numeric(12, 2), nullable=True)
+    line_tax_amount = Column(Numeric(12, 2), nullable=True)
+    line_total = Column(Numeric(12, 2), nullable=True)
+    line_profit = Column(Numeric(12, 2), nullable=True)
+
     medicine = relationship("Medicine")
     customer = relationship("Customer", back_populates="sales")
+    invoice = relationship("SaleInvoice", back_populates="sales")
 
 
 class StockLedger(Base):

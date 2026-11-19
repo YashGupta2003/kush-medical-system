@@ -19,6 +19,8 @@ from app import models
 from app.core.domain_errors import ConflictError, NotFoundError, ValidationError
 from app.services import audit_service, surveillance_service
 
+Q2 = Decimal("0.01")
+
 
 def _to_decimal(value) -> Decimal:
     if value is None:
@@ -26,6 +28,10 @@ def _to_decimal(value) -> Decimal:
     if isinstance(value, Decimal):
         return value
     return Decimal(str(value))
+
+
+def _q2(value: Decimal) -> Decimal:
+    return _to_decimal(value).quantize(Q2, rounding=ROUND_HALF_UP)
 
 
 def _supports_for_update(db: Session) -> bool:
@@ -43,6 +49,145 @@ def _get_medicine_for_update(db: Session, tenant_id: Optional[int], medicine_id:
     if _supports_for_update(db):
         q = q.with_for_update()
     return q.first()
+
+
+def _latest_medicine_gst_pct(db: Session, medicine_id: int) -> Decimal:
+    """Best-effort GST% snapshot source from latest confirmed purchase line; defaults to 0."""
+    row = (
+        db.query(models.BillItem.gst_pct)
+        .join(models.Bill, models.BillItem.bill_id == models.Bill.id)
+        .filter(models.BillItem.medicine_id == medicine_id, models.Bill.status == "confirmed")
+        .order_by(desc(models.Bill.invoice_date), desc(models.Bill.uploaded_at), desc(models.BillItem.id))
+        .first()
+    )
+    if not row or row[0] is None:
+        return Decimal("0.00")
+    try:
+        return _q2(_to_decimal(row[0]))
+    except Exception:
+        return Decimal("0.00")
+
+
+def build_sale_line_snapshot(db: Session, medicine: models.Medicine, qty_sold) -> dict:
+    """Compute sale-time pricing/GST/profit snapshots in Decimal (quantized at defined points)."""
+    qty_d = _to_decimal(qty_sold)
+    if qty_d <= 0:
+        raise ValidationError("Quantity sold must be greater than 0")
+
+    unit_mrp = _q2(_to_decimal(getattr(medicine, "mrp", None)))
+    unit_cost = _q2(_to_decimal(getattr(medicine, "net_rate", None)))
+    gst_pct = _latest_medicine_gst_pct(db, medicine.id)
+
+    line_total = _q2(unit_mrp * qty_d)  # preserves existing total_value semantics
+    if gst_pct > 0:
+        line_tax = _q2((line_total * gst_pct) / (Decimal("100") + gst_pct))
+        line_subtotal = _q2(line_total - line_tax)
+    else:
+        line_tax = Decimal("0.00")
+        line_subtotal = line_total
+    line_profit = _q2((unit_mrp - unit_cost) * qty_d)
+
+    return {
+        "medicine_id": medicine.id,
+        "medicine_name_snapshot": medicine.particulars,
+        "medicine_composition_snapshot": getattr(medicine, "composition", None),
+        "qty_sold": qty_d,
+        "unit_mrp_snapshot": unit_mrp,
+        "unit_cost_snapshot": unit_cost,
+        "gst_pct_snapshot": _q2(gst_pct),
+        "line_subtotal": line_subtotal,
+        "line_tax_amount": line_tax,
+        "line_total": line_total,
+        "line_profit": line_profit,
+    }
+
+
+def _next_sale_invoice_number(db: Session, tenant_id: Optional[int]) -> str:
+    """Allocate next tenant-scoped sale invoice number (best-effort row lock when supported)."""
+    # No tenant context: fallback to timestamp-based unique-ish number (cannot use tenant counter safely).
+    if tenant_id is None:
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+        return f"SALE-{ts}"
+
+    q = db.query(models.SaleInvoiceCounter).filter(models.SaleInvoiceCounter.tenant_id == tenant_id)
+    if _supports_for_update(db):
+        q = q.with_for_update()
+    counter = q.first()
+    if counter is None:
+        counter = models.SaleInvoiceCounter(
+            tenant_id=tenant_id, last_number=0, updated_at=datetime.now(timezone.utc)
+        )
+        db.add(counter)
+        try:
+            db.flush()
+        except IntegrityError:
+            db.flush()
+            q = db.query(models.SaleInvoiceCounter).filter(models.SaleInvoiceCounter.tenant_id == tenant_id)
+            if _supports_for_update(db):
+                q = q.with_for_update()
+            counter = q.first()
+            if counter is None:
+                raise
+    counter.last_number = int(counter.last_number or 0) + 1
+    counter.updated_at = datetime.now(timezone.utc)
+    db.flush()
+    return f"SI-{tenant_id}-{int(counter.last_number):06d}"
+
+
+def create_sale_invoice(
+    db: Session,
+    tenant_id: Optional[int],
+    customer_id: Optional[int],
+    payment_mode: str,
+    created_by_user_id: Optional[int],
+    sold_at: Optional[datetime] = None,
+) -> models.SaleInvoice:
+    sold_at = sold_at or datetime.now(timezone.utc)
+    invoice = models.SaleInvoice(
+        tenant_id=tenant_id,
+        invoice_number=_next_sale_invoice_number(db, tenant_id),
+        customer_id=customer_id,
+        payment_mode=payment_mode or "cash",
+        subtotal_amount=Decimal("0.00"),
+        tax_amount=Decimal("0.00"),
+        total_amount=Decimal("0.00"),
+        total_profit=Decimal("0.00"),
+        created_by_user_id=created_by_user_id,
+        sold_at=sold_at,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(invoice)
+    db.flush()
+    return invoice
+
+
+def _float_or_none(value):
+    if value is None:
+        return None
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def _sale_snapshot_payload(sale: models.Sale, invoice: Optional[models.SaleInvoice] = None):
+    inv = invoice or getattr(sale, "invoice", None)
+    return {
+        "sale_id": sale.id,
+        "sale_invoice_id": sale.sale_invoice_id or (inv.id if inv else None),
+        "sale_invoice_number": inv.invoice_number if inv else None,
+        "qty_sold": _float_or_none(sale.qty_sold),
+        "unit_mrp_snapshot": _float_or_none(getattr(sale, "unit_mrp_snapshot", None)),
+        "unit_cost_snapshot": _float_or_none(getattr(sale, "unit_cost_snapshot", None)),
+        "gst_pct_snapshot": _float_or_none(getattr(sale, "gst_pct_snapshot", None)),
+        "line_subtotal": _float_or_none(getattr(sale, "line_subtotal", None)),
+        "line_tax_amount": _float_or_none(getattr(sale, "line_tax_amount", None)),
+        "line_total": _float_or_none(getattr(sale, "line_total", None)),
+        "line_profit": _float_or_none(getattr(sale, "line_profit", None)),
+    }
+
+
+# (helpers defined above)
 
 
 def _add_ledger_entry(db: Session, medicine: models.Medicine, change_qty: Decimal,
@@ -169,7 +314,8 @@ def _run_sale_surveillance(db: Session, tenant_id: int, medicine_id: int, qty_so
 
 
 def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, customer_id: Optional[int] = None,
-                 created_by_user_id: Optional[int] = None, commit: bool = True) -> dict:
+                 created_by_user_id: Optional[int] = None, commit: bool = True,
+                 payment_mode: str = "cash") -> dict:
     """
     Record a single sale. Raises domain errors for missing medicine or
     insufficient stock. When commit=True (default), commits the transaction and
@@ -177,6 +323,9 @@ def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, 
 
     Concurrency: locks the medicine row (when supported) and rechecks stock
     inside the transaction to prevent negative inventory under races.
+
+    Issue 5: creates a sale invoice and persists sale-time pricing/GST/profit
+    snapshots (Decimal, quantized with ROUND_HALF_UP at defined points).
     """
     qty_d = _to_decimal(qty_sold)
     if qty_d <= 0:
@@ -190,12 +339,38 @@ def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, 
     if qty_d > current:
         raise ConflictError("Insufficient stock")
 
+    sold_at = datetime.now(timezone.utc)
+    line = build_sale_line_snapshot(db, medicine, qty_d)
+    invoice = create_sale_invoice(
+        db, tenant_id=tenant_id, customer_id=customer_id,
+        payment_mode=payment_mode or "cash",
+        created_by_user_id=created_by_user_id, sold_at=sold_at,
+    )
+
     sale = models.Sale(
-        tenant_id=tenant_id, medicine_id=medicine_id, qty_sold=qty_d,
-        sold_at=datetime.now(timezone.utc), customer_id=customer_id,
+        tenant_id=tenant_id,
+        sale_invoice_id=invoice.id,
+        medicine_id=medicine_id,
+        qty_sold=qty_d,
+        sold_at=sold_at,
+        customer_id=customer_id,
+        medicine_name_snapshot=line["medicine_name_snapshot"],
+        medicine_composition_snapshot=line["medicine_composition_snapshot"],
+        unit_mrp_snapshot=line["unit_mrp_snapshot"],
+        unit_cost_snapshot=line["unit_cost_snapshot"],
+        gst_pct_snapshot=line["gst_pct_snapshot"],
+        line_subtotal=line["line_subtotal"],
+        line_tax_amount=line["line_tax_amount"],
+        line_total=line["line_total"],
+        line_profit=line["line_profit"],
     )
     db.add(sale)
     db.flush()
+
+    invoice.subtotal_amount = line["line_subtotal"]
+    invoice.tax_amount = line["line_tax_amount"]
+    invoice.total_amount = line["line_total"]
+    invoice.total_profit = line["line_profit"]
 
     _add_ledger_entry(
         db, medicine, -qty_d, reason="sale",
@@ -207,11 +382,21 @@ def record_sale(db: Session, tenant_id: int, medicine_id: int, qty_sold: float, 
         _run_sale_surveillance(db, tenant_id, medicine_id, qty_d)
         db.commit()
         db.refresh(sale)
+        try:
+            db.refresh(invoice)
+        except Exception:
+            pass
     else:
         _run_sale_surveillance(db, tenant_id, medicine_id, qty_d)
 
-    snapshot = get_stock_snapshot(db, tenant_id, medicine_id)
-    snapshot["sale_id"] = sale.id
+    snapshot = get_stock_snapshot(db, tenant_id, medicine_id) or {
+        "medicine_id": medicine_id,
+        "medicine_name": line["medicine_name_snapshot"],
+        "current_stock": float(medicine.current_stock or 0),
+        "low_stock_threshold": float(medicine.low_stock_threshold) if medicine.low_stock_threshold is not None else None,
+        "last_purchase": None,
+    }
+    snapshot.update(_sale_snapshot_payload(sale, invoice))
     return snapshot
 
 
