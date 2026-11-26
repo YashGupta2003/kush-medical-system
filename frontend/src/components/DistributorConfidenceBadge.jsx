@@ -14,10 +14,6 @@ export default function DistributorConfidenceBadge({ distributorId }) {
     }
     setLoading(true);
     api.getDistributorConfidence(distributorId)
-      .then((res) => {
-        if (res.ok) return res.json();
-        return null;
-      })
       .then((data) => {
         setConfidenceData(data);
       })

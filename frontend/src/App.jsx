@@ -103,6 +103,7 @@ const NAV_GROUPS = [
     items: [
       { to: "/users", label: "Staff", icon: <UsersIcon size={16} />, ownerOnly: true },
       { to: "/trust-score", label: "Supply Trust", icon: <ShieldCheck size={16} />, ownerOnly: true },
+      { to: "/network-integrity", label: "Batch Integrity", icon: <Shield size={16} />, ownerOnly: true },
       { to: "/audit", label: "TrustChain", icon: <Link2 size={16} />, ownerOnly: true },
     ]
   }
@@ -125,8 +126,9 @@ function HealthBadge() {
   if (!health) return null;
 
   const isHealthy = health.status === "healthy";
-  const statusColor = isHealthy ? "var(--success-text)" : health.status === "degraded" ? "var(--warning-text)" : "var(--danger-text)";
-  const bgBadge = isHealthy ? "var(--success-bg)" : health.status === "degraded" ? "var(--warning-bg)" : "var(--danger-bg)";
+  const isDegraded = typeof health.status === "string" && health.status.startsWith("degraded");
+  const statusColor = isHealthy ? "var(--success-text)" : isDegraded ? "var(--warning-text)" : "var(--danger-text)";
+  const bgBadge = isHealthy ? "var(--success-bg)" : isDegraded ? "var(--warning-bg)" : "var(--danger-bg)";
 
   return (
     <motion.div
@@ -257,7 +259,7 @@ function NavBar() {
     <nav className="app-nav" style={{ 
       padding: "16px 32px", 
       borderBottom: "1px solid var(--border-subtle)", 
-      background: "rgba(255, 255, 255, 0.7)",
+      background: "var(--bg-surface)",
       backdropFilter: "blur(20px)",
       WebkitBackdropFilter: "blur(20px)",
       position: "sticky", top: 0, zIndex: 1000,

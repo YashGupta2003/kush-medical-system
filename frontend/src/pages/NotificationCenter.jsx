@@ -117,8 +117,8 @@ export function NotificationBell() {
   useEffect(() => {
     if (!isOpen) return;
     setLoading(true);
-    api.getNotifications({ unread_only: false, limit: 20 })
-      .then(setNotifications)
+    api.getNotifications({ unread_only: false, page: 1, page_size: 20 })
+      .then((res) => setNotifications(Array.isArray(res) ? res : (res?.items || [])))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [isOpen]);
@@ -322,8 +322,8 @@ export default function NotificationCenter() {
   function loadNotifications() {
     setLoading(true);
     api
-      .getNotifications({ unread_only: unreadOnly, limit: 50, offset: 0 })
-      .then(setNotifications)
+      .getNotifications({ unread_only: unreadOnly, page: 1, page_size: 50 })
+      .then((res) => setNotifications(Array.isArray(res) ? res : (res?.items || [])))
       .catch(() => {})
       .finally(() => setLoading(false));
   }

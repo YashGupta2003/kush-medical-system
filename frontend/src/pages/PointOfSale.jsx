@@ -111,7 +111,11 @@ function CustomerPicker({ customer, onSelect, onClear }) {
 
   useEffect(() => {
     if (query.trim().length < 2) { setResults([]); return; }
-    const t = setTimeout(() => api.searchCustomers(query).then(setResults), 250);
+    const t = setTimeout(() => {
+      api.searchCustomers(query)
+        .then((res) => setResults(Array.isArray(res) ? res : (res?.items || [])))
+        .catch(() => setResults([]));
+    }, 250);
     return () => clearTimeout(t);
   }, [query]);
 
@@ -251,17 +255,16 @@ export default function PointOfSale() {
         const cartItems = await Promise.all(
           state.prefillCart.map(async (item) => {
             try {
-              // BUG FIX: removed dead api.browseMedicines() call that was here
-              // but whose result was never used — wasted one API call per item.
-              // Only getStockSnapshot is needed to build the cart item.
-              const snapshot = await api.getStockSnapshot(item.medicine_id);
-              // Build a minimal medicine object from what the API returns
+              const [snapshot, med] = await Promise.all([
+                api.getStockSnapshot(item.medicine_id),
+                api.getMedicine(item.medicine_id).catch(() => null),
+              ]);
               const medicine = {
                 id: item.medicine_id,
-                particulars: snapshot.medicine_name || `Medicine #${item.medicine_id}`,
-                mrp: snapshot.mrp ?? null,
-                current_stock: snapshot.current_stock ?? 0,
-                unit: snapshot.unit ?? null,
+                particulars: med?.particulars || snapshot.medicine_name || `Medicine #${item.medicine_id}`,
+                mrp: med?.mrp ?? null,
+                current_stock: snapshot.current_stock ?? med?.current_stock ?? 0,
+                unit: med?.unit ?? null,
               };
               return { medicine, qty: item.qty_sold || 1 };
             } catch {
@@ -283,8 +286,9 @@ export default function PointOfSale() {
         // Auto-populate customer if phone was passed
         if (state.customerPhone) {
           try {
-            const customers = await api.searchCustomers(state.customerPhone);
-            if (customers?.length > 0) setCustomer(customers[0]);
+            const custRes = await api.searchCustomers(state.customerPhone);
+            const customers = Array.isArray(custRes) ? custRes : (custRes?.items || []);
+            if (customers.length > 0) setCustomer(customers[0]);
           } catch { /* not critical */ }
         }
       } catch (e) {

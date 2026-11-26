@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { CheckCircle, Package, AlertTriangle, Building, Search, Plus, Edit3, ClipboardList, Lightbulb, TrendingUp } from "lucide-react";
-import { api, getToken } from "../api/client.js";
+import { api } from "../api/client.js";
 import MagneticButton from "../components/MagneticButton.jsx";
 import TableSkeleton from "../components/TableSkeleton.jsx";
 import ConfettiExplosion from "../components/ConfettiExplosion.jsx";
@@ -270,11 +270,12 @@ function AdjustmentTab() {
 function StockLedgerTab() {
   const [ledger, setLedger] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    api.getAuditLedger({ limit: 50 })
-      .then((res) => setLedger(res.items || res))
-      .catch(() => {})
+    api.getStockLedger({ page: 1, page_size: 50 })
+      .then((res) => setLedger(res.items || res || []))
+      .catch((err) => setError(err.message || "Failed to load stock ledger"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -284,6 +285,7 @@ function StockLedgerTab() {
       <p style={{ color: "var(--text-secondary)", fontSize: "13px", lineHeight: 1.5 }}>
         Immutable history of every inventory change across bills, sales, and adjustments.
       </p>
+      {error && <p className="error-message">{error}</p>}
       {loading ? (
         <TableSkeleton rows={8} columns={6} />
       ) : ledger.length === 0 ? (
@@ -562,12 +564,9 @@ function SmartReorderTab() {
   function loadList() {
     setLoading(true);
     setError(null);
-    fetch(`/api/stock/smart-reorder?window_days=${windowDays}`, {
-      headers: { "Authorization": `Bearer ${getToken()}` }
-    })
-      .then((r) => r.ok ? r.json() : r.json().then(e => Promise.reject(e)))
+    api.getSmartReorder(windowDays)
       .then((data) => setItems(data))
-      .catch((err) => setError(err.message || err.detail || "Failed to load smart reorder list"))
+      .catch((err) => setError(err.message || "Failed to load smart reorder list"))
       .finally(() => setLoading(false));
   }
 
@@ -579,15 +578,7 @@ function SmartReorderTab() {
     setNotice(null);
     setError(null);
     try {
-      const res = await fetch(`/api/stock/medicine/${medicineId}/smart-threshold/apply`, {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${getToken()}` }
-      });
-      if (!res.ok) {
-        const e = await res.json();
-        throw new Error(e.detail || "Failed to apply smart threshold");
-      }
-      const updated = await res.json();
+      const updated = await api.applySmartThreshold(medicineId);
       setNotice(`Applied smart threshold ${updated.low_stock_threshold} for medicine ID ${medicineId}.`);
       loadList();
     } catch (err) {
@@ -598,15 +589,7 @@ function SmartReorderTab() {
   async function handleLeadTimeChange(medicineId, val) {
     const parsed = val === "" ? null : parseInt(val, 10);
     try {
-      const res = await fetch(`/api/stock/medicine/${medicineId}/lead-time`, {
-        method: "PATCH",
-        headers: { "Authorization": `Bearer ${getToken()}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ lead_time_days: parsed })
-      });
-      if (!res.ok) {
-        const e = await res.json();
-        throw new Error(e.detail || "Failed to update lead time");
-      }
+      await api.updateLeadTime(medicineId, parsed);
       loadList();
     } catch (err) {
       setError(err.message);
@@ -808,7 +791,7 @@ function AddMedicineTab() {
         </div>
 
         <div style={{ gridColumn: "1 / -1", marginTop: "8px" }}>
-          <button type="submit" className="button button-primary" disabled={saving}>
+          <button type="submit" className="btn btn-primary" disabled={saving}>
             {saving ? "Saving..." : "Add Medicine & Stock"}
           </button>
         </div>

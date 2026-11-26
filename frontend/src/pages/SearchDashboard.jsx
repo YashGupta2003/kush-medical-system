@@ -20,16 +20,21 @@ export default function MedicineSearch() {
   const [history, setHistory] = useState([]);
   const [compositionInput, setCompositionInput] = useState("");
   const [savingComposition, setSavingComposition] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setError(null);
     api
       .browseMedicines({ q: query, page, page_size: PAGE_SIZE })
       .then((data) => {
         if (cancelled) return;
         setResults((prev) => (page === 1 ? data.items : [...prev, ...data.items]));
         setTotal(data.total);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err.message || "Failed to load medicines");
       })
       .finally(() => !cancelled && setLoading(false));
     return () => {
@@ -157,10 +162,17 @@ export default function MedicineSearch() {
             
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "var(--space-4)" }}>
               <span style={{ color: "var(--text-muted)", fontSize: "var(--text-sm)", fontWeight: 500 }}>
-                {total > 0 ? `Displaying ${results.length} of ${total} records` : "Scanning directory..."}
+                {loading
+                  ? "Scanning directory..."
+                  : total > 0
+                    ? `Displaying ${results.length} of ${total} records`
+                    : query
+                      ? `No medicines matching "${query}"`
+                      : "No medicines in inventory yet"}
               </span>
               {loading && <Activity size={16} className="text-muted" style={{ animation: "spin 2s linear infinite" }} />}
             </div>
+            {error && <p style={{ color: "var(--danger-text)", fontSize: "var(--text-sm)", marginTop: "var(--space-3)", marginBottom: 0 }}>{error}</p>}
           </div>
 
           <div className="card table-container" style={{ padding: 0, overflow: "hidden" }}>
@@ -188,9 +200,9 @@ export default function MedicineSearch() {
                         style={{ cursor: "pointer", background: isSelected ? "var(--bg-surface-hover)" : undefined }}
                       >
                         <td style={{ fontWeight: 500, color: "var(--primary-600)" }}>{m.particulars}</td>
-                        <td>{m.unit}</td>
-                        <td>₹{m.mrp}</td>
-                        <td>₹{m.net_rate}</td>
+                        <td>{m.unit || "—"}</td>
+                        <td>{m.mrp != null ? `₹${m.mrp}` : "—"}</td>
+                        <td>{m.net_rate != null ? `₹${m.net_rate}` : "—"}</td>
                         <td>
                           <div style={{ display: "flex", alignItems: "center" }}>
                             {isLow ? (

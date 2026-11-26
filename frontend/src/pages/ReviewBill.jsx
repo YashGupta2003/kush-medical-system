@@ -345,6 +345,7 @@ export default function ReviewBill() {
   const { billId } = useParams();
   const [bill, setBill] = useState(null);
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState("");
   const [distributorName, setDistributorName] = useState("");
   const [rows, setRows] = useState({});
   const [applyFlags, setApplyFlags] = useState({});
@@ -356,9 +357,11 @@ export default function ReviewBill() {
   const [regionLoading, setRegionLoading] = useState(false);
 
   useEffect(() => {
+    setError(null);
     api.getBill(billId).then((b) => {
       setBill(b);
       setInvoiceNo(b.invoice_no || "");
+      setInvoiceDate(b.invoice_date ? String(b.invoice_date).slice(0, 10) : "");
       setDistributorName(b.distributor_name || "");
       const initialRows = {};
       const initialFlags = {};
@@ -368,6 +371,8 @@ export default function ReviewBill() {
       });
       setRows(initialRows);
       setApplyFlags(initialFlags);
+    }).catch((err) => {
+      setError(err.message || "Failed to load bill");
     });
   }, [billId]);
 
@@ -488,6 +493,7 @@ export default function ReviewBill() {
         bill_id: Number(billId),
         items,
         invoice_no: invoiceNo || null,
+        invoice_date: invoiceDate || null,
         distributor_name: distributorName || null,
       });
       setChangeSummary(summary);
@@ -503,7 +509,16 @@ export default function ReviewBill() {
     }
   }
 
-  if (!bill) return <div className="skeleton" style={{ height: "100vh" }}></div>;
+  if (!bill) {
+    if (error) {
+      return (
+        <div className="card" style={{ maxWidth: 600, margin: "40px auto", color: "var(--danger-text)", borderLeft: "4px solid var(--danger-text)" }}>
+          <strong>Unable to load bill:</strong> {error}
+        </div>
+      );
+    }
+    return <div className="skeleton" style={{ height: "100vh" }}></div>;
+  }
 
   if (stage === "done" && changeSummary) {
     return (
@@ -624,6 +639,15 @@ export default function ReviewBill() {
                   value={invoiceNo}
                   onChange={(e) => { setInvoiceNo(e.target.value); setIs409Error(false); }}
                   placeholder="e.g. INV-100234..."
+                />
+              </div>
+              <div style={{ flex: "0 1 180px", minWidth: 160 }}>
+                <label style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "block", marginBottom: 4, fontWeight: 600, textTransform: "uppercase" }}>Invoice Date</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
                 />
               </div>
             </div>

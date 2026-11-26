@@ -77,6 +77,12 @@ function BillProgressRow({ billId, filename, duplicateWarning }) {
           </button>
         )}
       </div>
+      {status === "failed" && error && (
+        <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger-text)", padding: "10px 14px", borderRadius: "8px", fontSize: "13px", marginTop: "8px", display: "flex", gap: "8px", alignItems: "center" }}>
+          <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
+        </div>
+      )}
       {duplicateWarning && (
         <div style={{ background: "var(--warning-100)", border: "1px solid var(--warning-300)", color: "var(--warning-700)", padding: "10px 14px", borderRadius: "8px", fontSize: "13px", display: "flex", gap: "8px", alignItems: "center" }}>
           <AlertTriangle size={16} color="var(--warning-600)" style={{ flexShrink: 0 }} />

@@ -75,12 +75,16 @@ function WhatsAppModal({ group, onClose }) {
     if (!phone || phone.length < 10) { setError("Enter a valid phone number (e.g. +919876543210)"); return; }
     setLoading(true); setError("");
     try {
-      await api.sendSmartPurchaseWhatsApp({
+      const res = await api.sendSmartPurchaseWhatsApp({
         distributor_name: group.distributor_name,
         phone,
         items: group.items.map(i => ({ medicine_name: i.medicine_name, order_qty: i.order_qty, unit: i.unit || "" }))
       });
-      setSent(true);
+      if (res?.status === "failed") {
+        setError(res.error || "WhatsApp delivery is not configured or failed.");
+      } else {
+        setSent(true);
+      }
     } catch (e) {
       setError(e.message || "Failed to send WhatsApp message");
     } finally {

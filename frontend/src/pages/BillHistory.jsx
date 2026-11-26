@@ -53,8 +53,8 @@ export default function BillHistory() {
   const [page, setPage] = useState(1);
   const [summary, setSummary] = useState(null);
   const [filterStatus, setFilterStatus] = useState(null);
+  const [error, setError] = useState(null);
 
-  const offset = (page - 1) * PAGE_SIZE;
   const totalPages = Math.ceil(total / PAGE_SIZE) || 1;
 
   useEffect(() => {
@@ -68,24 +68,28 @@ export default function BillHistory() {
     async function poll() {
       if (!mounted) return;
       
-      const offset = (page - 1) * PAGE_SIZE;
-      api.dashboardSummary().then((s) => {
-        if (mounted) setSummary(s);
-      });
+      api.dashboardSummary()
+        .then((s) => { if (mounted) setSummary(s); })
+        .catch(() => {});
       
-      const params = { limit: PAGE_SIZE, offset };
+      const params = { page, page_size: PAGE_SIZE };
       if (filterStatus) params.status = filterStatus;
       
-      api.listBills(params).then((data) => {
-        if (!mounted) return;
-        if (data && Array.isArray(data.items)) {
-          setBills(data.items);
-          setTotal(data.total);
-        } else if (Array.isArray(data)) {
-          setBills(data);
-          setTotal(data.length);
-        }
-      });
+      api.listBills(params)
+        .then((data) => {
+          if (!mounted) return;
+          setError(null);
+          if (data && Array.isArray(data.items)) {
+            setBills(data.items);
+            setTotal(data.total);
+          } else if (Array.isArray(data)) {
+            setBills(data);
+            setTotal(data.length);
+          }
+        })
+        .catch((err) => {
+          if (mounted) setError(err.message || "Failed to load bills");
+        });
       
       if (mounted) {
         timeoutId = setTimeout(poll, 4000);
@@ -134,6 +138,7 @@ export default function BillHistory() {
             </select>
           </div>
         </div>
+        {error && <div style={{ color: "var(--danger-text)", background: "var(--danger-bg)", padding: "10px 14px", borderRadius: 8, marginBottom: 12, fontSize: 13 }}>{error}</div>}
         
         <div style={{ overflowX: "auto" }}>
           <table className="table" style={{ width: "100%", margin: 0 }}>

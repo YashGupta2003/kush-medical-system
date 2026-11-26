@@ -87,9 +87,11 @@ export default function Analytics() {
   const [topSelling, setTopSelling] = useState([]);
   const [priceWindow, setPriceWindow] = useState(90);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   function refresh() {
     setLoading(true);
+    setError(null);
     Promise.all([
       api.getAnalyticsOverview(),
       api.getMonthlySpend(6),
@@ -104,6 +106,9 @@ export default function Analytics() {
       setPriceChanges(pc);
       setTopSpend(ts);
       setTopSelling(tsell);
+      setLoading(false);
+    }).catch((err) => {
+      setError(err.message || "Failed to load analytics");
       setLoading(false);
     });
   }
@@ -121,6 +126,26 @@ export default function Analytics() {
   }
 
   const ov = overview || {};
+
+  if (error) {
+    return (
+      <div className="page-content">
+        <div className="card" style={{ borderLeft: "4px solid var(--danger-text)", color: "var(--danger-text)" }}>
+          <strong>Failed to load analytics:</strong> {error}
+        </div>
+      </div>
+    );
+  }
+
+  const confirmedCount = ov.confirmed_bills_this_month || 0;
+  const pendingCount = ov.pending_review_count || 0;
+  const reviewClearPct = (confirmedCount + pendingCount) > 0
+    ? Math.round((confirmedCount / (confirmedCount + pendingCount)) * 100)
+    : 100;
+  const lowStockPct = Math.min(100, (ov.low_stock_count || 0) * 10);
+  const spendRatioPct = ov.last_month_spend > 0
+    ? Math.min(100, Math.round((ov.this_month_spend / ov.last_month_spend) * 100))
+    : (ov.this_month_spend > 0 ? 100 : 0);
   
   return (
     <motion.div 
@@ -145,15 +170,15 @@ export default function Analytics() {
               <ActivityRings 
                 size={80} strokeWidth={8}
                 rings={[
-                  { color: "var(--success-text)", percentage: 85, label: "Revenue" },
-                  { color: "var(--primary-500)", percentage: 60, label: "Pending Bills" },
-                  { color: "var(--warning-text)", percentage: 30, label: "Low Stock" }
+                  { color: "var(--success-text)", percentage: spendRatioPct, label: "Spend vs Last Mo" },
+                  { color: "var(--primary-500)", percentage: reviewClearPct, label: "Bills Reviewed" },
+                  { color: "var(--warning-text)", percentage: lowStockPct, label: "Low Stock Load" }
                 ]} 
               />
               <div style={{ display: "flex", flexDirection: "column", gap: "10px", fontSize: "13px", fontWeight: 600, color: "var(--text-muted)" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--success-text)" }} /> Revenue Goal</div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--primary-500)" }} /> Pending Bills</div>
-                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--warning-text)" }} /> Low Stock Alert</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--success-text)" }} /> Spend vs Last Mo ({spendRatioPct}%)</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--primary-500)" }} /> Bills Reviewed ({reviewClearPct}%)</div>
+                <div style={{ display: "flex", alignItems: "center", gap: "8px" }}><span style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--warning-text)" }} /> Low Stock ({ov.low_stock_count || 0})</div>
               </div>
             </div>
           </motion.div>
@@ -226,7 +251,7 @@ export default function Analytics() {
             {monthlySpend.length > 0 ? (
               <div style={{ height: "300px", width: "100%" }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={monthlySpend.slice().reverse()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <AreaChart data={monthlySpend} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorSpend" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="var(--primary-500)" stopOpacity={0.3}/>

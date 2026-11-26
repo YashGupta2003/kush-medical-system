@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import { AreaChart, Area, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, ReferenceLine } from "recharts";
 import { Snowflake, FileText, Monitor, CheckSquare, Bell, Plus, CheckCircle, AlertTriangle, Info } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 export default function ColdChain({ isOwner }) {
+    const navigate = useNavigate();
     const [activeTab, setActiveTab] = useState("log");
     
     // Log Tab
@@ -18,6 +20,7 @@ export default function ColdChain({ isOwner }) {
 
     // Units Tab (Owner)
     const [newUnit, setNewUnit] = useState({ unit_label: "", location_note: "", min_temp_c: 2.0, max_temp_c: 8.0 });
+    const [unitError, setUnitError] = useState(null);
     
     // Compliance Tab (Owner)
     const [complianceReport, setComplianceReport] = useState(null);
@@ -114,12 +117,19 @@ export default function ColdChain({ isOwner }) {
 
     const handleCreateUnit = async (e) => {
         e.preventDefault();
+        setUnitError(null);
+        const minTemp = parseFloat(newUnit.min_temp_c);
+        const maxTemp = parseFloat(newUnit.max_temp_c);
+        if (!Number.isFinite(minTemp) || !Number.isFinite(maxTemp) || minTemp >= maxTemp) {
+            setUnitError("Min temperature must be strictly less than max temperature.");
+            return;
+        }
         try {
-            await api.createColdChainUnit(newUnit);
+            await api.createColdChainUnit({ ...newUnit, min_temp_c: minTemp, max_temp_c: maxTemp });
             setNewUnit({ unit_label: "", location_note: "", min_temp_c: 2.0, max_temp_c: 8.0 });
             loadUnits();
         } catch (err) {
-            console.error(err);
+            setUnitError(err.message || "Failed to create cold-chain unit.");
         }
     };
 
@@ -264,6 +274,7 @@ export default function ColdChain({ isOwner }) {
                                     </div>
                                 </div>
                                 <button type="submit" className="btn btn-primary"><Plus size={16} /> Create Unit</button>
+                                {unitError && <p style={{ color: "var(--danger-text)", fontSize: 13, marginTop: 10, marginBottom: 0 }}>{unitError}</p>}
                             </form>
 
                             <h3 style={{ color: "var(--text-main)" }}>Configured Units</h3>
@@ -404,7 +415,7 @@ export default function ColdChain({ isOwner }) {
                                                     <td>{b.batch_no || "N/A"}</td>
                                                     <td>{b.expiry_date || "N/A"}</td>
                                                     <td>
-                                                        <button className="btn btn-danger btn-sm" style={{ padding: "4px 8px", fontSize: "12px" }}>Mark for Network</button>
+                                                        <button className="btn btn-danger btn-sm" style={{ padding: "4px 8px", fontSize: "12px" }} onClick={() => navigate("/network")}>Mark for Network</button>
                                                     </td>
                                                 </tr>
                                             ))}

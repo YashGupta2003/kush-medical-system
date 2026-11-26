@@ -92,11 +92,16 @@ describe("api object completeness", () => {
 
     // Medicines
     expect(typeof api.browseMedicines).toBe("function");
+    expect(typeof api.getMedicine).toBe("function");
     expect(typeof api.getMedicineHistory).toBe("function");
     expect(typeof api.lookupBarcode).toBe("function");
 
     // Stock
     expect(typeof api.getStockSnapshot).toBe("function");
+    expect(typeof api.getStockLedger).toBe("function");
+    expect(typeof api.getSmartReorder).toBe("function");
+    expect(typeof api.applySmartThreshold).toBe("function");
+    expect(typeof api.updateLeadTime).toBe("function");
     expect(typeof api.recordSale).toBe("function");
     expect(typeof api.getReorderList).toBe("function");
     expect(typeof api.recordStockAdjustment).toBe("function");
@@ -239,5 +244,21 @@ describe("apiFetch 401 handling", () => {
 
     await expect(api.me()).rejects.toThrow();
     expect(handler).toHaveBeenCalledOnce();
+  });
+
+  it("attaches HTTP status onto thrown error for non-ok responses", async () => {
+    const { api } = await import("../api/client.js");
+
+    global.fetch = vi.fn().mockResolvedValue({
+      status: 409,
+      ok: false,
+      json: async () => ({ detail: "Duplicate confirmed invoice" }),
+      headers: { get: () => "application/json" },
+    });
+
+    await expect(api.getHealth()).rejects.toMatchObject({
+      message: "Duplicate confirmed invoice",
+      status: 409,
+    });
   });
 });

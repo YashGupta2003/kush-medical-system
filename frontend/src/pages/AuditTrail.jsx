@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { api } from "../api/client.js";
 import { 
   Link as LinkIcon, CheckCircle2, AlertTriangle, FileText, 
-  Package, Activity, Shield, ShieldCheck, Database, 
+  Package, Activity, Shield, ShieldAlert, ShieldCheck, Database, 
   Lock, ArrowRight, ChevronRight, ChevronDown, Check, XCircle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -300,8 +300,9 @@ export default function AuditTrail() {
 
   function refresh() {
     setLoading(true);
-    api.getAuditLedger({ event_type: eventType || undefined, limit: 150 })
-      .then(setEntries)
+    setError(null);
+    api.getAuditLedger({ event_type: eventType || undefined, page: 1, page_size: 100 })
+      .then((res) => setEntries(Array.isArray(res) ? res : (res?.items || [])))
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false));
   }
