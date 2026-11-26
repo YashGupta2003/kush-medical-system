@@ -72,7 +72,7 @@ class BillProcessingPipeline:
             from app.services.distributor_memory_service import get_template_for_distributor
             stored_template = None
             if bill.distributor_id:
-                stored_template = get_template_for_distributor(db, bill.tenant_id, bill.distributor_id)
+                stored_template = get_template_for_distributor(self.db, bill.tenant_id, bill.distributor_id)
             
             from app.services.bill_parser import parse_bill_advanced, ParsedRowList
             parsed_rows = parse_bill_advanced(bill.raw_ocr_text, ocr_result.words, stored_template=stored_template)

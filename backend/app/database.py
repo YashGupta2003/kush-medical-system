@@ -64,15 +64,22 @@ logger = get_logger("database")
 # connect_args      — explicit connect timeout so a hard network failure does
 #                     not freeze the process.
 # ---------------------------------------------------------------------------
-engine = create_engine(
-    settings.database_url,
-    pool_size=20,
-    max_overflow=40,
-    pool_timeout=30,
-    pool_pre_ping=True,
-    pool_recycle=3600,
-    connect_args={"connect_timeout": 10},
-)
+if settings.database_url.startswith("sqlite"):
+    engine = create_engine(
+        settings.database_url,
+        connect_args={"check_same_thread": False},
+        pool_pre_ping=True,
+    )
+else:
+    engine = create_engine(
+        settings.database_url,
+        pool_size=20,
+        max_overflow=40,
+        pool_timeout=30,
+        pool_pre_ping=True,
+        pool_recycle=3600,
+        connect_args={"connect_timeout": 10},
+    )
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

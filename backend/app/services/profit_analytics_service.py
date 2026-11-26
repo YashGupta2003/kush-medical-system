@@ -17,6 +17,7 @@ from typing import Optional
 from sqlalchemy.orm import Session
 
 from app import models
+from app.core.domain_errors import NotFoundError
 from app.services import graph_service
 
 Q2 = Decimal("0.01")
@@ -273,18 +274,23 @@ def detect_margin_compression(db: Session, tenant_id: int, days: int = 90, sever
 def get_best_margin_substitutes(db: Session, tenant_id: int, medicine_id: int) -> dict:
     med = db.query(models.Medicine).filter_by(id=medicine_id, tenant_id=tenant_id).first()
     if not med:
-        return {}
-        
+        raise NotFoundError(f"Medicine {medicine_id} not found")
+
     subs = graph_service.get_medicine_graph(db, medicine_id)
     if not subs:
-        return {}
-        
+        return {
+            "medicine_id": med.id,
+            "name": med.particulars,
+            "substitutes": [],
+            "unpriced_count": 0,
+        }
+
     substitutes_data = subs.get("substitutes", [])
-    
+
     results = []
     unpriced = 0
     for s in substitutes_data:
-        sub_med = db.get(models.Medicine, s["medicine_id"])
+        sub_med = db.query(models.Medicine).filter_by(id=s["medicine_id"], tenant_id=tenant_id).first()
         if sub_med is None:
             continue
         margin = _margin_pct(sub_med.mrp, sub_med.net_rate)

@@ -133,6 +133,7 @@ def record_reading(db: Session, unit_id: int, temp_c: float, recorded_by_user_id
         )
         event_bus.publish(event)
 
+    db.commit()
     return reading
 
 def get_readings(db: Session, unit_id: int, hours: int = 24, limit: int = 100) -> List[Dict[str, Any]]:

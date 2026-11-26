@@ -76,10 +76,8 @@ class Settings(BaseSettings):
     refresh_token_expire_days: int = 30
 
     groq_api_key: str = ""
-    # BUG FIX: "openai/gpt-oss-120b" is not a valid Groq model name.
-    # Valid Groq models use IDs like "llama-3.1-70b-versatile", "llama3-8b-8192", etc.
-    # Override via GROQ_MODEL environment variable to match your Groq tier.
-    groq_model: str = "llama-3.3-70b-versatile"
+    # Override via GROQ_MODEL environment variable to match your Groq account tier.
+    groq_model: str = "openai/gpt-oss-120b"
 
     default_lead_time_days: int = 3
     reorder_safety_z_score: float = 1.65
@@ -111,8 +109,8 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 10
 
     gemini_api_key: str = ""
-    gemini_voice_model_primary: str = "gemini-2.5-flash"
-    gemini_voice_model_fallback: str = "gemini-2.5-flash-lite"
+    gemini_voice_model_primary: str = "gemini-3.5-flash-lite"
+    gemini_voice_model_fallback: str = "gemini-3.8-flash"
     rate_limit_voice: str = "20/minute"
     max_voice_clip_seconds: int = 12
     max_voice_upload_size_mb: int = 5

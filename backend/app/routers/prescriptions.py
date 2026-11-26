@@ -324,11 +324,17 @@ def link_item_to_medicine(
         raise HTTPException(404, "Item or medicine not found")
     db.commit()
 
-    # Reload with relationships
-    db.refresh(item)
-    if item.medicine:
-        db.refresh(item.medicine)
-    return _item_to_out(item)
+    # Reload with all relationships
+    reloaded = (
+        db.query(models.PrescriptionItem)
+        .options(
+            joinedload(models.PrescriptionItem.medicine),
+            joinedload(models.PrescriptionItem.substitute_medicine),
+        )
+        .filter(models.PrescriptionItem.id == item.id)
+        .first()
+    )
+    return _item_to_out(reloaded or item)
 
 
 @router.patch("/{prescription_id}/items/{item_id}/add-to-cart")
@@ -361,10 +367,16 @@ def add_manual_item(
         raise HTTPException(404, "Prescription or medicine not found")
     
     db.commit()
-    db.refresh(item)
-    if item.medicine:
-        db.refresh(item.medicine)
-    return _item_to_out(item)
+    reloaded = (
+        db.query(models.PrescriptionItem)
+        .options(
+            joinedload(models.PrescriptionItem.medicine),
+            joinedload(models.PrescriptionItem.substitute_medicine),
+        )
+        .filter(models.PrescriptionItem.id == item.id)
+        .first()
+    )
+    return _item_to_out(reloaded or item)
 
 @router.post("/{prescription_id}/abandon")
 def abandon_prescription(

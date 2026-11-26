@@ -54,9 +54,11 @@ def parse_voice_command(audio_bytes: bytes, mime_type: str) -> VoiceCommandResul
             config=config
         )
     except APIError as e:
-        # Check for 429 Resource Exhausted
-        if getattr(e, "code", None) == 429 or "429" in str(e):
-            logger.warning(f"Primary model {model_name} rate limited. Retrying with fallback.")
+        err_code = getattr(e, "code", None)
+        err_str = str(e)
+        # Fall back to secondary Gemini model on quota/rate-limit (429), demand spike (503), or retired model (404)
+        if err_code in (429, 503, 404) or any(c in err_str for c in ("429", "503", "404")):
+            logger.warning(f"Primary model {model_name} unavailable ({err_code}). Retrying with fallback.")
             model_name = settings.gemini_voice_model_fallback
             response = client.models.generate_content(
                 model=model_name,

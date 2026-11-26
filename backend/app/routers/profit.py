@@ -1,9 +1,10 @@
 from typing import Optional, List
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app import models, schemas
+from app.core.domain_errors import NotFoundError
 from app.services import profit_analytics_service
 from app.deps import require_owner
 
@@ -44,7 +45,7 @@ def get_margins(db: Session = Depends(get_db), current_user: models.User = Depen
 @router.get("/compression", response_model=List[schemas.MarginCompressionItem])
 def get_compression(
     days: int = Query(90, ge=1, le=365),
-    severity: Optional[str] = Query(None, regex="^(mild|moderate|severe)$"),
+    severity: Optional[str] = Query(None, pattern="^(mild|moderate|severe)$"),
     db: Session = Depends(get_db),
     current_user: models.User = Depends(require_owner)
 ):
@@ -54,7 +55,10 @@ def get_compression(
 @router.get("/substitutes/{medicine_id}", response_model=schemas.BestMarginSubstituteResult)
 def get_substitutes(medicine_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(require_owner)):
     """GET /profit/substitutes/{medicine_id} — get_best_margin_substitutes"""
-    return profit_analytics_service.get_best_margin_substitutes(db, current_user.tenant_id, medicine_id)
+    try:
+        return profit_analytics_service.get_best_margin_substitutes(db, current_user.tenant_id, medicine_id)
+    except NotFoundError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
 @router.get("/distributor-report", response_model=List[schemas.DistributorDealItem])
 def get_distributor_report(db: Session = Depends(get_db), current_user: models.User = Depends(require_owner)):

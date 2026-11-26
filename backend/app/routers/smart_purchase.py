@@ -62,7 +62,12 @@ def send_whatsapp_order(
     
     # Try sending
     try:
-        whatsapp_service.send_text_message(request.phone, message)
-        return WhatsAppOrderResponse(status="success", message_id="mock_id")
+        sent = whatsapp_service.send_message(request.phone, message)
+        if not sent:
+            return WhatsAppOrderResponse(
+                status="failed",
+                error="WhatsApp delivery failed or Twilio is not configured.",
+            )
+        return WhatsAppOrderResponse(status="success", message_id="whatsapp_sent")
     except Exception as e:
         return WhatsAppOrderResponse(status="failed", error=str(e))

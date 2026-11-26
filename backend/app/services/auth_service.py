@@ -20,6 +20,7 @@ from typing import Optional
 
 from jose import jwt, JWTError
 from passlib.context import CryptContext
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
@@ -41,9 +42,12 @@ def authenticate_user(db: Session, email: str, password: str, tenant_id: int) ->
     Authenticate by email + password, scoped to a specific tenant.
     Login is by email address (the tenant's registration email or staff email).
     """
+    identifier = (email or "").strip().lower()
+    if not identifier:
+        return None
     user = db.query(models.User).filter(
         models.User.tenant_id == tenant_id,
-        models.User.username == email,
+        func.lower(models.User.username) == identifier,
         models.User.is_active.is_(True),
     ).first()
     if not user:

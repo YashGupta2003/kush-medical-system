@@ -93,9 +93,10 @@ def import_medicine_list(
     try:
         import pandas as pd
 
-        if filename.endswith(".csv"):
+        lower_name = filename.lower()
+        if lower_name.endswith(".csv"):
             df = pd.read_csv(io.BytesIO(content), dtype=str, keep_default_na=False)
-        elif filename.endswith((".xlsx", ".xls")):
+        elif lower_name.endswith((".xlsx", ".xls")):
             df = pd.read_excel(io.BytesIO(content), dtype=str, keep_default_na=False)
         else:
             raise HTTPException(400, "Unsupported file type. Please upload .xlsx, .xls, or .csv")
@@ -178,6 +179,7 @@ def import_medicine_list(
                 db.commit()
 
         except Exception as e:
+            db.rollback()
             errors += 1
             error_details.append(f"Row {idx + 2}: {raw_name[:50]} — {str(e)[:100]}")
             logger.warning(f"Import error for tenant {tenant.id}, row {idx}: {e}")

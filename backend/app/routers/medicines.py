@@ -120,7 +120,8 @@ def lookup_by_barcode(code: str, db: Session = Depends(get_db), current_user: mo
         return schemas.BarcodeLookupResult(found=False)
 
     snapshot = stock_service.get_stock_snapshot(db, current_user.tenant_id, medicine.id)
-    return schemas.BarcodeLookupResult(found=True, medicine=medicine, stock=snapshot)
+    masked = _mask_cost_for_staff([medicine], current_user)[0]
+    return schemas.BarcodeLookupResult(found=True, medicine=masked, stock=snapshot)
 
 
 @router.patch("/{medicine_id}/barcode", response_model=schemas.MedicineOut)
@@ -147,7 +148,7 @@ def assign_barcode(medicine_id: int, payload: schemas.BarcodeAssignRequest, db: 
         db.rollback()
         raise HTTPException(400, "This barcode is already linked to another medicine")
     db.refresh(medicine)
-    return medicine
+    return _mask_cost_for_staff([medicine], current_user)[0]
 
 
 @router.patch("/{medicine_id}/composition", response_model=schemas.MedicineOut)
@@ -165,7 +166,7 @@ def update_composition(medicine_id: int, payload: schemas.CompositionUpdate, db:
     medicine = composition_service.set_medicine_composition(db, medicine_id, payload.composition)
     db.commit()
     db.refresh(medicine)
-    return medicine
+    return _mask_cost_for_staff([medicine], current_user)[0]
 
 
 @router.get("/{medicine_id}", response_model=schemas.MedicineOut)
@@ -176,7 +177,7 @@ def get_medicine(medicine_id: int, db: Session = Depends(get_db), current_user: 
     ).first()
     if not medicine:
         raise HTTPException(404, "Medicine not found")
-    return medicine
+    return _mask_cost_for_staff([medicine], current_user)[0]
 
 
 @router.get("/{medicine_id}/history", response_model=List[schemas.RateHistoryOut])
