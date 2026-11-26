@@ -16,6 +16,12 @@ from app.config import settings
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
+
+def _is_https_request(request: Request) -> bool:
+    forwarded_proto = request.headers.get("x-forwarded-proto", "").split(",")[0].strip().lower()
+    return request.url.scheme == "https" or forwarded_proto == "https"
+
+
 @router.post("/login", response_model=schemas.TokenResponse)
 @limiter.limit(settings.rate_limit_auth)
 def login(request: Request, response: Response, payload: schemas.LoginRequest, db: Session = Depends(get_db)):
@@ -28,7 +34,14 @@ def login(request: Request, response: Response, payload: schemas.LoginRequest, d
         raise HTTPException(401, "Incorrect username or password")
     access_token = create_access_token(user)
     refresh_token = create_refresh_token(db, user)
-    response.set_cookie(key="refresh_token", value=refresh_token, httponly=True, secure=True, samesite="strict", max_age=settings.refresh_token_expire_days * 24 * 60 * 60)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=_is_https_request(request),
+        samesite="strict",
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+    )
     return schemas.TokenResponse(
         access_token=access_token,
         role=user.role,
@@ -60,7 +73,14 @@ def refresh_token(request: Request, response: Response, db: Session = Depends(ge
     # Rotate the refresh token
     revoke_refresh_token(db, token)
     new_refresh_token = create_refresh_token(db, user)
-    response.set_cookie(key="refresh_token", value=new_refresh_token, httponly=True, secure=True, samesite="strict", max_age=settings.refresh_token_expire_days * 24 * 60 * 60)
+    response.set_cookie(
+        key="refresh_token",
+        value=new_refresh_token,
+        httponly=True,
+        secure=_is_https_request(request),
+        samesite="strict",
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+    )
     return schemas.TokenResponse(
         access_token=new_access_token,
         role=user.role,
@@ -149,7 +169,10 @@ def deactivate_user(
     db: Session = Depends(get_db),
 ):
     """Owner-only: disable a Staff account (e.g. employee left) without deleting their history."""
-    user = db.get(models.User, user_id)
+    user = db.query(models.User).filter(
+        models.User.id == user_id,
+        models.User.tenant_id == current_user.tenant_id,
+    ).first()
     if not user:
         raise HTTPException(404, "User not found")
     if user.id == current_user.id:

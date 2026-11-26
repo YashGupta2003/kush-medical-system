@@ -166,11 +166,17 @@ class IdempotencyMiddleware(BaseHTTPMiddleware):
                         logger.warning(f"Idempotency: could not cache non-JSON response for key '{idem_key}': {e}")
 
                 # Re-stream the buffered body back to the client
-                # BUG FIX: raw_body may be non-JSON (e.g. a PDF blob from GST
-                # report download). Fall back to streaming the raw bytes if
-                # json.loads fails, preserving the original Content-Type.
+                # BUG FIX: raw_body may be empty (204) or non-JSON (e.g. a PDF blob from GST
+                # report download). Return raw bytes directly in those cases, preserving headers.
+                if status_code == 204 or not raw_body:
+                    from starlette.responses import Response as RawResponse
+                    return RawResponse(
+                        content=b"" if status_code == 204 else raw_body,
+                        status_code=status_code,
+                        headers={k: v for k, v in response.headers.items() if k.lower() != "content-length"},
+                    )
                 try:
-                    body_json = json.loads(raw_body) if raw_body else None
+                    body_json = json.loads(raw_body)
                     return JSONResponse(
                         status_code=status_code,
                         content=body_json,

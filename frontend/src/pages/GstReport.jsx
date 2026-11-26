@@ -71,18 +71,28 @@ export default function GstReport() {
             {years.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        {error && <p style={{ color: "var(--danger)", marginTop: 10 }}>{error}</p>}
+        {error && <p style={{ color: "var(--danger-text)", marginTop: 10 }}>{error}</p>}
       </div>
 
       {loading && <p style={{ color: "var(--text-muted)" }}>Loading report...</p>}
 
       {!loading && report && (
         <>
+          {report.warnings?.length > 0 && (
+            <div className="card" style={{ background: "var(--warning-bg)", border: "1px solid var(--warning-border)", color: "var(--warning-text)" }}>
+              <strong>Heads up:</strong>
+              <ul style={{ margin: "6px 0 0 18px", padding: 0, fontSize: 13 }}>
+                {report.warnings.map((w, idx) => <li key={idx}>{w}</li>)}
+              </ul>
+            </div>
+          )}
+
           <div className="stat-row">
             <div className="stat-box"><div className="value">{report.bill_count}</div><div className="label">Confirmed bills</div></div>
             <div className="stat-box"><div className="value">₹{report.grand_taxable_amount.toLocaleString("en-IN")}</div><div className="label">Taxable amount</div></div>
             <div className="stat-box"><div className="value">₹{report.grand_cgst.toLocaleString("en-IN")}</div><div className="label">Total CGST</div></div>
             <div className="stat-box"><div className="value">₹{report.grand_sgst.toLocaleString("en-IN")}</div><div className="label">Total SGST</div></div>
+            <div className="stat-box"><div className="value">₹{(report.grand_igst || 0).toLocaleString("en-IN")}</div><div className="label">Total IGST</div></div>
             <div className="stat-box"><div className="value">₹{report.grand_total_amount.toLocaleString("en-IN")}</div><div className="label">Total purchase value</div></div>
           </div>
 
@@ -93,7 +103,7 @@ export default function GstReport() {
             ) : (
               <table className="table">
                 <thead>
-                  <tr><th>GST %</th><th>Items</th><th>Taxable Amt</th><th>CGST</th><th>SGST</th><th>Total Tax</th><th>Total Amt</th></tr>
+                  <tr><th>GST %</th><th>Items</th><th>Taxable Amt</th><th>CGST</th><th>SGST</th><th>IGST</th><th>Total Tax</th><th>Total Amt</th></tr>
                 </thead>
                 <tbody>
                   {report.slabs.map((s) => (
@@ -103,6 +113,7 @@ export default function GstReport() {
                       <td>₹{s.taxable_amount.toLocaleString("en-IN")}</td>
                       <td>₹{s.cgst.toLocaleString("en-IN")}</td>
                       <td>₹{s.sgst.toLocaleString("en-IN")}</td>
+                      <td>₹{(s.igst || 0).toLocaleString("en-IN")}</td>
                       <td>₹{s.total_tax.toLocaleString("en-IN")}</td>
                       <td><strong>₹{s.total_amount.toLocaleString("en-IN")}</strong></td>
                     </tr>
@@ -114,6 +125,7 @@ export default function GstReport() {
                     <td>₹{report.grand_taxable_amount.toLocaleString("en-IN")}</td>
                     <td>₹{report.grand_cgst.toLocaleString("en-IN")}</td>
                     <td>₹{report.grand_sgst.toLocaleString("en-IN")}</td>
+                    <td>₹{(report.grand_igst || 0).toLocaleString("en-IN")}</td>
                     <td>₹{report.grand_total_tax.toLocaleString("en-IN")}</td>
                     <td>₹{report.grand_total_amount.toLocaleString("en-IN")}</td>
                   </tr>
@@ -121,10 +133,24 @@ export default function GstReport() {
               </table>
             )}
             <p style={{ color: "var(--text-muted)", fontSize: 12, marginTop: 12 }}>
-              Note: CGST/SGST assume intra-state purchases split equally. Verify against original invoices
-              for any interstate (IGST) transactions before filing.
+              Note: CGST/SGST vs IGST is derived from supplier and shop GSTIN state codes when available (defaulting to intra-state split otherwise). Verify against original invoices before filing.
             </p>
           </div>
+
+          {report.sales_output_estimates && report.sales_output_estimates.sale_count > 0 && (
+            <div className="card">
+              <h3 style={{ marginTop: 0, color: "var(--text-main)" }}>Indicative Output Tax Estimate (POS Sales)</h3>
+              <div className="stat-row">
+                <div className="stat-box"><div className="value">{report.sales_output_estimates.sale_count}</div><div className="label">Sales in period</div></div>
+                <div className="stat-box"><div className="value">₹{Number(report.sales_output_estimates.grand_taxable_amount || 0).toLocaleString("en-IN")}</div><div className="label">Est. Taxable Sales</div></div>
+                <div className="stat-box"><div className="value">₹{Number(report.sales_output_estimates.grand_total_tax || 0).toLocaleString("en-IN")}</div><div className="label">Est. Output Tax</div></div>
+                <div className="stat-box"><div className="value">₹{Number(report.sales_output_estimates.grand_total_amount || 0).toLocaleString("en-IN")}</div><div className="label">Gross Sales</div></div>
+              </div>
+              {report.sales_output_estimates.note && (
+                <p style={{ color: "var(--text-muted)", fontSize: 12, margin: 0 }}>{report.sales_output_estimates.note}</p>
+              )}
+            </div>
+          )}
         </>
       )}
     </motion.div>

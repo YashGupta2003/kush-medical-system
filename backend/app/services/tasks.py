@@ -383,7 +383,7 @@ def compute_smart_thresholds_bulk_task() -> dict:
                 result = reorder_intelligence.compute_smart_threshold(db, medicine.id)
                 if result.get("has_sufficient_data"):
                     medicine.suggested_low_stock_threshold = result.get("suggested_threshold")
-                    medicine.avg_daily_sales_30d = result.get("avg_daily_sales_30d")
+                    medicine.avg_daily_sales_30d = result.get("avg_daily_sales")
                     # BUG FIX: 'from datetime import datetime' was inside the loop — moved to module top
                     medicine.suggestion_computed_at = datetime.now(timezone.utc)
                     updated += 1

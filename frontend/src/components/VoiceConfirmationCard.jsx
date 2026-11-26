@@ -11,13 +11,18 @@ export function VoiceConfirmationCard({ parsedResult, onConfirm, onCancel }) {
   const [error, setError] = useState(null);
 
   const handleConfirm = async () => {
+    const qtyNum = parseInt(quantity, 10);
+    if (!Number.isFinite(qtyNum) || qtyNum < 1) {
+      setError("Quantity must be at least 1");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       const payload = {
         intent,
         medicine_id: resolved_medicine?.id,
-        quantity: parseInt(quantity, 10),
+        quantity: qtyNum,
       };
       
       const res = await apiFetch("/voice/confirm", {
@@ -100,8 +105,9 @@ export function VoiceConfirmationCard({ parsedResult, onConfirm, onCancel }) {
           border-radius: 12px;
           padding: 16px;
           margin-bottom: 16px;
-          background: #fff;
-          box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+          background: var(--bg-surface);
+          color: var(--text-main);
+          box-shadow: var(--shadow-md);
           animation: slideDown 0.3s ease;
         }
         @keyframes slideDown {
@@ -151,7 +157,7 @@ export function VoiceConfirmationCard({ parsedResult, onConfirm, onCancel }) {
           border-radius: 4px;
         }
         .vcc-warning {
-          color: var(--danger);
+          color: var(--danger-text);
           font-size: 13px;
           margin-bottom: 12px;
         }
@@ -173,7 +179,7 @@ export function VoiceConfirmationCard({ parsedResult, onConfirm, onCancel }) {
           border-radius: 6px;
         }
         .vcc-error {
-          color: var(--danger);
+          color: var(--danger-text);
           font-size: 13px;
           margin-bottom: 12px;
         }

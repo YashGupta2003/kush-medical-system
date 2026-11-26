@@ -237,3 +237,116 @@ def get_overview(db: Session, tenant_id: int) -> dict:
         "pending_review_count": pending_review_count or 0,
         "expiring_critical": expiry_summary["critical"] + expiry_summary["expired"],
     }
+
+
+def get_inventory_valuation(db: Session, tenant_id: int) -> dict:
+    """Total cost (net_rate) and retail (mrp) valuation of current in-stock inventory."""
+    medicines = (
+        db.query(models.Medicine)
+        .filter(models.Medicine.tenant_id == tenant_id, models.Medicine.current_stock > 0)
+        .all()
+    )
+
+    total_cost_value = 0.0
+    total_retail_value = 0.0
+    total_units = 0.0
+    unpriced_count = 0
+    valued_items = []
+
+    for med in medicines:
+        stock = float(med.current_stock or 0)
+        total_units += stock
+        net_rate = float(med.net_rate) if med.net_rate is not None else None
+        mrp = float(med.mrp) if med.mrp is not None else None
+        if net_rate is None or mrp is None:
+            unpriced_count += 1
+        cost_val = round(stock * (net_rate or 0.0), 2)
+        retail_val = round(stock * (mrp or 0.0), 2)
+        total_cost_value += cost_val
+        total_retail_value += retail_val
+        valued_items.append({
+            "medicine_id": med.id,
+            "name": med.particulars,
+            "current_stock": round(stock, 2),
+            "net_rate": net_rate,
+            "mrp": mrp,
+            "cost_value": cost_val,
+            "retail_value": retail_val,
+        })
+
+    valued_items.sort(key=lambda item: (item["cost_value"] or item["retail_value"]), reverse=True)
+
+    return {
+        "total_cost_value": round(total_cost_value, 2),
+        "total_retail_value": round(total_retail_value, 2),
+        "potential_margin_value": round(total_retail_value - total_cost_value, 2),
+        "total_units_in_stock": round(total_units, 2),
+        "in_stock_sku_count": len(medicines),
+        "unpriced_sku_count": unpriced_count,
+        "top_valued_items": valued_items[:10],
+    }
+
+
+def get_dead_stock(db: Session, tenant_id: int, days: int = 90) -> dict:
+    """In-stock medicines with zero sales in the last `days` days."""
+    now = datetime.now(timezone.utc)
+    cutoff = now - timedelta(days=days)
+
+    recent_med_ids = {
+        row[0]
+        for row in (
+            db.query(models.Sale.medicine_id)
+            .filter(models.Sale.tenant_id == tenant_id, models.Sale.sold_at >= cutoff)
+            .distinct()
+            .all()
+        )
+    }
+
+    last_sale_rows = (
+        db.query(models.Sale.medicine_id, func.max(models.Sale.sold_at))
+        .filter(models.Sale.tenant_id == tenant_id)
+        .group_by(models.Sale.medicine_id)
+        .all()
+    )
+    last_sale_map = {med_id: sold_at for med_id, sold_at in last_sale_rows}
+
+    candidates = (
+        db.query(models.Medicine)
+        .filter(models.Medicine.tenant_id == tenant_id, models.Medicine.current_stock > 0)
+        .all()
+    )
+
+    items = []
+    total_tied_up = 0.0
+    for med in candidates:
+        if med.id in recent_med_ids:
+            continue
+        stock = float(med.current_stock or 0)
+        unit_cost = float(med.net_rate) if med.net_rate is not None else float(med.mrp or 0)
+        tied_up = round(stock * unit_cost, 2)
+        total_tied_up += tied_up
+
+        last_sold = last_sale_map.get(med.id)
+        days_since = None
+        if last_sold is not None:
+            aware_last = last_sold if last_sold.tzinfo else last_sold.replace(tzinfo=timezone.utc)
+            days_since = (now - aware_last).days
+
+        items.append({
+            "medicine_id": med.id,
+            "name": med.particulars,
+            "current_stock": round(stock, 2),
+            "unit_cost": round(unit_cost, 2) if (med.net_rate is not None or med.mrp is not None) else None,
+            "tied_up_value": tied_up,
+            "last_sold_at": last_sold.isoformat() if last_sold else None,
+            "days_since_last_sale": days_since,
+        })
+
+    items.sort(key=lambda item: item["tied_up_value"], reverse=True)
+
+    return {
+        "days_threshold": days,
+        "dead_stock_count": len(items),
+        "total_tied_up_value": round(total_tied_up, 2),
+        "items": items,
+    }

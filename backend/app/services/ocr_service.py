@@ -77,28 +77,50 @@ def _preprocess_for_tesseract(image):
 
 
 def _score_orientation(image) -> tuple[float, dict]:
+    import re
     import pytesseract
+    # Orientation scoring uses default layout segmentation and weights squared
+    # confidence of clean alphanumeric tokens so noisy sideways fragmentation
+    # never outscores crisp upright text.
     data = pytesseract.image_to_data(image, output_type=pytesseract.Output.DICT)
-    confidences = []
+    valid_confs = []
+    all_confs = []
     for i in range(len(data["text"])):
-        text = data["text"][i].strip()
+        raw_t = data["text"][i].strip()
+        alnum = re.sub(r"[^A-Za-z0-9]", "", raw_t)
         conf_raw = str(data["conf"][i])
         conf = int(conf_raw) if conf_raw.lstrip("-").isdigit() else -1
-        if text and conf >= 30:
-            confidences.append(conf)
-    score = len(confidences) * (sum(confidences) / len(confidences) if confidences else 0)
+        if raw_t and conf >= 0:
+            all_confs.append(conf)
+        if len(alnum) >= 2 and conf >= 65:
+            valid_confs.append(conf)
+    if not valid_confs:
+        return 0.0, data
+    avg_valid = sum(valid_confs) / len(valid_confs)
+    avg_all = (sum(all_confs) / len(all_confs)) if all_confs else 0.0
+    score = len(valid_confs) * avg_valid * max(avg_all, 1.0)
     return score, data
 
 
 def _auto_rotate_and_ocr(processed_image):
-    best_score, best_data, best_angle = -1, None, 0
+    import pytesseract
+    scores = {}
     for angle in (0, 90, 180, 270):
         candidate = processed_image.rotate(angle, expand=True) if angle else processed_image
-        score, data = _score_orientation(candidate)
-        if score > best_score:
-            best_score, best_data, best_angle = score, data, angle
+        score, _ = _score_orientation(candidate)
+        scores[angle] = score
+    # Keep upright (0 deg) unless an alternate orientation scores clearly higher (>= 15%)
+    best_angle = 0
+    best_score = scores[0]
+    for angle in (90, 180, 270):
+        if scores[angle] > best_score * 1.15:
+            best_score = scores[angle]
+            best_angle = angle
     logger.info(f"auto-rotation chose {best_angle} degrees (confidence score={best_score:.1f})")
-    return best_data
+    upright = processed_image.rotate(best_angle, expand=True) if best_angle else processed_image
+    # Final extraction uses --psm 6 (uniform block) on upright image so narrow columns
+    # like FREE, EXP, DISC, MRP, and GST are preserved completely.
+    return pytesseract.image_to_data(upright, output_type=pytesseract.Output.DICT, config="--psm 6")
 
 
 def _run_tesseract(image_bytes: bytes) -> OcrResult:
@@ -109,7 +131,21 @@ def _run_tesseract(image_bytes: bytes) -> OcrResult:
     processed = _preprocess_for_tesseract(image)
 
     data = _auto_rotate_and_ocr(processed)
-    full_text = " ".join(t for t in data["text"] if t.strip())
+
+    # Reconstruct structured line breaks from Tesseract layout blocks so LLM
+    # and raw OCR views read table rows rather than one run-on line.
+    lines_map: dict[tuple, list[str]] = {}
+    for i in range(len(data["text"])):
+        t = data["text"][i].strip()
+        if not t:
+            continue
+        key = (
+            data.get("block_num", [0])[i] if "block_num" in data else 0,
+            data.get("par_num", [0])[i] if "par_num" in data else 0,
+            data.get("line_num", [0])[i] if "line_num" in data else 0,
+        )
+        lines_map.setdefault(key, []).append(t)
+    full_text = "\n".join(" ".join(words_in_line) for words_in_line in lines_map.values())
 
     words: List[Word] = []
     confidences = []

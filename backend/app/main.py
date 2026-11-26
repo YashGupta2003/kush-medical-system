@@ -338,23 +338,17 @@ v1_router.include_router(profit.router)         # → /v1/profit/...
 v1_router.include_router(prescriptions.router) # → /v1/prescriptions/...
 v1_router.include_router(setup.router)          # → /v1/setup/... (public setup wizard)
 v1_router.include_router(register.router)       # → /v1/register/...
-v1_router.include_router(tenants.router)
+v1_router.include_router(tenants.router)        # → /v1/tenants/...
 v1_router.include_router(network_integrity.router)
 v1_router.include_router(regional_health.router)  # → /v1/regional-health/...
 v1_router.include_router(heatmap.router)          # → /v1/heatmap/...
 v1_router.include_router(clinical_reference.router)  # → /v1/clinical-reference/...
-        # → /v1/tenants/...
 
-import sys
-if settings.gemini_api_key or "pytest" in sys.modules:
-    try:
-        from app.routers import voice
-        v1_router.include_router(voice.router)
-    except ImportError:
-        pass
-else:
-    import logging
-    logging.getLogger("main").warning("GEMINI_API_KEY is missing — Voice Assistant endpoint disabled.")
+try:
+    from app.routers import voice
+    v1_router.include_router(voice.router)
+except ImportError:
+    pass
 
 app.include_router(v1_router)
 
@@ -395,13 +389,11 @@ _legacy.include_router(regional_health.router)
 _legacy.include_router(heatmap.router)
 _legacy.include_router(clinical_reference.router)
 
-import sys
-if settings.gemini_api_key or "pytest" in sys.modules:
-    try:
-        from app.routers import voice
-        _legacy.include_router(voice.router)
-    except ImportError:
-        pass
+try:
+    from app.routers import voice
+    _legacy.include_router(voice.router)
+except ImportError:
+    pass
 
 app.include_router(_legacy)  # bare paths still work — tests pass, scripts work
 

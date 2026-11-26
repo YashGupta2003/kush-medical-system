@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, useLocation, Link } from "react-router-dom";
 import { api } from "../api/client.js";
-import { 
-  FileText, ZoomIn, ZoomOut, Maximize, Target, Trash2, Link as LinkIcon, 
-  CheckCircle2, AlertTriangle, FileWarning, Plus, ArrowRight, ArrowLeft 
+import {
+  FileText, ZoomIn, ZoomOut, Maximize, Target, Trash2, Link as LinkIcon,
+  CheckCircle2, AlertTriangle, FileWarning, Plus, ArrowRight, ArrowLeft,
+  Loader, RefreshCw, Clock, Sparkles
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import DistributorConfidenceBadge from "../components/DistributorConfidenceBadge";
@@ -343,8 +344,11 @@ function ItemCard({ row, applied, onFieldChange, onToggleApply, onPickField, pic
 
 export default function ReviewBill() {
   const { billId } = useParams();
+  const location = useLocation();
+  const uploadMeta = location.state || {};
   const [bill, setBill] = useState(null);
   const [invoiceNo, setInvoiceNo] = useState("");
+  const [invoiceDate, setInvoiceDate] = useState("");
   const [distributorName, setDistributorName] = useState("");
   const [rows, setRows] = useState({});
   const [applyFlags, setApplyFlags] = useState({});
@@ -354,22 +358,92 @@ export default function ReviewBill() {
   const [is409Error, setIs409Error] = useState(false);
   const [pickingField, setPickingField] = useState(null);
   const [regionLoading, setRegionLoading] = useState(false);
+  const [waitSeconds, setWaitSeconds] = useState(0);
+  const [processingInline, setProcessingInline] = useState(false);
+  const autoFallbackTriggeredRef = useRef(false);
+
+  const hydrateBill = useCallback((b) => {
+    setBill(b);
+    setInvoiceNo(b.invoice_no || "");
+    setInvoiceDate(b.invoice_date ? String(b.invoice_date).slice(0, 10) : "");
+    setDistributorName(b.distributor_name || "");
+    const initialRows = {};
+    const initialFlags = {};
+    (b.items || []).forEach((item) => {
+      initialRows[item.id] = { ...item };
+      initialFlags[item.id] = item.match_status !== "unmatched";
+    });
+    setRows(initialRows);
+    setApplyFlags(initialFlags);
+  }, []);
 
   useEffect(() => {
-    api.getBill(billId).then((b) => {
-      setBill(b);
-      setInvoiceNo(b.invoice_no || "");
-      setDistributorName(b.distributor_name || "");
-      const initialRows = {};
-      const initialFlags = {};
-      b.items.forEach((item) => {
-        initialRows[item.id] = { ...item };
-        initialFlags[item.id] = item.match_status !== "unmatched";
-      });
-      setRows(initialRows);
-      setApplyFlags(initialFlags);
+    setError(null);
+    setWaitSeconds(0);
+    autoFallbackTriggeredRef.current = false;
+    api.getBill(billId).then(hydrateBill).catch((err) => {
+      setError(err.message || "Failed to load bill");
     });
-  }, [billId]);
+  }, [billId, hydrateBill]);
+
+  const handleProcessNow = useCallback(async () => {
+    setProcessingInline(true);
+    setError(null);
+    try {
+      const updated = await api.processBillNow(billId);
+      hydrateBill(updated);
+    } catch (err) {
+      setError(err.message || "Failed to process bill");
+    } finally {
+      setProcessingInline(false);
+    }
+  }, [billId, hydrateBill]);
+
+  // Live status polling + elapsed timer while bill is queued or processing OCR
+  const isLivePending = bill && (bill.status === "queued" || bill.status === "processing");
+  useEffect(() => {
+    if (!isLivePending) return;
+    let cancelled = false;
+
+    const tickTimer = setInterval(() => {
+      setWaitSeconds((s) => s + 1);
+    }, 1000);
+
+    const pollTimer = setInterval(async () => {
+      try {
+        const st = await api.getBillStatus(billId);
+        if (cancelled) return;
+        if (st.status !== bill.status) {
+          setBill((prev) => (prev ? { ...prev, status: st.status, ocr_confidence: st.ocr_confidence, processing_error: st.processing_error } : prev));
+        }
+        if (st.status !== "queued" && st.status !== "processing") {
+          const full = await api.getBill(billId);
+          if (!cancelled) hydrateBill(full);
+        }
+      } catch {
+        // Retry silently on transient poll errors
+      }
+    }, 1500);
+
+    return () => {
+      cancelled = true;
+      clearInterval(tickTimer);
+      clearInterval(pollTimer);
+    };
+  }, [billId, isLivePending, bill?.status, hydrateBill]);
+
+  // If background worker hasn't picked up a queued bill after 6s, auto-run inline OCR recovery once
+  useEffect(() => {
+    if (
+      bill?.status === "queued" &&
+      waitSeconds >= 6 &&
+      !processingInline &&
+      !autoFallbackTriggeredRef.current
+    ) {
+      autoFallbackTriggeredRef.current = true;
+      handleProcessNow();
+    }
+  }, [bill?.status, waitSeconds, processingInline, handleProcessNow]);
 
   function updateField(itemId, field, value) {
     setRows((prev) => ({ ...prev, [itemId]: { ...prev[itemId], [field]: value } }));
@@ -488,6 +562,7 @@ export default function ReviewBill() {
         bill_id: Number(billId),
         items,
         invoice_no: invoiceNo || null,
+        invoice_date: invoiceDate || null,
         distributor_name: distributorName || null,
       });
       setChangeSummary(summary);
@@ -503,7 +578,134 @@ export default function ReviewBill() {
     }
   }
 
-  if (!bill) return <div className="skeleton" style={{ height: "100vh" }}></div>;
+  if (!bill) {
+    if (error) {
+      return (
+        <div className="card" style={{ maxWidth: 600, margin: "40px auto", color: "var(--danger-text)", borderLeft: "4px solid var(--danger-text)" }}>
+          <strong>Unable to load bill:</strong> {error}
+        </div>
+      );
+    }
+    return <div className="skeleton" style={{ height: "100vh" }}></div>;
+  }
+
+  if (bill.status === "queued" || bill.status === "processing" || bill.status === "failed") {
+    const isFailed = bill.status === "failed";
+    const isProcessingNow = bill.status === "processing" || processingInline;
+    const steps = [
+      { title: "Invoice Received & File Prepared", desc: "Uploaded receipt / PDF converted into a high-DPI clean scan.", done: true },
+      { title: "Orientation & Noise Preprocessing", desc: "Auto-rotating page and sharpening text contrast.", done: isProcessingNow, active: !isFailed && bill.status === "queued" },
+      { title: "OCR & AI Table Extraction", desc: "Extracting medicine names, batches, expiry dates, qty, rate, MRP & GST%.", done: false, active: !isFailed && isProcessingNow },
+      { title: "Catalog Auto-Matching & Cost Math", desc: "Linking medicines to Kush Medical Hall master catalog.", done: false, active: false },
+    ];
+
+    return (
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} style={{ paddingBottom: "var(--space-10)" }}>
+        <div className="card" style={{ marginBottom: "var(--space-6)", padding: "var(--space-5)" }}>
+          <div className="flex-between" style={{ flexWrap: "wrap", gap: "var(--space-3)" }}>
+            <div>
+              <h2 style={{ margin: "0 0 4px", fontSize: "var(--text-2xl)", display: "flex", alignItems: "center", gap: 8 }}>
+                <FileText size={24} color="var(--primary-600)" />
+                {uploadMeta.filename ? `Processing ${uploadMeta.filename}` : `Processing Bill #${bill.id}`}
+              </h2>
+              <p style={{ margin: 0, fontSize: "var(--text-sm)", color: "var(--text-muted)" }}>
+                {isFailed
+                  ? "OCR processing stopped with an error. You can retry immediately below."
+                  : isProcessingNow
+                  ? "Running OCR and extracting medicine rows — this screen will update automatically."
+                  : "Waiting in background queue for OCR worker pickup..."}
+              </p>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <span className={`badge ${isFailed ? "unmatched" : isProcessingNow ? "learned" : "manual"}`} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                {!isFailed && <Loader size={12} className="spin" />}
+                {isFailed ? "Failed" : processingInline ? "Processing Now..." : bill.status === "processing" ? "Processing OCR" : `Queued (${waitSeconds}s)`}
+              </span>
+              <Link to="/upload" className="btn btn-secondary" style={{ textDecoration: "none" }}>
+                <ArrowLeft size={14} /> Upload Another
+              </Link>
+            </div>
+          </div>
+
+          {uploadMeta.duplicateWarning && (
+            <div style={{ background: "var(--warning-bg)", color: "var(--warning-text)", border: "1px solid var(--warning-border)", padding: "10px 14px", borderRadius: 8, fontSize: "var(--text-sm)", marginTop: "var(--space-4)", display: "flex", alignItems: "center", gap: 8 }}>
+              <AlertTriangle size={16} style={{ flexShrink: 0 }} />
+              <span>{uploadMeta.duplicateWarning}</span>
+            </div>
+          )}
+
+          {error && (
+            <div style={{ background: "var(--danger-bg)", color: "var(--danger-text)", border: "1px solid var(--danger-border)", padding: "10px 14px", borderRadius: 8, fontSize: "var(--text-sm)", marginTop: "var(--space-4)" }}>
+              <strong>Processing error:</strong> {error}
+            </div>
+          )}
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "minmax(340px, 1fr) minmax(380px, 1.15fr)", gap: "var(--space-6)", alignItems: "start" }}>
+          <BillImageViewer billId={bill.id} pickingField={null} onRegionSelected={() => {}} />
+
+          <div className="card" style={{ padding: "var(--space-6)" }}>
+            <h3 style={{ marginTop: 0, display: "flex", alignItems: "center", gap: 8 }}>
+              <Sparkles size={18} color="var(--primary-500)" /> Live Extraction Pipeline
+            </h3>
+
+            {isFailed ? (
+              <div style={{ background: "var(--danger-bg)", border: "1px solid var(--danger-border)", color: "var(--danger-text)", padding: "var(--space-4)", borderRadius: "var(--radius-md)", marginBottom: "var(--space-5)", fontSize: "var(--text-sm)" }}>
+                <strong>Pipeline stopped:</strong>
+                <pre style={{ whiteSpace: "pre-wrap", fontFamily: "var(--font-mono)", fontSize: 12, marginTop: 8, marginBottom: 0 }}>
+                  {bill.processing_error || "Unknown OCR processing failure."}
+                </pre>
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)", marginBottom: "var(--space-5)" }}>
+                {steps.map((s, idx) => (
+                  <div
+                    key={s.title}
+                    style={{
+                      display: "flex", alignItems: "flex-start", gap: 12, padding: "12px 14px",
+                      borderRadius: "var(--radius-md)", border: "1px solid var(--border-subtle)",
+                      background: s.active ? "var(--info-bg)" : s.done ? "var(--success-bg)" : "var(--bg-app)",
+                      color: s.active ? "var(--info-text)" : s.done ? "var(--success-text)" : "var(--text-muted)",
+                    }}
+                  >
+                    <div style={{ marginTop: 2 }}>
+                      {s.done ? <CheckCircle2 size={18} /> : s.active ? <Loader size={18} className="spin" /> : <Clock size={18} />}
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: "var(--text-sm)", color: s.active || s.done ? "inherit" : "var(--text-main)" }}>
+                        {idx + 1}. {s.title}
+                      </div>
+                      <div style={{ fontSize: "var(--text-xs)", opacity: 0.9, marginTop: 2 }}>{s.desc}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap", paddingTop: "var(--space-4)", borderTop: "1px solid var(--border-subtle)" }}>
+              <span style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)" }}>
+                {isFailed
+                  ? "Click Retry OCR Now to re-run extraction synchronously."
+                  : processingInline
+                  ? "Running synchronous OCR extraction directly on the API server..."
+                  : "Waiting for background Celery worker (auto-runs inline after 6s if delayed)."}
+              </span>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleProcessNow}
+                disabled={processingInline}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <RefreshCw size={15} className={processingInline ? "spin" : ""} />
+                {processingInline ? "Running OCR..." : isFailed ? "Retry OCR Now" : "Process OCR Immediately"}
+              </button>
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   if (stage === "done" && changeSummary) {
     return (
@@ -624,6 +826,15 @@ export default function ReviewBill() {
                   value={invoiceNo}
                   onChange={(e) => { setInvoiceNo(e.target.value); setIs409Error(false); }}
                   placeholder="e.g. INV-100234..."
+                />
+              </div>
+              <div style={{ flex: "0 1 180px", minWidth: 160 }}>
+                <label style={{ fontSize: "var(--text-xs)", color: "var(--text-muted)", display: "block", marginBottom: 4, fontWeight: 600, textTransform: "uppercase" }}>Invoice Date</label>
+                <input
+                  type="date"
+                  className="input"
+                  value={invoiceDate}
+                  onChange={(e) => setInvoiceDate(e.target.value)}
                 />
               </div>
             </div>

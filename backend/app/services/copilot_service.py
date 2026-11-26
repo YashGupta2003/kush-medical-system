@@ -6,7 +6,7 @@ by writing or executing arbitrary SQL, and never by answering from the
 model's own training-data "knowledge" for anything data-specific to this
 shop.
 
-Runs on Groq (fast inference over open-weight models like llama-3.3-70b-versatile)
+Runs on Groq (fast inference over open-weight models like openai/gpt-oss-120b)
 via the official `groq` Python SDK, which mirrors the OpenAI chat-completions
 interface - tool schemas use the standard OpenAI "type": "function" wrapper,
 and tool results are returned as role="tool" messages.

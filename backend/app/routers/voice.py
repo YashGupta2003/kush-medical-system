@@ -1,7 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, UploadFile, File, Request, HTTPException
 from sqlalchemy.orm import Session
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 import logging
 
 from app.core.rate_limit import limiter
@@ -20,7 +20,7 @@ router = APIRouter(prefix="/voice", tags=["voice"])
 class VoiceConfirmRequest(BaseModel):
     intent: str
     medicine_id: int
-    quantity: int
+    quantity: int = Field(..., ge=1)
 
 @router.post("/command")
 @limiter.limit(settings.rate_limit_voice)

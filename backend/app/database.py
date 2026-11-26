@@ -38,6 +38,7 @@ from sqlalchemy.orm import (
     with_loader_criteria,
     Session as SASession,
 )
+from sqlalchemy.pool import NullPool
 
 from app.config import settings
 from app.core.logging import get_logger
@@ -65,10 +66,24 @@ logger = get_logger("database")
 #                     not freeze the process.
 # ---------------------------------------------------------------------------
 if settings.database_url.startswith("sqlite"):
-    engine = create_engine(
-        settings.database_url,
-        connect_args={"check_same_thread": False},
-    )
+    is_memory_sqlite = ":memory:" in settings.database_url
+    sqlite_kwargs = {
+        "connect_args": {"check_same_thread": False, "timeout": 15},
+        "pool_pre_ping": True,
+    }
+    if not is_memory_sqlite:
+        # Never cache open file handles to disk SQLite across Celery worker processes
+        # (prevents stale unlinked inode reads after DB reset/restore and multi-process locks).
+        sqlite_kwargs["poolclass"] = NullPool
+    engine = create_engine(settings.database_url, **sqlite_kwargs)
+    if not is_memory_sqlite:
+        @event.listens_for(engine, "connect")
+        def _configure_sqlite_wal(dbapi_conn, connection_record):
+            cur = dbapi_conn.cursor()
+            cur.execute("PRAGMA journal_mode=WAL")
+            cur.execute("PRAGMA synchronous=NORMAL")
+            cur.execute("PRAGMA busy_timeout=5000")
+            cur.close()
 else:
     engine = create_engine(
         settings.database_url,

@@ -7,9 +7,9 @@ from app.deps import require_owner, get_current_user
 from app.services import trust_score_service
 from app import schemas, models
 
-router = APIRouter(prefix="/trust-score", dependencies=[Depends(require_owner)], tags=["trust-score"])
+router = APIRouter(prefix="/trust-score", tags=["trust-score"])
 
-@router.get("/distributors")
+@router.get("/distributors", dependencies=[Depends(require_owner)])
 def compute_all_distributor_scores(db: Session = Depends(get_db)):
     """Compute and return trust scores for all distributors."""
     try:
@@ -17,7 +17,7 @@ def compute_all_distributor_scores(db: Session = Depends(get_db)):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/distributors/{distributor_id}")
+@router.get("/distributors/{distributor_id}", dependencies=[Depends(require_owner)])
 def compute_trust_score(
     distributor_id: int, 
     medicine_id: Optional[int] = None, 
@@ -29,7 +29,7 @@ def compute_trust_score(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/batch-collisions")
+@router.get("/batch-collisions", dependencies=[Depends(require_owner)])
 def detect_batch_collisions(
     days: int = Query(365, ge=1), 
     db: Session = Depends(get_db)
@@ -40,7 +40,7 @@ def detect_batch_collisions(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/medicine/{medicine_id}/rate-consistency")
+@router.get("/medicine/{medicine_id}/rate-consistency", dependencies=[Depends(require_owner)])
 def compute_rate_consistency(
     medicine_id: int, 
     db: Session = Depends(get_db)

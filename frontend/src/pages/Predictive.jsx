@@ -27,10 +27,15 @@ function ForecastTab() {
   const [medicine, setMedicine] = useState(null);
   const [forecast, setForecast] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     if (query.trim().length < 2) { setResults([]); return; }
-    const t = setTimeout(() => api.browseMedicines({ q: query, page: 1, page_size: 8 }).then((d) => setResults(d.items)), 250);
+    const t = setTimeout(() => {
+      api.browseMedicines({ q: query, page: 1, page_size: 8 })
+        .then((d) => setResults(d.items || []))
+        .catch(() => setResults([]));
+    }, 250);
     return () => clearTimeout(t);
   }, [query]);
 
@@ -38,7 +43,14 @@ function ForecastTab() {
     setMedicine(m);
     setQuery(""); setResults([]);
     setLoading(true);
-    api.getDemandForecast(m.id, 14, 180).then(setForecast).finally(() => setLoading(false));
+    setError(null);
+    api.getDemandForecast(m.id, 14, 180)
+      .then(setForecast)
+      .catch((err) => {
+        setForecast(null);
+        setError(err.message || "Failed to load demand forecast");
+      })
+      .finally(() => setLoading(false));
   }
 
   const meta = forecast ? (METHOD_META[forecast.method] || { label: forecast.method, badge: "manual" }) : null;
@@ -81,6 +93,12 @@ function ForecastTab() {
           </div>
         )}
       </div>
+
+      {error && (
+        <div className="card" style={{ borderLeft: "4px solid var(--danger-text)", color: "var(--danger-text)", marginBottom: "var(--space-4)" }}>
+          <strong>Forecast unavailable:</strong> {error}
+        </div>
+      )}
 
       {loading && (
         <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-8)" }}>
@@ -133,12 +151,16 @@ function ForecastTab() {
 function ExplainButton({ anomaly }) {
   const [explanation, setExplanation] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
   async function handleExplain() {
     setLoading(true);
+    setError(null);
     try {
       const res = await api.explainAnomaly(anomaly);
       setExplanation(res.explanation);
+    } catch (err) {
+      setError(err.message || "Could not generate explanation");
     } finally {
       setLoading(false);
     }
@@ -162,9 +184,12 @@ function ExplainButton({ anomaly }) {
     );
   }
   return (
-    <button className="btn btn-ghost" style={{ marginTop: "var(--space-2)", fontSize: "var(--text-xs)", padding: "4px 10px", display: "inline-flex" }} onClick={handleExplain} disabled={loading}>
-      {loading ? <Activity size={14} style={{ animation: "spin 2s linear infinite" }} /> : <><Sparkles size={14} /> Explain with AI</>}
-    </button>
+    <div>
+      {error && <p style={{ color: "var(--danger-text)", fontSize: "var(--text-xs)", marginTop: "var(--space-2)" }}>{error}</p>}
+      <button className="btn btn-ghost" style={{ marginTop: "var(--space-2)", fontSize: "var(--text-xs)", padding: "4px 10px", display: "inline-flex" }} onClick={handleExplain} disabled={loading}>
+        {loading ? <Activity size={14} style={{ animation: "spin 2s linear infinite" }} /> : <><Sparkles size={14} /> Explain with AI</>}
+      </button>
+    </div>
   );
 }
 
@@ -172,10 +197,12 @@ function AnomalyTab() {
   const [priceJumps, setPriceJumps] = useState(null);
   const [stockAdj, setStockAdj] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     Promise.all([api.getPriceJumpAnomalies(180), api.getStockAdjustmentAnomalies(90)])
       .then(([p, s]) => { setPriceJumps(p); setStockAdj(s); })
+      .catch((err) => setError(err.message || "Failed to load anomaly telemetry"))
       .finally(() => setLoading(false));
   }, []);
 
@@ -183,6 +210,12 @@ function AnomalyTab() {
     <div style={{ display: "flex", flexDirection: "column", alignItems: "center", padding: "var(--space-10)" }}>
       <Activity size={32} color="var(--primary-500)" style={{ animation: "spin 2s linear infinite", marginBottom: "var(--space-4)" }} />
       <p style={{ color: "var(--text-muted)" }}>Scanning operational ledger for statistical deviations...</p>
+    </div>
+  );
+
+  if (error || !priceJumps || !stockAdj) return (
+    <div className="card" style={{ borderLeft: "4px solid var(--danger-text)", color: "var(--danger-text)" }}>
+      <strong>Failed to load anomalies:</strong> {error || "Unavailable"}
     </div>
   );
 

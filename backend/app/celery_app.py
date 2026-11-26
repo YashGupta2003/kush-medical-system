@@ -30,6 +30,7 @@ Priority 2d addition:
 """
 from celery import Celery
 from celery.schedules import crontab
+from celery.signals import worker_process_init
 
 from app.config import settings
 
@@ -190,3 +191,24 @@ celery_app.conf.update(
 )
 
 import app.services.tasks  # noqa: E402,F401
+
+
+@worker_process_init.connect
+def _ensure_spawn_worker_trace_localized(**kwargs):
+    """Initialize fast_trace_task localization and tracers in macOS spawn workers.
+
+    On macOS, billiard uses ``spawn`` (``SpawnPoolWorker``) without setting
+    ``FORKED_BY_MULTIPROCESSING``, leaving ``celery.app.trace._localized`` empty
+    and ``task.__trace__`` unbuilt in child processes, which causes ``fast_trace_task``
+    to crash on task execution.
+    """
+    from celery.app import trace
+
+    if not trace._localized:
+        trace.setup_worker_optimizations(celery_app)
+    hostname = trace._localized[2] if len(trace._localized) >= 3 else None
+    for name, task in celery_app.tasks.items():
+        if getattr(task, "__trace__", None) is None:
+            task.__trace__ = trace.build_tracer(
+                name, task, celery_app.loader, hostname, app=celery_app
+            )

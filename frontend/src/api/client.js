@@ -84,7 +84,9 @@ export async function apiFetch(path, options = {}) {
       }
       if (!retryRes.ok) {
         const body = await retryRes.json().catch(() => ({}));
-        throw new Error(body.detail || `Request failed (${retryRes.status})`);
+        const err = new Error(body.detail || `Request failed (${retryRes.status})`);
+        err.status = retryRes.status;
+        throw err;
       }
       if (retryRes.status === 204) return null;
       const ct = retryRes.headers.get("content-type") || "";
@@ -97,7 +99,9 @@ export async function apiFetch(path, options = {}) {
   }
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `Request failed (${res.status})`);
+    const err = new Error(body.detail || `Request failed (${res.status})`);
+    err.status = res.status;
+    throw err;
   }
   if (res.status === 204) return null;
   const contentType = res.headers.get("content-type") || "";
@@ -134,6 +138,7 @@ export const api = {
   uploadBillsBatch: (formData) => apiFetch("/bills/upload-batch", { method: "POST", body: formData }),
   getBillStatus: (id) => apiFetch(`/bills/${id}/status`),
   getBill: (id) => apiFetch(`/bills/${id}`),
+  processBillNow: (id) => apiFetch(`/bills/${id}/process-now`, { method: "POST" }),
   getBillImageUrl: (id) => `${BASE}/bills/${id}/image?token=${encodeURIComponent(getToken() || "")}`,
   listBills: (params = {}) => {
     const qs = new URLSearchParams(params).toString();
@@ -151,6 +156,7 @@ export const api = {
     if (q) params.set("q", q);
     return apiFetch(`/medicines?${params.toString()}`);
   },
+  getMedicine: (id) => apiFetch(`/medicines/${id}`),
   createMedicine: (payload) => apiFetch("/medicines", { method: "POST", ...jsonBody(payload) }),
   getMedicineHistory: (id) => apiFetch(`/medicines/${id}/history`),
   lookupBarcode: (code) => apiFetch(`/medicines/barcode/${encodeURIComponent(code)}`),
@@ -224,6 +230,14 @@ export const api = {
   // Alias kept for any other callers using the old name
   recordStockAdjustment: (medicineId, newTotalStock, note) =>
     apiFetch("/stock/adjustments", { method: "POST", ...jsonBody({ medicine_id: medicineId, new_total_stock: newTotalStock, note }) }),
+  getStockLedger: ({ page = 1, page_size = 50 } = {}) =>
+    apiFetch(`/stock/ledger?${new URLSearchParams({ page, page_size }).toString()}`),
+  getSmartReorder: (windowDays = 30) =>
+    apiFetch(`/stock/smart-reorder?window_days=${windowDays}`),
+  applySmartThreshold: (medicineId) =>
+    apiFetch(`/stock/medicine/${medicineId}/smart-threshold/apply`, { method: "POST" }),
+  updateLeadTime: (medicineId, leadTimeDays) =>
+    apiFetch(`/stock/medicine/${medicineId}/lead-time`, { method: "PATCH", ...jsonBody({ lead_time_days: leadTimeDays }) }),
 
 
   // --- Expiry tracking ---

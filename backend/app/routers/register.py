@@ -11,16 +11,18 @@ verification) so the shop can start the Setup Wizard (medicine import) without
 waiting for email. The email_verified flag is a separate UX gate — unverified
 accounts are fully functional but a banner reminds them to verify.
 """
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Response
 from app.core.rate_limit import limiter
 from app.config import settings
 from fastapi import Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from typing import Optional
 
 from app.database import get_db
 from app import models
+from app.routers.auth import _is_https_request
 from app.services.tenant_service import create_tenant_with_owner, verify_tenant_email
 from app.services.auth_service import create_access_token, create_refresh_token
 
@@ -53,7 +55,7 @@ class RegistrationResponse(BaseModel):
 
 @router.post("", response_model=RegistrationResponse, summary="Register a new pharmacy")
 @limiter.limit(settings.rate_limit_setup)
-def register_shop(request: Request, payload: ShopRegistrationRequest, db: Session = Depends(get_db)):
+def register_shop(request: Request, response: Response, payload: ShopRegistrationRequest, db: Session = Depends(get_db)):
     """
     Register a new pharmacy on the platform.
     Creates a Tenant + Owner User and returns JWT tokens for immediate access.
@@ -73,6 +75,14 @@ def register_shop(request: Request, payload: ShopRegistrationRequest, db: Sessio
 
     access_token = create_access_token(owner)
     refresh_token = create_refresh_token(db, owner)
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=True,
+        secure=_is_https_request(request),
+        samesite="strict",
+        max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
+    )
 
     return RegistrationResponse(
         access_token=access_token,
@@ -107,18 +117,18 @@ def lookup_tenant(payload: dict, db: Session = Depends(get_db)):
     Given an email or username, returns the tenant slug so the frontend knows which shop
     is logging in. Used by the login form to pre-fill shop context.
     """
-    identifier = payload.get("email", "").strip()
+    identifier = (payload.get("email") or "").strip()
     if not identifier:
         raise HTTPException(400, "email or username is required")
         
     # Try by tenant email (globally unique identifier).
-    tenant = db.query(models.Tenant).filter(models.Tenant.email == identifier.lower()).first()
+    tenant = db.query(models.Tenant).filter(func.lower(models.Tenant.email) == identifier.lower()).first()
 
     # Fallback to username only when it uniquely identifies a tenant. Usernames
     # are tenant-scoped, so the same username may exist in different shops; in
     # that case we must not guess a tenant (and must not leak ambiguity).
     if not tenant:
-        users = db.query(models.User).filter(models.User.username == identifier).all()
+        users = db.query(models.User).filter(func.lower(models.User.username) == identifier.lower()).all()
         tenant_ids = {u.tenant_id for u in users if u.tenant_id is not None}
         if len(tenant_ids) == 1:
             tenant = db.get(models.Tenant, next(iter(tenant_ids)))

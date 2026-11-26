@@ -56,6 +56,11 @@ def create_tenant_with_owner(
     4. Generate email verification token
     Returns (tenant, user, verification_token) — caller sends the verification email.
     """
+    # Normalize email cleanly before checking uniqueness and setting username
+    email = email.strip().lower()
+    if len(email) > 50:
+        raise HTTPException(400, "Email address must be 50 characters or fewer (used as owner username).")
+
     # Check email not already taken (email is the global login identifier)
     existing = db.query(models.Tenant).filter(models.Tenant.email == email).first()
     if existing:
