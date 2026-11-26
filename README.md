@@ -1,21 +1,17 @@
-<div align="center">
-
 # PharmOs
 
 ### Clinical-Grade AI Operating System for Retail Pharmacies
 
 **Document AI Invoice Digitization · Adaptive Distributor Memory · PharmaGraph Clinical Guardrails · Tool-Calling PharmaCopilot · Privacy-Preserving Regional Pulse**
 
-[![Backend](https://img.shields.io/badge/FastAPI-0.115.0-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
-[![Frontend](https://img.shields.io/badge/React-18.3_+_Vite_5.4-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
-[![ORM](https://img.shields.io/badge/SQLAlchemy-2.0.35_+_Alembic-D71F00?style=flat-square)](https://www.sqlalchemy.org/)
-[![Async](https://img.shields.io/badge/Celery_5.4-Redis_5.0-37814A?style=flat-square&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
-[![AI](https://img.shields.io/badge/Groq_+_Gemini-Vision_+_Tesseract-4F46E5?style=flat-square)](https://console.groq.com/)
-[![Tests](https://img.shields.io/badge/Automated_Suite-Pytest_+_Vitest-10B981?style=flat-square)](#testing--verification)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115.0-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React + Vite](https://img.shields.io/badge/React-18.3_%2B_Vite_5.4-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![SQLAlchemy + Alembic](https://img.shields.io/badge/SQLAlchemy-2.0.35_%2B_Alembic-D71F00?style=flat-square)](https://www.sqlalchemy.org/)
+[![Celery + Redis](https://img.shields.io/badge/Celery_5.4-Redis_5.0-37814A?style=flat-square&logo=celery&logoColor=white)](https://docs.celeryq.dev/)
+[![AI Stack](https://img.shields.io/badge/Groq_%2B_Gemini-Vision_%2B_Tesseract-4F46E5?style=flat-square)](https://console.groq.com/)
+[![Automated Suite](https://img.shields.io/badge/Automated_Suite-Pytest_%2B_Vitest-10B981?style=flat-square)](#testing--verification)
 
 [Why PharmOs?](#why-pharmos) · [Live UI Showcase](#live-interface-showcase) · [Architecture](#system-architecture) · [Core Pipelines](#core-data--intelligence-pipelines) · [Feature Pillars](#seven-functional-pillars) · [Project Structure](#project-structure) · [Quickstart](#quickstart--local-demo)
-
-</div>
 
 ---
 
@@ -38,7 +34,7 @@ Traditional retail pharmacy ERPs are **passive ledgers**: staff type multi-page 
 
 ## Live Interface Showcase
 
-All screenshots below are rendered directly from the live multi-tenant **Kush Medical Hall** environment (`620` seeded medicines, `15,756` substitute links, verified audit ledger).
+All screenshots below are captured directly from the live multi-tenant **Kush Medical Hall** environment (`620` seeded medicines, `15,756` substitute links, verified audit ledger).
 
 ### 1. Dual-Theme Landing & Interactive Clinical POS Workbench
 
@@ -68,49 +64,9 @@ Uploading a purchase invoice redirects directly to `/review/:billId` while backg
 
 PharmOs separates tenant-isolated transactional state from heavy document OCR, graph inference, and statistical forecasting using an event-driven architecture that works cleanly both with full **Redis + Celery** workers and in lightweight single-process **Eager Mode** for local showcases.
 
-```mermaid
-flowchart TD
-    Client["React 18 + Vite 5 SPA (32 Pages, Recharts, Framer Motion, html5-qrcode)"]
+![PharmOs System Architecture](docs/diagrams/01-system-architecture.png)
 
-    subgraph API["FastAPI Gateway (/v1 across 34 Domain Routers)"]
-        direction LR
-        Auth["JWT Auth + RBAC (OWNER, MANAGER, STAFF)"]
-        RL["SlowAPI Rate Limiter + Security Headers"]
-        Tenant["Session-Scoped Multi-Tenant ORM Isolation"]
-    end
-
-    subgraph Async["Event & Worker Plane"]
-        direction LR
-        Bus["In-Process EventBus (BillUploadedEvent)"]
-        Celery["Celery 5.4 + Redis 5.0 Worker (or Eager Sync Fallback)"]
-    end
-
-    subgraph Engines["Core Intelligence Engines"]
-        direction LR
-        DocAI["Document AI + ADM (PyMuPDF, OpenCV, Vision, Tesseract, Groq)"]
-        Graph["PharmaGraph Engine (CONTAINS, SUBSTITUTES, INTERACTS_WITH, TREATS)"]
-        Copilot["PharmaCopilot 19 Tools (Groq) + Voice Engine (Gemini Flash Lite)"]
-        ML["Quant ML (Holt-Winters Forecast + Isolation Forest Anomalies)"]
-        Integrity["TrustChain SHA-256 Ledger + Cross-Tenant Collisions + k>=3 Pulse"]
-    end
-
-    subgraph Store["Persistence & Observability"]
-        direction LR
-        DB["SQLAlchemy 2.0 + Alembic (SQLite / MySQL / PostgreSQL)"]
-        Files["Encrypted & Tenant-Scoped Bill Storage (backend/uploads)"]
-        Obs["Prometheus Metrics + Sentry Error Tracking + Audit Trail"]
-    end
-
-    Client -->|"HTTPS / REST JSON + Multipart"| API
-    API --> Bus
-    Bus --> Celery
-    API --> Engines
-    Celery --> DocAI
-    DocAI --> DB
-    DocAI --> Files
-    Engines --> DB
-    API --> Obs
-```
+*Editable source: [01-system-architecture.mmd](docs/diagrams/01-system-architecture.mmd)*
 
 ---
 
@@ -120,141 +76,61 @@ flowchart TD
 
 Uploading one or more bills triggers non-blocking extraction while immediately navigating to the live status reviewer (`/review/:billId`).
 
-```mermaid
-sequenceDiagram
-    actor User as Pharmacist
-    participant UI as React Upload and Review UI
-    participant API as FastAPI (/v1/bills)
-    participant Worker as Celery Worker or Sync Task
-    participant OCR as PyMuPDF + OpenCV + Vision or Tesseract
-    participant AI as ADM + Parser + RapidFuzz + Cost Calc
-    participant DB as Multi-Tenant DB and TrustChain
+![Document AI Invoice Ingestion and ADM Sequence Diagram](docs/diagrams/02-invoice-ai-pipeline.png)
 
-    User->>UI: Drop PDF or Photo invoice
-    UI->>API: POST /v1/bills/upload
-    API->>DB: Store Bill (QUEUED) and publish BillUploadedEvent
-    API-->>UI: Return bill_id (200 OK)
-    UI->>UI: Immediate redirect to /review/billId
-    loop Poll every 1.2s until parsed or failed
-        UI->>API: GET /v1/bills/id/status
-    end
-    Worker->>OCR: Rasterize PDF (PyMuPDF) -> Crop, Deskew, Threshold (OpenCV)
-    OCR->>OCR: Run Google Cloud Vision (auto-fallback to Tesseract --psm 6)
-    OCR->>AI: Raw OCR text + word bounding boxes
-    AI->>AI: Inject ADM DistributorBillTemplate hints + Groq or Regex line parser
-    AI->>AI: RapidFuzz catalog match + Landed Cost per unit calculation
-    AI->>DB: Persist BillItems + OCR boxes (NEEDS_REVIEW)
-    User->>UI: Verify quantities, batch, expiry and GST side-by-side
-    User->>API: POST /v1/bills/id/confirm
-    API->>DB: Commit FEFO Stock Batches + Update ADM Template and UserMapping
-    API->>DB: Append SHA-256 TrustChain entry + Check Cross-Tenant Collision and Price Anomalies
-```
+*Editable source: [02-invoice-ai-pipeline.mmd](docs/diagrams/02-invoice-ai-pipeline.mmd)*
 
 ### 2. PharmaGraph Clinical Safety & POS Guardrails
 
 Rather than relying on fragile text matching, every SKU is normalized into pharmaceutical salt components and typed knowledge-graph edges.
 
-```mermaid
-flowchart LR
-    SKU["Medicine Catalog SKU"] --> Salt["Composition Parser (composition_service)"]
-    Interactions["drug_interactions.json"] --> Graph
-    Conditions["salt_conditions.json"] --> Graph
-    Bills["Verified Purchase Bills"] --> Supplies["SUPPLIES Edges"]
+![PharmaGraph Clinical Knowledge Graph Flow](docs/diagrams/03-pharmagraph-pos-safety.png)
 
-    Salt --> Graph["PharmaGraph Service"]
-    Supplies --> Graph
-
-    Graph --> CONTAINS["CONTAINS (Medicine to Salt)"]
-    Graph --> SUBSTITUTES["SUBSTITUTES (Equivalent Salt Blend)"]
-    Graph --> INTERACTS["INTERACTS_WITH (DDI Severity Pairs)"]
-    Graph --> TREATS["TREATS (Indication Mapping)"]
-
-    CONTAINS --> POS["Point of Sale Clinical Guardrails"]
-    INTERACTS --> POS
-    SUBSTITUTES --> SubView["Substitutes & Graph Explorer UI"]
-    TREATS --> Symptom["Symptom Reference Lookup"]
-```
+*Editable source: [03-pharmagraph-pos-safety.mmd](docs/diagrams/03-pharmagraph-pos-safety.mmd)*
 
 ### 3. Privacy-Preserving K-Anonymous Regional Pulse (`k >= 3`)
 
 Neighborhood disease surge intelligence aggregates anonymized daily dispensing counts **only when at least 3 independent pharmacies report in a region**, guaranteeing zero exposure of patient identities or shop revenue.
 
-```mermaid
-flowchart LR
-    T1["Tenant A Dispensing (DELHI_NORTH)"] --> DeID["De-identified Salt Category Signals"]
-    T2["Tenant B Dispensing (DELHI_NORTH)"] --> DeID
-    T3["Tenant C Dispensing (DELHI_NORTH)"] --> DeID
+![Privacy-Preserving K-Anonymous Regional Pulse Flow](docs/diagrams/04-regional-pulse-privacy.png)
 
-    DeID --> Daily["SurveillanceDailyCount Bucket"]
-    Daily --> Gate{"Independent Shop Count >= 3?"}
-    Gate -->|"Yes (Privacy Met)"| Snap["RegionHeatmapSnapshot + Category Surge Z-Score"]
-    Gate -->|"No (Suppressed)"| Block["Hold Back Granular Cell to Protect Tenant Identity"]
-    Snap --> Radar["Regional Pulse & Outbreak Radar UI"]
-```
+*Editable source: [04-regional-pulse-privacy.mmd](docs/diagrams/04-regional-pulse-privacy.mmd)*
 
 ---
 
 ## Seven Functional Pillars
 
-<details open>
-<summary><strong>1. Document AI & Adaptive Distributor Memory (ADM)</strong> — Zero-rekeying purchase bill pipeline</summary>
-
+### 1. Document AI & Adaptive Distributor Memory (ADM)
 - **Hybrid Image Preprocessing (`image_preprocessing.py`):** Renders multi-page PDFs with `PyMuPDF` (`pymupdf`) and stabilizes photographed bills with `OpenCV` grayscale conversion, adaptive thresholding, and deskewing.
 - **Resilient OCR Cascade (`ocr_service.py`):** Prefers Google Cloud Vision `DOCUMENT_TEXT_DETECTION` with full bounding-box polygons and falls back seamlessly to local `Tesseract --psm 6` when GCP credentials or billing are absent.
 - **Line-Item Parsing & Matching (`bill_parser.py`, `matcher.py`):** Combines distributor template hints, Groq LLM structured extraction, regex fallbacks, and `RapidFuzz` similarity scoring against the tenant medicine catalog.
 - **Adaptive Distributor Memory (`distributor_memory_service.py`):** Every confirmed invoice persists vendor layout fingerprints (`DistributorBillTemplate`) and SKU aliases (`UserMapping`), improving extraction confidence on repeat vendor deliveries.
 - **Instant Upload UX (`UploadBill.jsx` -> `ReviewBill.jsx`):** Uploading redirects directly to `/review/:billId`, renders PDF/image previews with bounding-box overlays, and flags low-confidence fields.
 
-</details>
-
-<details>
-<summary><strong>2. PharmaGraph Clinical Safety & POS Guardrails</strong> — Dispensing protection at checkout</summary>
-
+### 2. PharmaGraph Clinical Safety & POS Guardrails
 - **Typed Knowledge Graph (`graph_service.py`):** Builds and serves 5 relationship types (`CONTAINS`, `SUBSTITUTES`, `INTERACTS_WITH`, `TREATS`, `SUPPLIES`) across salts, products, conditions, and distributors (`620` medicines and `15,756` substitute links in the Kush Medical Hall demo dataset).
 - **Live POS Cart Guardrails (`pos_service.py`, `PointOfSale.jsx`):** Automatically assigns **FEFO** (First-Expired-First-Out) batches, warns on duplicate active ingredients across different brand names (e.g. *Dolo 650* + *Combiflam*), and flags severe drug-drug interactions (e.g. *Aspirin* + *Warfarin*) before checkout completes.
 - **Interactive Visualization & Barcode Scanning (`GraphExplorer.jsx`, `Substitutes.jsx`, `BarcodeScan.jsx`):** Visualizes salt-level connections, finds same-composition therapeutic equivalents, and supports camera barcode checkout via `html5-qrcode`.
 
-</details>
-
-<details>
-<summary><strong>3. PharmaCopilot & Multimodal Voice Commands</strong> — Conversational shop intelligence</summary>
-
+### 3. PharmaCopilot & Multimodal Voice Commands
 - **Tool-Calling Operations Copilot (`copilot_service.py`, `Copilot.jsx`):** Powered by Groq (`openai/gpt-oss-120b`), orchestrating **19 live database tools** spanning stock status, expiry risk, GST summaries, sales velocity, substitute lookup, anomaly review, TrustChain checks, and smart purchase planning—without hallucinating numbers outside the tenant database.
 - **Voice-First Intent Execution (`voice_command_service.py`, `voice.py`):** Uses Google GenAI (`gemini-3.5-flash-lite` primary with `gemini-3.8-flash` fallback) for multilingual audio/text pharmacy command parsing across checkout, stock search, and reporting workflows.
 
-</details>
-
-<details>
-<summary><strong>4. Quantitative ML Forecasting & Anomaly Detection</strong> — Proactive margin defense</summary>
-
+### 4. Quantitative ML Forecasting & Anomaly Detection
 - **Demand & Reorder Forecasting (`forecast_service.py`, `reorder_intelligence.py`, `Predictive.jsx`):** Uses `statsmodels` Holt-Winters seasonal smoothing (with automatic flat-average fallback on short series) to project consumption and generate optimal reorder quantities in `SmartPurchase.jsx`.
 - **Purchase Price Anomaly & Margin Optimizer (`anomaly_service.py`, `anomaly_explainer_service.py`, `profit_analytics_service.py`, `ProfitOptimizer.jsx`):** Employs `scikit-learn` Isolation Forest scoring alongside historical landed-cost tracking to surface distributor price spikes, bonus/discount shifts, and highest-margin dispensing opportunities.
 
-</details>
-
-<details>
-<summary><strong>5. Inventory, FEFO Expiry, GST & Cold-Chain Operations</strong> — Daily retail compliance</summary>
-
+### 5. Inventory, FEFO Expiry, GST & Cold-Chain Operations
 - **FEFO Batch & Expiry Radar (`stock_service.py`, `expiry_service.py`, `Stock.jsx`, `Expiry.jsx`):** Tracks batch numbers, expiry dates (`expiry_parser.py`), near-expiry buckets (`30/60/90` days), and automated expiry alerts (`NotificationCenter.jsx`, optional Twilio WhatsApp hooks via `whatsapp_service.py`).
 - **GST Tax Slabs & Cold-Chain Telemetry (`gst_report_service.py`, `cold_chain_service.py`, `GstReport.jsx`, `ColdChain.jsx`):** Summarizes CGST/SGST and Interstate IGST input tax credits from verified distributor invoices and logs cold-chain vaccine/biologic storage excursions.
 
-</details>
-
-<details>
-<summary><strong>6. Tamper-Evident TrustChain & Cross-Tenant Integrity</strong> — Verifiable supply provenance</summary>
-
+### 6. Tamper-Evident TrustChain & Cross-Tenant Integrity
 - **Cryptographic Hash Chain (`trust_score_service.py`, `audit_service.py`, `TrustScore.jsx`, `AuditTrail.jsx`):** Computes chained **SHA-256** ledger hashes over verified procurement events so any silent post-confirmation quantity, rate, or GST tampering breaks chain verification cleanly.
 - **Cross-Tenant Duplicate Collision Guard (`cross_tenant_integrity_service.py`, `NetworkIntegrity.jsx`):** Detects suspicious duplicate distributor invoice numbers and file checksums across tenant boundaries without exposing proprietary pricing.
 
-</details>
-
-<details>
-<summary><strong>7. K-Anonymous Regional Pulse & Peer Pharmacy Network</strong> — Collective neighborhood intelligence</summary>
-
+### 7. K-Anonymous Regional Pulse & Peer Pharmacy Network
 - **Outbreak Surge Radar (`heatmap_service.py`, `surveillance_service.py`, `regional_health_service.py`):** Aggregates anonymized therapeutic demand patterns across nearby pharmacies strictly enforcing `k >= 3` independent shop participation before surfacing regional surges on `RegionalPulse.jsx`, `Surveillance.jsx`, and `RegionalHealth.jsx`.
 - **Peer Network & Emergency Stock (`network_service.py`, `Network.jsx`):** Enables neighboring verified pharmacies to surface mutual stock availability while maintaining strict tenant data isolation.
-
-</details>
 
 ---
 
@@ -315,6 +191,7 @@ PharmOs/
 │   └── 03_Apex_Lifecare_Interstate_IGST.pdf
 │
 ├── docs/
+│   ├── diagrams/                    # Rendered architecture PNGs and editable .mmd sources
 │   └── screenshots/                 # Live UI captures rendered in this README
 │
 ├── render.yaml                      # Multi-service deployment blueprint

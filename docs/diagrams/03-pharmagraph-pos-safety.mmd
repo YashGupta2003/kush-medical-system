@@ -1,0 +1,18 @@
+flowchart LR
+    SKU["Medicine Catalog SKU"] --> Salt["Composition Parser<br/>(composition_service)"]
+    Interactions["drug_interactions.json"] --> Graph
+    Conditions["salt_conditions.json"] --> Graph
+    Bills["Verified Purchase Bills"] --> Supplies["SUPPLIES Edges"]
+
+    Salt --> Graph["PharmaGraph Service"]
+    Supplies --> Graph
+
+    Graph --> CONTAINS["CONTAINS<br/>Medicine to Salt"]
+    Graph --> SUBSTITUTES["SUBSTITUTES<br/>Equivalent Salt Blend"]
+    Graph --> INTERACTS["INTERACTS_WITH<br/>DDI Severity Pairs"]
+    Graph --> TREATS["TREATS<br/>Indication Mapping"]
+
+    CONTAINS --> POS["POS Clinical Guardrails<br/>Duplicate Salt + DDI Warnings"]
+    INTERACTS --> POS
+    SUBSTITUTES --> SubView["Substitutes &<br/>Graph Explorer UI"]
+    TREATS --> Symptom["Symptom Reference<br/>Lookup"]

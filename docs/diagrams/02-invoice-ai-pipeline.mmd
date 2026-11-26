@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor User as Pharmacist
+    participant UI as React Upload & Review UI
+    participant API as FastAPI (/v1/bills)
+    participant Worker as Celery / Sync Worker
+    participant OCR as PyMuPDF + OpenCV + OCR
+    participant AI as ADM + Parser + Cost Calc
+    participant DB as Multi-Tenant DB & TrustChain
+
+    User->>UI: Drop PDF or photo invoice
+    UI->>API: POST /v1/bills/upload
+    API->>DB: Store Bill (QUEUED) & publish BillUploadedEvent
+    API-->>UI: Return bill_id (200 OK)
+    UI->>UI: Immediate redirect to /review/:billId
+    loop Poll every 1.2s until complete
+        UI->>API: GET /v1/bills/{id}/status
+    end
+    Worker->>OCR: Rasterize PDF (PyMuPDF) -> OpenCV crop/deskew
+    OCR->>OCR: Cloud Vision (auto-fallback Tesseract --psm 6)
+    OCR->>AI: Raw OCR text + word bounding boxes
+    AI->>AI: Inject ADM layout hints + Groq / Regex parser
+    AI->>AI: RapidFuzz SKU match + Net Landed Cost calculation
+    AI->>DB: Persist BillItems + OCR boxes (NEEDS_REVIEW)
+    User->>UI: Verify qty, free units, batch, expiry & GST
+    User->>API: POST /v1/bills/{id}/confirm
+    API->>DB: Commit FEFO Batches + Update ADM & UserMapping
+    API->>DB: Append SHA-256 TrustChain + Scan Collisions & Anomalies

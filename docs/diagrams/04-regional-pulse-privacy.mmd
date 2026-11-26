@@ -1,0 +1,10 @@
+flowchart LR
+    T1["Tenant A Dispensing<br/>(DELHI_NORTH)"] --> DeID["De-identified Salt<br/>Category Signals"]
+    T2["Tenant B Dispensing<br/>(DELHI_NORTH)"] --> DeID
+    T3["Tenant C Dispensing<br/>(DELHI_NORTH)"] --> DeID
+
+    DeID --> Daily["SurveillanceDailyCount<br/>Bucket"]
+    Daily --> Gate{"Independent Shop<br/>Count >= 3?"}
+    Gate -->|"Yes (Privacy Met)"| Snap["RegionHeatmapSnapshot<br/>+ Surge Z-Score"]
+    Gate -->|"No (Suppressed)"| Block["Hold Back Granular Cell<br/>Protect Tenant Identity"]
+    Snap --> Radar["Regional Pulse &<br/>Outbreak Radar UI"]

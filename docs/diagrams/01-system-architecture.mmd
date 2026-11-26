@@ -1,0 +1,40 @@
+flowchart TD
+    Client["React 18.3 + Vite 5.4 SPA<br/>32 Pages · Recharts · Framer Motion · html5-qrcode"]
+
+    subgraph API["FastAPI /v1 Gateway"]
+        direction LR
+        RL["SlowAPI Rate Limiter<br/>& Security Headers"]
+        Auth["JWT Auth + RBAC<br/>OWNER · MANAGER · STAFF"]
+        Tenant["Session-Scoped<br/>Multi-Tenant ORM"]
+        RL --> Auth --> Tenant
+    end
+
+    Bus["EventBus + Celery 5.4 / Redis 5.0 Worker<br/>BillUploadedEvent · Async Queue or Eager Sync Fallback"]
+
+    subgraph Engines["Intelligence Engines"]
+        direction LR
+        DocAI["Document AI + ADM<br/>PyMuPDF · OpenCV · Vision · Tesseract"]
+        Graph["PharmaGraph Clinical<br/>CONTAINS · SUBSTITUTES · INTERACTS"]
+        Copilot["PharmaCopilot & Voice<br/>Groq 19 Tools · Gemini Flash Lite"]
+        MLTrust["Quant ML & TrustChain<br/>Holt-Winters · Isolation Forest · SHA-256 · k>=3"]
+    end
+
+    subgraph Store["Data & Observability"]
+        direction LR
+        DB[("SQLAlchemy 2.0 + Alembic<br/>SQLite · MySQL · PostgreSQL")]
+        Files["Tenant-Scoped Storage<br/>backend/uploads"]
+        Obs["Prometheus Metrics<br/>Sentry · Audit Trail"]
+    end
+
+    Client -->|"HTTPS / REST JSON + Multipart"| RL
+    Tenant --> Bus
+    Bus --> DocAI
+    Tenant --> Graph
+    Tenant --> Copilot
+    Tenant --> MLTrust
+    DocAI --> DB
+    DocAI --> Files
+    Graph --> DB
+    Copilot --> DB
+    MLTrust --> DB
+    RL --> Obs
