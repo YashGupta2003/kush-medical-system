@@ -159,45 +159,8 @@
   --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.6);
 }
 
-/* Dark Mode Tokens */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg-app: var(--neutral-950);
-    --bg-surface: var(--neutral-900);
-    --bg-surface-hover: var(--neutral-800);
-    --bg-surface-raised: var(--neutral-800);
-    
-    --text-main: var(--neutral-50);
-    --text-muted: var(--neutral-400);
-    --text-inverted: var(--neutral-900);
-
-    --border-subtle: var(--neutral-800);
-    --border-strong: var(--neutral-700);
-    
-    /* Adjusted Semantic Colors for Dark Mode */
-    --success-bg: rgba(6, 95, 70, 0.2);
-    --success-text: #34d399;
-    --success-border: rgba(52, 211, 153, 0.2);
-    
-    --warning-bg: rgba(146, 64, 14, 0.2);
-    --warning-text: #fbbf24;
-    --warning-border: rgba(251, 191, 36, 0.2);
-
-    --danger-bg: rgba(153, 27, 27, 0.2);
-    --danger-text: #f87171;
-    --danger-border: rgba(248, 113, 113, 0.2);
-
-    --info-bg: rgba(7, 89, 133, 0.2);
-    --info-text: #38bdf8;
-    --info-border: rgba(56, 189, 248, 0.2);
-
-    /* Shadows (Dark Mode) */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.4), 0 2px 4px -2px rgb(0 0 0 / 0.4);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.5), 0 4px 6px -4px rgb(0 0 0 / 0.5);
-    --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.6), 0 8px 10px -6px rgb(0 0 0 / 0.6);
-  }
-}
+/* Theme overrides rely strictly on explicit html[data-theme] managed by theme.js
+   so OS dark mode never unexpectedly resets the user's selected light mode on reload. */
 
 /* For manual toggling via class on <html> or <body> */
 html[data-theme="dark"] {

@@ -48,9 +48,18 @@ def get_template_for_distributor(db: Session, tenant_id: int, distributor_id: in
     if not template:
         return None
 
+    try:
+        header_signature = json.loads(template.header_signature)
+        column_field_map = json.loads(template.column_field_map)
+        if not isinstance(header_signature, list) or not isinstance(column_field_map, dict):
+            return None
+    except (ValueError, TypeError):
+        logger.warning(f"Ignoring malformed ADM template for distributor_id={distributor_id}")
+        return None
+
     return {
-        "header_signature": json.loads(template.header_signature),
-        "column_field_map": json.loads(template.column_field_map),
+        "header_signature": header_signature,
+        "column_field_map": column_field_map,
         "sample_count": template.sample_count
     }
 
@@ -144,8 +153,11 @@ def learn_from_confirmed_bill(db: Session, tenant_id: int, distributor_id: int, 
         )
         db.add(new_template)
     else:
-        stored_signature = json.loads(template.header_signature)
-        if match_header_row_against_template(header_tokens, stored_signature):
+        try:
+            stored_signature = json.loads(template.header_signature)
+        except (ValueError, TypeError):
+            stored_signature = []
+        if isinstance(stored_signature, list) and match_header_row_against_template(header_tokens, stored_signature):
             template.sample_count += 1
             template.last_confirmed_at = now
         else:

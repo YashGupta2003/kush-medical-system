@@ -39,6 +39,7 @@ from app.services import (
     customer_service,
     graph_service,
     heatmap_service,
+    matcher as matcher_service,
     reorder_intelligence,
     surveillance_service,
     trust_score_service,
@@ -370,7 +371,7 @@ def main():
                 med = models.Medicine(
                     tenant_id=1,
                     particulars=name,
-                    normalized_name=norm,
+                    normalized_name=matcher_service.normalize(name),
                     unit=unit,
                     mrp=mrp,
                     net_rate=net_rate,
@@ -444,12 +445,20 @@ def main():
             bill_img, rx_img = _create_sample_images(uploads_dir)
 
             # 6. Distributor templates & field accuracy (ADM confidence badges)
-            template_cols = json.dumps({"particulars": 0, "qty": 2, "rate": 4, "mrp": 5})
+            template_sig = json.dumps([
+                "PARTICULARS", "PACK", "BATCH", "EXP", "QTY", "FREE",
+                "RATE", "DISC", "MRP", "GST", "AMOUNT",
+            ])
+            template_cols = json.dumps({
+                "PARTICULARS": "name", "PACK": "pack", "BATCH": "batch", "EXP": "exp_date",
+                "QTY": "qty", "FREE": "free_qty", "RATE": "rate", "DISC": "discount_pct",
+                "MRP": "mrp", "GST": "gst_pct", "AMOUNT": "amount",
+            })
             for d_idx, d in enumerate(distributors):
                 db.add(models.DistributorBillTemplate(
                     tenant_id=1,
                     distributor_id=d.id,
-                    header_signature=f"PARTICULARS|PACK|QTY|FREE|RATE|MRP|GST::{d.id}",
+                    header_signature=template_sig,
                     column_field_map=template_cols,
                     sample_count=12 if d_idx == 0 else (6 if d_idx == 1 else 4),
                     last_confirmed_at=datetime.now(timezone.utc) - timedelta(days=d_idx + 1),

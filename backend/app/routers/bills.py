@@ -278,6 +278,43 @@ def get_bill(bill_id: int, db: Session = Depends(get_db), current_user: models.U
     return _bill_to_out(db, bill)
 
 
+@router.post("/{bill_id}/process-now", response_model=schemas.BillOut)
+def process_bill_now(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user)):
+    """Synchronously run BillProcessingPipeline when background queue is delayed or retrying."""
+    from app.database import tenant_context
+    from app.services.pipeline import BillProcessingPipeline
+
+    bill = db.query(models.Bill).filter(
+        models.Bill.id == bill_id,
+        models.Bill.tenant_id == current_user.tenant_id,
+    ).first()
+    if not bill:
+        raise HTTPException(404, "Bill not found")
+    if bill.status == "confirmed":
+        raise HTTPException(409, "This bill has already been confirmed.")
+
+    if bill.status in ("queued", "processing", "failed"):
+        if bill.status == "failed":
+            db.query(models.BillItem).filter(
+                models.BillItem.bill_id == bill.id,
+                models.BillItem.tenant_id == current_user.tenant_id,
+            ).delete(synchronize_session=False)
+            bill.processing_error = None
+            db.commit()
+        with tenant_context(db, bill.tenant_id):
+            BillProcessingPipeline(bill_id=bill.id, db=db, task_id="inline-now").run()
+        db.expire_all()
+
+    refreshed = db.query(models.Bill).options(
+        joinedload(models.Bill.items).joinedload(models.BillItem.medicine),
+        joinedload(models.Bill.distributor),
+    ).filter(
+        models.Bill.id == bill_id,
+        models.Bill.tenant_id == current_user.tenant_id,
+    ).first()
+    return _bill_to_out(db, refreshed)
+
+
 @router.get("/{bill_id}/image")
 def get_bill_image(bill_id: int, db: Session = Depends(get_db), current_user: models.User = Depends(get_current_user_flexible)):
     from fastapi.responses import FileResponse

@@ -138,6 +138,7 @@ export const api = {
   uploadBillsBatch: (formData) => apiFetch("/bills/upload-batch", { method: "POST", body: formData }),
   getBillStatus: (id) => apiFetch(`/bills/${id}/status`),
   getBill: (id) => apiFetch(`/bills/${id}`),
+  processBillNow: (id) => apiFetch(`/bills/${id}/process-now`, { method: "POST" }),
   getBillImageUrl: (id) => `${BASE}/bills/${id}/image?token=${encodeURIComponent(getToken() || "")}`,
   listBills: (params = {}) => {
     const qs = new URLSearchParams(params).toString();

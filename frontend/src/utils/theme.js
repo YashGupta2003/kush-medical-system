@@ -1,25 +1,28 @@
 import { useEffect, useState } from "react";
 
+export const THEME_STORAGE_KEY = "pharmos_theme";
+
 export function resolveInitialTheme() {
   if (typeof window === "undefined") return "light";
+  try {
+    const saved = window.localStorage?.getItem(THEME_STORAGE_KEY);
+    if (saved === "light" || saved === "dark") return saved;
+  } catch {
+    // ignore storage errors
+  }
   const attr = document.documentElement.getAttribute("data-theme");
   if (attr === "light" || attr === "dark") return attr;
-  const saved = window.localStorage?.getItem("pharmos_theme");
-  if (saved === "light" || saved === "dark") return saved;
-  if (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) {
-    return "dark";
-  }
   return "light";
 }
 
 /** Shared Light/Dark theme state synced with documentElement[data-theme] and localStorage. */
-export function useLandingTheme() {
+export function useTheme() {
   const [theme, setTheme] = useState(resolveInitialTheme);
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);
     try {
-      window.localStorage?.setItem("pharmos_theme", theme);
+      window.localStorage?.setItem(THEME_STORAGE_KEY, theme);
     } catch {
       // ignore storage errors
     }
@@ -27,7 +30,13 @@ export function useLandingTheme() {
 
   const toggleTheme = (e) => {
     const next = theme === "dark" ? "light" : "dark";
+    try {
+      window.localStorage?.setItem(THEME_STORAGE_KEY, next);
+    } catch {
+      // ignore storage errors
+    }
     if (!document.startViewTransition) {
+      document.documentElement.setAttribute("data-theme", next);
       setTheme(next);
       return;
     }
@@ -55,3 +64,5 @@ export function useLandingTheme() {
 
   return { theme, toggleTheme };
 }
+
+export const useLandingTheme = useTheme;
